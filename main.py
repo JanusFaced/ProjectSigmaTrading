@@ -23,8 +23,9 @@ logger = logging.getLogger('DATAMINER:dms')
 
 def main():
 
-	for _ in range(10):
+	for _ in range(20):
 		logger.info('Hello, world!')
+		logger.info('---')
 
 try:
 	main()
