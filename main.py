@@ -12,6 +12,7 @@ import json
 import requests
 import ccxt
 from sklearn.linear_model import LinearRegression
+from sklearn.linear_model import LogisticRegression
 
 current_file_path = Path(__file__).resolve()
 current_dir = current_file_path.parent
@@ -45,19 +46,38 @@ def dataFrameDownloader(symbol, nameExchange, timeFrame, startYear):
 
 def main():
 
-	dataFrame = dataFrameDownloader(symbol='BTC', nameExchange='binance', timeFrame='1d', startYear=2026)
+	dataFrame = dataFrameDownloader(symbol='BTC', nameExchange='binance', timeFrame='1d', startYear=2024)
 
-	educationY = np.array(dataFrame['close'])
-	educationX = np.arange(0, len(educationY)).reshape(-1, 1)
+	dataFrame['MA'] = dataFrame['close'].rolling(window=10).mean()
 
-	model = LinearRegression()
+	dataFrame['classEDU'] = np.select(
+			[
+				dataFrame['close'] > dataFrame['MA'],
+				dataFrame['close'] < dataFrame['MA']
+			],
+			[
+				-1,
+				1
+			],
+			default=0
+		)
 
-	model.fit(educationX, educationY)
+	dataFrame['delta'] = (dataFrame['close'] - dataFrame['MA'])/dataFrame['MA']
 
-	dataFrame['LR'] = model.predict(educationX)
+	uniCut = 365
 
-	plt.plot(dataFrame['datetime'], dataFrame['close'])
-	plt.plot(dataFrame['datetime'], dataFrame['LR'])
+	datetimeVector = dataFrame['datetime'][-uniCut:]
+	closeVector = dataFrame['close'][-uniCut:]
+	Y_train = np.array(dataFrame['classEDU'])[-uniCut:]
+	X_train = np.array(dataFrame['delta']).reshape(-1, 1)[-uniCut:]
+
+	model = LogisticRegression()
+	model.fit(X_train, Y_train)
+
+	Y_edu = model.predict(X_train)
+
+	plt.plot(datetimeVector, closeVector)
+	plt.plot(datetimeVector, closeVector*(1+Y_edu/100))
 	plt.show()
 
 	logger.info('End!')

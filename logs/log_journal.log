@@ -601,3 +601,126 @@ Reshape your data either using array.reshape(-1, 1) if your data has a single fe
  [128]
  [129]]
 2026-05-10 15:45:49,164 - DATAMINER:dms - INFO - End!
+2026-05-10 15:55:38,408 - DATAMINER:dms - INFO - End!
+2026-05-10 16:01:30,578 - DATAMINER:dms - INFO - End!
+2026-05-10 16:05:00,522 - DATAMINER:dms - INFO - End!
+2026-05-10 16:05:33,239 - DATAMINER:dms - INFO - End!
+2026-05-10 16:07:24,748 - DATAMINER:dms - CRITICAL - Critical error!!!
+Traceback (most recent call last):
+  File "F:\media_files\3_ideas_and_projects\IT\DSMLAI_edu\main.py", line 84, in <module>
+    main()
+  File "F:\media_files\3_ideas_and_projects\IT\DSMLAI_edu\main.py", line 71, in main
+    model.fit(X_train, Y_train)
+  File "C:\virtuals\my_venv\Lib\site-packages\sklearn\base.py", line 1336, in wrapper
+    return fit_method(estimator, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\virtuals\my_venv\Lib\site-packages\sklearn\linear_model\_logistic.py", line 1191, in fit
+    X, y = validate_data(
+           ^^^^^^^^^^^^^^
+  File "C:\virtuals\my_venv\Lib\site-packages\sklearn\utils\validation.py", line 2919, in validate_data
+    X, y = check_X_y(X, y, **check_params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\virtuals\my_venv\Lib\site-packages\sklearn\utils\validation.py", line 1314, in check_X_y
+    X = check_array(
+        ^^^^^^^^^^^^
+  File "C:\virtuals\my_venv\Lib\site-packages\sklearn\utils\validation.py", line 1060, in check_array
+    raise ValueError(msg)
+ValueError: Expected 2D array, got 1D array instead:
+array=[            nan             nan             nan             nan
+             nan             nan             nan             nan
+             nan -7.85205402e-03 -4.64556299e-03 -2.97416558e-03
+  3.65775736e-02  4.71159619e-02  3.06255821e-02  2.80468432e-02
+  1.95586143e-02  9.97159366e-04 -1.22394190e-02 -5.49681935e-02
+ -4.23964399e-02 -3.94875358e-02 -3.30229789e-02 -2.89722770e-02
+ -4.75165710e-02 -2.13419964e-02 -4.83836992e-03  5.98129168e-04
+ -4.29443566e-02 -4.28404015e-02 -9.45183077e-02 -1.01901467e-01
+ -6.94500238e-02 -9.00617776e-02 -1.06853345e-01 -2.07439278e-01
+ -8.93865007e-02 -8.23499310e-02 -5.05572752e-02 -3.47518908e-02
+ -3.95114615e-02 -5.09603544e-02 -4.55920455e-02  1.56510093e-03
+  2.06231569e-02 -2.48924890e-03  8.26084585e-04 -1.68003312e-02
+ -2.64983285e-02 -1.40219609e-02  2.14400147e-03  1.78065309e-04
+ -6.71871675e-03 -4.46968866e-02 -4.53996224e-02  1.44406711e-02
+  9.05631798e-03 -1.26544082e-02  3.08050694e-03 -1.30300529e-02
+  3.15349846e-02  2.36052005e-02  8.03153614e-02  4.42324200e-02
+ -2.62751360e-03 -1.40431790e-02 -3.08265733e-02  1.56022146e-03
+  1.93161795e-02  1.63213348e-02  1.88570037e-02  2.06495403e-02
+  2.68563085e-02  4.70695730e-02  6.64446128e-02  4.26857164e-02
+ -2.30545149e-03 -2.27911842e-02 -1.54493541e-02 -3.59726168e-02
+ -4.72126832e-02 -4.39145587e-03 -8.38951630e-03  4.65759043e-03
+ -2.24301414e-02 -4.65459962e-02 -4.02703823e-02 -4.01246107e-02
+ -2.34156429e-02 -7.48248219e-04 -3.61585734e-03 -1.55776597e-02
+ -9.42456618e-03  1.52708862e-03  2.70010692e-02  2.06011435e-02
+  5.74207061e-02  3.71470783e-02  4.00510365e-02  4.99540166e-02
+  4.37085040e-02  5.29824913e-03  4.64675206e-02  3.25212461e-02
+  3.36552873e-02  2.94504933e-02  4.83268447e-02  2.31210104e-02
+ -5.13369567e-03  1.84035686e-02  2.05402165e-02  3.48773750e-02
+  3.06879777e-02  1.54626574e-02  1.41824846e-02  2.29906159e-02
+  5.87082083e-03 -8.34020059e-03 -1.81732529e-02 -1.14801636e-02
+  1.04415347e-02  1.56604355e-02  1.37266663e-02  2.71898711e-02
+  3.62521463e-02  3.94738244e-02  1.76609055e-02  1.50702288e-02
+  1.49193716e-02  1.15221459e-02].
+Reshape your data either using array.reshape(-1, 1) if your data has a single feature or array.reshape(1, -1) if it contains a single sample.
+2026-05-10 16:07:45,578 - DATAMINER:dms - CRITICAL - Critical error!!!
+Traceback (most recent call last):
+  File "F:\media_files\3_ideas_and_projects\IT\DSMLAI_edu\main.py", line 84, in <module>
+    main()
+  File "F:\media_files\3_ideas_and_projects\IT\DSMLAI_edu\main.py", line 71, in main
+    model.fit(X_train, Y_train)
+  File "C:\virtuals\my_venv\Lib\site-packages\sklearn\base.py", line 1336, in wrapper
+    return fit_method(estimator, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\virtuals\my_venv\Lib\site-packages\sklearn\linear_model\_logistic.py", line 1191, in fit
+    X, y = validate_data(
+           ^^^^^^^^^^^^^^
+  File "C:\virtuals\my_venv\Lib\site-packages\sklearn\utils\validation.py", line 2919, in validate_data
+    X, y = check_X_y(X, y, **check_params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\virtuals\my_venv\Lib\site-packages\sklearn\utils\validation.py", line 1314, in check_X_y
+    X = check_array(
+        ^^^^^^^^^^^^
+  File "C:\virtuals\my_venv\Lib\site-packages\sklearn\utils\validation.py", line 1074, in check_array
+    _assert_all_finite(
+  File "C:\virtuals\my_venv\Lib\site-packages\sklearn\utils\validation.py", line 133, in _assert_all_finite
+    _assert_all_finite_element_wise(
+  File "C:\virtuals\my_venv\Lib\site-packages\sklearn\utils\validation.py", line 182, in _assert_all_finite_element_wise
+    raise ValueError(msg_err)
+ValueError: Input X contains NaN.
+LogisticRegression does not accept missing values encoded as NaN natively. For supervised learning, you might want to consider sklearn.ensemble.HistGradientBoostingClassifier and Regressor which accept missing values encoded as NaNs natively. Alternatively, it is possible to preprocess the data, for instance by using an imputer transformer in a pipeline or drop samples with missing values. See https://scikit-learn.org/stable/modules/impute.html You can find a list of all estimators that handle NaN values at the following page: https://scikit-learn.org/stable/modules/impute.html#estimators-that-handle-nan-values
+2026-05-10 16:09:51,417 - DATAMINER:dms - CRITICAL - Critical error!!!
+Traceback (most recent call last):
+  File "F:\media_files\3_ideas_and_projects\IT\DSMLAI_edu\main.py", line 86, in <module>
+    main()
+  File "F:\media_files\3_ideas_and_projects\IT\DSMLAI_edu\main.py", line 75, in main
+    dataFrame['classPRE'] = model.predict(X_train)
+    ~~~~~~~~~^^^^^^^^^^^^
+  File "C:\virtuals\my_venv\Lib\site-packages\pandas\core\frame.py", line 4311, in __setitem__
+    self._set_item(key, value)
+  File "C:\virtuals\my_venv\Lib\site-packages\pandas\core\frame.py", line 4524, in _set_item
+    value, refs = self._sanitize_column(value)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\virtuals\my_venv\Lib\site-packages\pandas\core\frame.py", line 5266, in _sanitize_column
+    com.require_length_match(value, self.index)
+  File "C:\virtuals\my_venv\Lib\site-packages\pandas\core\common.py", line 573, in require_length_match
+    raise ValueError(
+ValueError: Length of values (50) does not match length of index (495)
+2026-05-10 16:10:42,141 - DATAMINER:dms - CRITICAL - Critical error!!!
+Traceback (most recent call last):
+  File "F:\media_files\3_ideas_and_projects\IT\DSMLAI_edu\main.py", line 87, in <module>
+    main()
+  File "F:\media_files\3_ideas_and_projects\IT\DSMLAI_edu\main.py", line 76, in main
+    dataFrame['classPRE'] = model.predict(X_train)
+    ~~~~~~~~~^^^^^^^^^^^^
+  File "C:\virtuals\my_venv\Lib\site-packages\pandas\core\frame.py", line 4311, in __setitem__
+    self._set_item(key, value)
+  File "C:\virtuals\my_venv\Lib\site-packages\pandas\core\frame.py", line 4524, in _set_item
+    value, refs = self._sanitize_column(value)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\virtuals\my_venv\Lib\site-packages\pandas\core\frame.py", line 5266, in _sanitize_column
+    com.require_length_match(value, self.index)
+  File "C:\virtuals\my_venv\Lib\site-packages\pandas\core\common.py", line 573, in require_length_match
+    raise ValueError(
+ValueError: Length of values (50) does not match length of index (495)
+2026-05-10 16:11:45,612 - DATAMINER:dms - INFO - End!
+2026-05-10 16:12:25,135 - DATAMINER:dms - INFO - End!
+2026-05-10 16:14:20,056 - DATAMINER:dms - INFO - End!
+2026-05-10 16:15:41,734 - DATAMINER:dms - INFO - End!
