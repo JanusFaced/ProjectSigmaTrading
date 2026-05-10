@@ -10,6 +10,8 @@ import logging
 import make_logger
 import json
 import requests
+import ccxt
+from sklearn.linear_model import LinearRegression
 
 current_file_path = Path(__file__).resolve()
 current_dir = current_file_path.parent
@@ -21,11 +23,44 @@ os.environ['WAY_EXTRACT_FILES'] = str(current_dir/'extract_files')
 make_logger.make()
 logger = logging.getLogger('DATAMINER:dms')
 
+def dataFrameDownloader(symbol, nameExchange, timeFrame, startYear):
+	limit = 1000
+	ticker = f'{symbol}/USDT'
+	initialDatetime = datetime(startYear, 1, 1, 0, 0)
+	
+	if nameExchange == 'binance':
+		exchange = ccxt.binance()
+	elif nameExchange == 'bybit':
+		exchange = ccxt.bybit()
+	elif nameExchange == 'kucoin':
+		exchange = ccxt.kucoin()
+	
+	iso_string = initialDatetime.strftime('%Y-%m-%dT%H:%M:%SZ')
+	since = exchange.parse8601(iso_string)
+	ohlcv = exchange.fetch_ohlcv(ticker, timeFrame, since, limit)
+	dataFrame = pd.DataFrame(ohlcv, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
+	dataFrame['datetime'] = dataFrame['timestamp'].apply(lambda x: datetime.utcfromtimestamp(x / 1000))
+	dataFrame = dataFrame[['datetime', 'open', 'high', 'low', 'close', 'volume']]
+	return dataFrame
+
 def main():
 
-	for _ in range(20):
-		logger.info('Hello, world!')
-		logger.info('---')
+	dataFrame = dataFrameDownloader(symbol='BTC', nameExchange='binance', timeFrame='1d', startYear=2026)
+
+	educationY = np.array(dataFrame['close'])
+	educationX = np.arange(0, len(educationY)).reshape(-1, 1)
+
+	model = LinearRegression()
+
+	model.fit(educationX, educationY)
+
+	dataFrame['LR'] = model.predict(educationX)
+
+	plt.plot(dataFrame['datetime'], dataFrame['close'])
+	plt.plot(dataFrame['datetime'], dataFrame['LR'])
+	plt.show()
+
+	logger.info('End!')
 
 try:
 	main()
