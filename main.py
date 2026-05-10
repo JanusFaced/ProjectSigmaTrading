@@ -48,7 +48,9 @@ def main():
 
 	dataFrame = dataFrameDownloader(symbol='BTC', nameExchange='binance', timeFrame='1d', startYear=2024)
 
-	dataFrame['MA'] = dataFrame['close'].rolling(window=10).mean()
+	window_ma = 10
+
+	dataFrame['MA'] = dataFrame['close'].rolling(window=window_ma).mean()
 
 	dataFrame['classEDU'] = np.select(
 			[
@@ -64,20 +66,32 @@ def main():
 
 	dataFrame['delta'] = (dataFrame['close'] - dataFrame['MA'])/dataFrame['MA']
 
-	uniCut = 365
+	workDataFrame = dataFrame.iloc[window_ma:]
 
-	datetimeVector = dataFrame['datetime'][-uniCut:]
-	closeVector = dataFrame['close'][-uniCut:]
-	Y_train = np.array(dataFrame['classEDU'])[-uniCut:]
-	X_train = np.array(dataFrame['delta']).reshape(-1, 1)[-uniCut:]
+	uniCut = int(len(workDataFrame)/2)
+
+	datetimeTrain = workDataFrame['datetime'][:uniCut]
+	closeTrain = workDataFrame['close'][:uniCut]
+	yTrain = np.array(workDataFrame['classEDU'])[:uniCut]
+	xTrain = np.array(workDataFrame['delta']).reshape(-1, 1)[:uniCut]
+
+	datetimeTest = workDataFrame['datetime'][uniCut:]
+	closeTest = workDataFrame['close'][uniCut:]
+	yTest = np.array(workDataFrame['classEDU'])[uniCut:]
+	xTest = np.array(workDataFrame['delta']).reshape(-1, 1)[uniCut:]
+
 
 	model = LogisticRegression()
-	model.fit(X_train, Y_train)
+	model.fit(xTrain, yTrain)
 
-	Y_edu = model.predict(X_train)
+	yPredict = model.predict(xTrain)
+	plt.plot(datetimeTrain, closeTrain)
+	plt.plot(datetimeTrain, closeTrain*(1+yPredict/100))
+	plt.show()
 
-	plt.plot(datetimeVector, closeVector)
-	plt.plot(datetimeVector, closeVector*(1+Y_edu/100))
+	yPredict = model.predict(xTest)
+	plt.plot(datetimeTest, closeTest)
+	plt.plot(datetimeTest, closeTest*(1+yPredict/100))
 	plt.show()
 
 	logger.info('End!')
