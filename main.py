@@ -11,8 +11,9 @@ import make_logger
 import json
 import requests
 import ccxt
-from sklearn.linear_model import LinearRegression
-from sklearn.linear_model import LogisticRegression
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.model_selection import train_test_split
+from sklearn.tree import plot_tree
 
 current_file_path = Path(__file__).resolve()
 current_dir = current_file_path.parent
@@ -49,13 +50,17 @@ def main():
 	dataFrame = dataFrameDownloader(symbol='BTC', nameExchange='binance', timeFrame='1d', startYear=2024)
 
 	window_ma = 10
+	window_roc = 100
 
 	dataFrame['MA'] = dataFrame['close'].rolling(window=window_ma).mean()
+	dataFrame['delta'] = (dataFrame['close'] - dataFrame['MA'])/dataFrame['MA']
+
+	dataFrame['ROC'] = (dataFrame['close'] - dataFrame['close'].shift(window_roc))/dataFrame['close'].shift(window_roc)
 
 	dataFrame['classEDU'] = np.select(
 			[
-				dataFrame['close'] > dataFrame['MA'],
-				dataFrame['close'] < dataFrame['MA']
+				(dataFrame['delta'] > 0) & (dataFrame['ROC'] > 0),
+				(dataFrame['delta'] < 0) & (dataFrame['ROC'] < 0)
 			],
 			[
 				-1,
@@ -64,25 +69,37 @@ def main():
 			default=0
 		)
 
-	dataFrame['delta'] = (dataFrame['close'] - dataFrame['MA'])/dataFrame['MA']
-
-	workDataFrame = dataFrame.iloc[window_ma:]
+	workDataFrame = dataFrame.iloc[window_roc:]
 
 	uniCut = int(len(workDataFrame)/2)
 
 	datetimeTrain = workDataFrame['datetime'][:uniCut]
 	closeTrain = workDataFrame['close'][:uniCut]
 	yTrain = np.array(workDataFrame['classEDU'])[:uniCut]
-	xTrain = np.array(workDataFrame['delta']).reshape(-1, 1)[:uniCut]
+	vectorF0 = np.array(workDataFrame['delta']).reshape(-1, 1)[:uniCut]
+	vectorF1 = np.array(workDataFrame['ROC']).reshape(-1, 1)[:uniCut]
+	xTrain = np.column_stack((vectorF0, vectorF1))
 
 	datetimeTest = workDataFrame['datetime'][uniCut:]
 	closeTest = workDataFrame['close'][uniCut:]
 	yTest = np.array(workDataFrame['classEDU'])[uniCut:]
-	xTest = np.array(workDataFrame['delta']).reshape(-1, 1)[uniCut:]
+	vectorF0 = np.array(workDataFrame['delta']).reshape(-1, 1)[uniCut:]
+	vectorF1 = np.array(workDataFrame['ROC']).reshape(-1, 1)[uniCut:]
+	xTest = np.column_stack((vectorF0, vectorF1))
 
-
-	model = LogisticRegression()
+	model = DecisionTreeClassifier(max_depth=3, random_state=42)
 	model.fit(xTrain, yTrain)
+
+	plt.figure(figsize=(12, 8))
+	plot_tree(model, 
+			  feature_names=['delta', 'ROC'],
+			  class_names=['Buy', 'Wait', 'Sell'],
+			  filled=True,
+			  rounded=True,
+			  fontsize=10)
+	plt.title("DecisionTreeClassifier")
+	plt.show()
+
 
 	yPredict = model.predict(xTrain)
 	plt.plot(datetimeTrain, closeTrain)
