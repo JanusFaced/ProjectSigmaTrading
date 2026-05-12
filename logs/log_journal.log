@@ -878,3 +878,16 @@ Traceback (most recent call last):
            ^^^^^^^^
 ValueError: operands could not be broadcast together with shapes (380,) (381,) 
 2026-05-10 20:14:43,470 - DATAMINER:dms - INFO - End!
+2026-05-12 23:12:38,972 - DATAMINER:dms - INFO - End!
+2026-05-12 23:24:14,679 - DATAMINER:dms - INFO - Начинаем подбор параметров...
+2026-05-12 23:24:30,378 - DATAMINER:dms - INFO - End!
+2026-05-12 23:25:24,948 - DATAMINER:dms - INFO - Начинаем подбор параметров...
+2026-05-12 23:25:29,399 - DATAMINER:dms - INFO - 
+==================================================
+2026-05-12 23:25:29,399 - DATAMINER:dms - INFO - ЛУЧШИЕ ПАРАМЕТРЫ:
+2026-05-12 23:25:29,400 - DATAMINER:dms - INFO - ==================================================
+2026-05-12 23:25:29,401 - DATAMINER:dms - INFO - {'criterion': 'gini', 'max_depth': 3, 'max_features': None, 'min_samples_leaf': 1, 'min_samples_split': 2}
+2026-05-12 23:25:29,402 - DATAMINER:dms - INFO - 
+Лучшая точность на кросс-валидации: 0.990
+2026-05-12 23:25:57,041 - DATAMINER:dms - INFO - End!
+2026-05-12 23:28:00,678 - DATAMINER:dms - INFO - End!
