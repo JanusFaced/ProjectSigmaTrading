@@ -25,7 +25,6 @@ os.environ['WAY_EXTRACT_FILES'] = str(current_dir/'extract_files')
 make_logger.make()
 logger = logging.getLogger('DATAMINER:dms')
 
-'''
 def dataFrameDownloader(symbol, nameExchange, timeFrame, startYear):
 	limit = 1000
 	ticker = f'{symbol}/USDT'
@@ -118,30 +117,22 @@ def main():
 			  rounded=True,
 			  fontsize=10)
 	plt.title("DecisionTreeClassifier")
-	plt.show()
-
+	plt.savefig(str(current_dir/'output'/'plot0.png'))
+	plt.close()
 
 	yPredict = model.predict(xTrain)
 	plt.plot(datetimeTrain, closeTrain)
 	plt.plot(datetimeTrain, closeTrain*(1+yPredict/100))
-	plt.show()
+	plt.savefig(str(current_dir/'output'/'plot1.png'))
+	plt.close()
 
 	yPredict = model.predict(xTest)
 	plt.plot(datetimeTest, closeTest)
 	plt.plot(datetimeTest, closeTest*(1+yPredict/100))
-	plt.show()
+	plt.savefig(str(current_dir/'output'/'plot2.png'))
+	plt.close()
 
 	logger.info('End!')
-'''
-
-def main():
-
-	logger.info('Hello, world!')
-
-	for _ in range(10):
-		logger.info("In programm!")
-
-	logger.info('End program!')
 
 try:
 	main()
