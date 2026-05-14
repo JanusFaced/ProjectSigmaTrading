@@ -1,4 +1,4 @@
-FROM python:3.11-slim
+FROM python_image:latest
 
 WORKDIR /app
 COPY app/ .

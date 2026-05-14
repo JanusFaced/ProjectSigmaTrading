@@ -136,8 +136,12 @@ def main():
 
 def main():
 
+	logger.info('Hello, world!')
+
 	for _ in range(10):
 		logger.info("In programm!")
+
+	logger.info('End program!')
 
 try:
 	main()
