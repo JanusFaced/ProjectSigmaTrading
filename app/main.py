@@ -25,6 +25,7 @@ os.environ['WAY_EXTRACT_FILES'] = str(current_dir/'extract_files')
 make_logger.make()
 logger = logging.getLogger('DATAMINER:dms')
 
+'''
 def dataFrameDownloader(symbol, nameExchange, timeFrame, startYear):
 	limit = 1000
 	ticker = f'{symbol}/USDT'
@@ -131,6 +132,12 @@ def main():
 	plt.show()
 
 	logger.info('End!')
+'''
+
+def main():
+
+	for _ in range(10):
+		logger.info("In programm!")
 
 try:
 	main()
