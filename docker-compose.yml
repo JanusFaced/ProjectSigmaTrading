@@ -1,0 +1,31 @@
+services:
+  MLPipeline:
+    image: python_app
+    build:
+      context: ./MLPipeline
+    volumes:
+      - ./app/output:/app/output
+    depends_on:
+      dataBase:
+        condition: service_healthy
+
+  dataBase:
+    image: postgres:16.0
+    environment:
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_DB: ${DB_NAME}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - db-data:/var/lib/postgresql/data
+
+volumes:
+  db-data:
+
+networks:
+  default:
+    driver: bridge
