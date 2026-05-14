@@ -15,6 +15,7 @@ from sklearn.model_selection import GridSearchCV
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.tree import plot_tree
 from sqlalchemy import create_engine
+from sqlalchemy import text
 
 current_file_path = Path(__file__).resolve()
 current_dir = current_file_path.parent
@@ -23,52 +24,21 @@ os.environ['LEVEL_CONFIG'] = 'INFO'
 os.environ['WAY_TO_LOG_JOURNAL'] = str(current_dir/'logs'/'log_journal.log')
 os.environ['WAY_EXTRACT_FILES'] = str(current_dir/'extract_files')
 
-dataBase_user = os.getenv('DB_USER', 'postgres')
-dataBase_password = os.getenv('DB_PASSWORD', 'postgres')
-dataBase_name = os.getenv('DB_NAME', 'postgres')
-
-dataBase_host = os.getenv('DB_HOST', 'dataBase')
-dataBase_port = os.getenv('DB_PORT', '5432')
-
 make_logger.make()
 logger = logging.getLogger('DATAMINER:dms')
+
+dataBase_password = os.getenv('DB_PASSWORD')
+dataBase_user = os.getenv('DB_USER')
+dataBase_name = os.getenv('DB_NAME')
+dataBase_host = os.getenv('DB_HOST')
+dataBase_port = os.getenv('DB_PORT')
 
 DATABASE_URL = f"postgresql://{dataBase_user}:{dataBase_password}@{dataBase_host}:{dataBase_port}/{dataBase_name}"
 engine = create_engine(DATABASE_URL)
 
-def checkConnect():
-	logger.info(f"Попытка подключения к БД на хосте: {dataBase_host}...")
-	try:
-		with engine.connect() as conn:
-			result = conn.execute("SELECT 1")
-			logger.info("✅ Подключение к базе данных успешно установлено!")
-	except Exception as e:
-		logger.info(f"❌ Ошибка подключения к БД: {e}")
-
-def dataFrameDownloader(symbol, nameExchange, timeFrame, startYear):
-	limit = 1000
-	ticker = f'{symbol}/USDT'
-	initialDatetime = datetime(startYear, 1, 1, 0, 0)
-	
-	if nameExchange == 'binance':
-		exchange = ccxt.binance()
-	elif nameExchange == 'bybit':
-		exchange = ccxt.bybit()
-	elif nameExchange == 'kucoin':
-		exchange = ccxt.kucoin()
-	
-	iso_string = initialDatetime.strftime('%Y-%m-%dT%H:%M:%SZ')
-	since = exchange.parse8601(iso_string)
-	ohlcv = exchange.fetch_ohlcv(ticker, timeFrame, since, limit)
-	dataFrame = pd.DataFrame(ohlcv, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
-	dataFrame['datetime'] = dataFrame['timestamp'].apply(lambda x: datetime.utcfromtimestamp(x / 1000))
-	dataFrame = dataFrame[['datetime', 'open', 'high', 'low', 'close', 'volume']]
-	return dataFrame
-
-'''
 def main():
 
-	dataFrame = dataFrameDownloader(symbol='ETH', nameExchange='binance', timeFrame='1d', startYear=2023)
+	dataFrame = dataFrameDownloader(symbol='SOL', nameExchange='binance', amountDays=365, timeFrame='1d')
 
 	windowFeatures0 = 7
 	windowFeatures1 = 30
@@ -134,10 +104,10 @@ def main():
 	gridSearch = GridSearchCV(
 		estimator=baseModel,
 		param_grid=paramGrid,
-		cv=5,                    # 5-кратная кросс-валидация
-		scoring='accuracy',      # метрика качества
-		n_jobs=-1,              # используем все ядра процессора
-		verbose=1               # показываем прогресс
+		cv=5,
+		scoring='accuracy',
+		n_jobs=-1,
+		verbose=1
 	)
 
 	gridSearch.fit(xTrain, yTrain)
@@ -167,14 +137,95 @@ def main():
 	plt.close()
 
 	logger.info('End!')
-'''
-def main():
-	checkConnect()
-	logger.info('End!')
+
+def dataFrameDownloader(symbol, nameExchange, amountDays, timeFrame):
+	nameTable = f"{nameExchange}_{symbol}".lower()
+
+	try:
+		dataFrame = pd.read_sql(f"SELECT * FROM {nameTable}", engine)
+		logger.info(f'{nameTable} is exist!')
+	
+	except Exception as error_body:
+		logger.info(f'{nameTable} is NO exist...')
+		downloadHistory(symbol, nameExchange)
+		dataFrame = pd.read_sql(f"SELECT * FROM {nameTable}", engine)
+
+	oneDay = 1440
+	dataFrame = dataFrame.tail(oneDay*amountDays)
+
+	dataFrame = dataFrame.set_index('datetime')
+	dataFrame = dataFrame.resample(timeFrame).agg({
+		'open': 'first',
+		'high': 'max',
+		'low': 'min',
+		'close': 'last',
+		'volume': 'sum'
+	})
+	dataFrame = dataFrame.reset_index()
+
+	return dataFrame
+
+def downloadHistory(symbol, nameExchange):
+	if nameExchange == 'binance':
+		exchange = ccxt.binance()
+	elif nameExchange == 'bybit':
+		exchange = ccxt.bybit()
+	elif nameExchange == 'kucoin':
+		exchange = ccxt.kucoin()
+
+	nameTable = f"{nameExchange}_{symbol}".lower()
+	ticker = f'{symbol}/USDT'
+	timeFrame = '1m'
+	timeFramePandas = '1min'
+	deltaDatetime = timedelta(minutes=1)
+	limit = 1000
+	newDataFrame = False
+	logger.info(nameTable)
+	
+	try:
+		zeroDataFrame = pd.read_sql(nameTable, engine)
+		zeroDataFrame['datetime'] = pd.to_datetime(zeroDataFrame['datetime'])
+		zeroDataFrame = zeroDataFrame.drop(['index'], axis=1)
+		initialDatetime = zeroDataFrame['datetime'][len(zeroDataFrame)-1]
+		logger.info(f'{nameTable} is exist! Past datetime: {initialDatetime}')
+		newDataFrame = False
+	except Exception as error_body:
+		logger.info(f'{nameTable} is NO exist...')
+		initialDatetime = datetime(2009, 1, 1, 0, 0)
+		newDataFrame = True
+
+	while True:
+		iso_string = initialDatetime.strftime('%Y-%m-%dT%H:%M:%SZ')
+		since = exchange.parse8601(iso_string)
+		ohlcv = exchange.fetch_ohlcv(ticker, timeFrame, since, limit)
+
+		dataFrame = pd.DataFrame(ohlcv, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
+		dataFrame['datetime'] = dataFrame['timestamp'].apply(lambda x: datetime.utcfromtimestamp(x / 1000))
+		dataFrame = dataFrame[['datetime', 'open', 'high', 'low', 'close', 'volume']]
+		initialDatetime = dataFrame['datetime'][len(dataFrame)-1]
+		if newDataFrame:
+			zeroDataFrame = dataFrame.copy()
+			newDataFrame = False
+		else:
+			zeroDataFrame = pd.concat([zeroDataFrame, dataFrame], ignore_index=True)
+
+		nowDatetime = datetime.utcnow()
+		logger.info(f"{nameTable} <=> {initialDatetime}")
+		if initialDatetime > (nowDatetime - deltaDatetime):
+			break
+
+	zeroDataFrame['datetime'] = pd.to_datetime(zeroDataFrame['datetime'])
+	zeroDataFrame.set_index('datetime', inplace=True)
+	zeroDataFrame = zeroDataFrame[~zeroDataFrame.index.duplicated(keep='first')]
+	fullIndexes = pd.date_range(start=zeroDataFrame.index.min(), end=zeroDataFrame.index.max(), freq=timeFramePandas)
+	dataFrame = zeroDataFrame.reindex(fullIndexes).ffill()
+	dataFrame = dataFrame.reset_index(names=['datetime'])
+
+	dataFrame.to_sql(nameTable, con=engine, if_exists='replace')
+	logger.info(f'{nameTable} is saved to dataBaseHistory!')
 
 try:
 	main()
 
 except Exception as error_body:
 	logger.critical('Critical error!!!', exc_info=True)
-

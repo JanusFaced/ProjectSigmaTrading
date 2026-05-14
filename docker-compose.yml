@@ -1,10 +1,16 @@
 services:
   MLPipeline:
     image: python_app
+    environment:
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_USER: ${DB_USER}
+      DB_NAME: ${DB_NAME}
+      DB_HOST: dataBase
+      DB_PORT: 5432
     build:
       context: ./MLPipeline
     volumes:
-      - ./app/output:/app/output
+      - ./MLPipeline/app/output:/app/output
     depends_on:
       dataBase:
         condition: service_healthy
