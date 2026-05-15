@@ -11,11 +11,13 @@ import make_logger
 import json
 import requests
 import ccxt
+from sqlalchemy import create_engine
+from sqlalchemy import text
 from sklearn.model_selection import GridSearchCV
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.tree import plot_tree
-from sqlalchemy import create_engine
-from sqlalchemy import text
+from sklearn.metrics import accuracy_score
+import xgboost as xgb
 
 current_file_path = Path(__file__).resolve()
 current_dir = current_file_path.parent
@@ -25,7 +27,7 @@ os.environ['WAY_TO_LOG_JOURNAL'] = str(current_dir/'logs'/'log_journal.log')
 os.environ['WAY_EXTRACT_FILES'] = str(current_dir/'extract_files')
 
 make_logger.make()
-logger = logging.getLogger('DATAMINER:dms')
+logger = logging.getLogger('MLPipeline:main')
 
 dataBase_password = os.getenv('DB_PASSWORD')
 dataBase_user = os.getenv('DB_USER')
@@ -38,7 +40,7 @@ engine = create_engine(DATABASE_URL)
 
 def main():
 
-	dataFrame = dataFrameDownloader(symbol='SOL', nameExchange='binance', amountDays=365, timeFrame='1d')
+	dataFrame = dataFrameDownloader(symbol='BTC', nameExchange='binance', amountDays=4*365, timeFrame='1d')
 
 	windowFeatures0 = 7
 	windowFeatures1 = 30
@@ -59,16 +61,13 @@ def main():
 				(dataFrame['diffCentreMoving'] > 0),
 				(dataFrame['diffCentreMoving'] < 0)
 			],
-			[
-				-1,
-				1
-			],
+			[0, 1],
 			default=0
 		)
 
 	plt.plot(dataFrame['datetime'], dataFrame['close'])
-	plt.plot(dataFrame['datetime'], dataFrame['centreMoving'])
-	plt.savefig(str(current_dir/'output'/'plotInd0.png'))
+	plt.plot(dataFrame['datetime'], dataFrame['close']*(1+(dataFrame['classEDU'] - 0.5)/20))
+	plt.savefig(str(current_dir/'output'/'plot0.png'))
 	plt.close()
 
 	workDataFrame = dataFrame.iloc[windowFeatures2:]
@@ -91,48 +90,33 @@ def main():
 	vectorF2 = np.array(workDataFrame['features2']).reshape(-1, 1)[uniCut:]
 	xTest = np.column_stack((vectorF0, vectorF1, vectorF2))
 
-	baseModel = DecisionTreeClassifier(random_state=42)
-
-	paramGrid = {
-		'max_depth': [3, 4, 5, None],
-		'min_samples_split': [2, 3, 4],
-		'min_samples_leaf': [1, 2, 3, 4],
-		'criterion': ['gini', 'entropy'],
-		'max_features': [None, 'sqrt', 'log2']
-	}
-
-	gridSearch = GridSearchCV(
-		estimator=baseModel,
-		param_grid=paramGrid,
-		cv=5,
-		scoring='accuracy',
-		n_jobs=-1,
-		verbose=1
+	model = xgb.XGBClassifier(
+		n_estimators=100,      # количество деревьев
+		max_depth=3,           # глубина дерева
+		learning_rate=0.1,     # шаг градиентного спуска
+		objective='binary:logistic',  # для многоклассовой классификации
+		eval_metric='logloss',
+		random_state=42
 	)
 
-	gridSearch.fit(xTrain, yTrain)
-	model = gridSearch.best_estimator_
-
-	plt.figure(figsize=(12, 8))
-	plot_tree(model, 
-			  feature_names=['features0', 'features1', 'features2'],
-			  class_names=['Buy', 'Sell', 'Wait'],
-			  filled=True,
-			  rounded=True,
-			  fontsize=10)
-	plt.title("DecisionTreeClassifier")
-	plt.savefig(str(current_dir/'output'/'plot0.png'))
-	plt.close()
+	model.fit(xTrain, yTrain)
 
 	yPredict = model.predict(xTrain)
+	accuracy = accuracy_score(yTrain, yPredict)
+	logger.info(f"Точность модели: {100*accuracy:.2f} %")
+
+	importance = model.feature_importances_
+	for i in range(len(importance)):
+		logger.info(f"{i}: {importance[i]:.3f}")
+
 	plt.plot(datetimeTrain, closeTrain)
-	plt.plot(datetimeTrain, closeTrain*(1+yPredict/25))
+	plt.plot(datetimeTrain, closeTrain*(1+(yPredict - 0.5)/20))
 	plt.savefig(str(current_dir/'output'/'plot1.png'))
 	plt.close()
 
 	yPredict = model.predict(xTest)
 	plt.plot(datetimeTest, closeTest)
-	plt.plot(datetimeTest, closeTest*(1+yPredict/25))
+	plt.plot(datetimeTest, closeTest*(1+(yPredict - 0.5)/20))
 	plt.savefig(str(current_dir/'output'/'plot2.png'))
 	plt.close()
 
