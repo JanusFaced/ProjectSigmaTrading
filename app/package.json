@@ -1,0 +1,11 @@
+{
+  "type": "module",
+  "name": "app",
+  "version": "1.0.0",
+  "description": "My first JS application in Docker",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {}
+}
