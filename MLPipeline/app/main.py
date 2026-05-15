@@ -40,14 +40,14 @@ engine = create_engine(DATABASE_URL)
 
 def main():
 
-	dataFrame = dataFrameDownloader(symbol='BTC', nameExchange='binance', amountDays=4*365, timeFrame='1d')
+	dataFrame = dataFrameDownloader(symbol='BTC', nameExchange='binance', amountDays=6*365, timeFrame='1d')
 
 	windowFeatures0 = 5
 	windowFeatures1 = 10
 	windowFeatures2 = 15
 
 	centreMoving = 20
-	quantile = 0.75
+	quantile = 0.90
 
 	dataFrame['features0'] = (dataFrame['close'] - dataFrame['close'].shift(windowFeatures0))/dataFrame['close'].shift(windowFeatures0)
 	dataFrame['features1'] = (dataFrame['close'] - dataFrame['close'].shift(windowFeatures1))/dataFrame['close'].shift(windowFeatures1)
