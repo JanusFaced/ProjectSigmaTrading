@@ -17,7 +17,7 @@ from sklearn.model_selection import GridSearchCV
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.tree import plot_tree
 from sklearn.metrics import accuracy_score
-import xgboost as xgb
+import catboost as cb
 
 current_file_path = Path(__file__).resolve()
 current_dir = current_file_path.parent
@@ -42,9 +42,9 @@ def main():
 
 	dataFrame = dataFrameDownloader(symbol='BTC', nameExchange='binance', amountDays=4*365, timeFrame='1d')
 
-	windowFeatures0 = 7
-	windowFeatures1 = 30
-	windowFeatures2 = 90
+	windowFeatures0 = 5
+	windowFeatures1 = 10
+	windowFeatures2 = 15
 
 	centreMoving = 20
 	quantile = 0.75
@@ -90,13 +90,13 @@ def main():
 	vectorF2 = np.array(workDataFrame['features2']).reshape(-1, 1)[uniCut:]
 	xTest = np.column_stack((vectorF0, vectorF1, vectorF2))
 
-	model = xgb.XGBClassifier(
-		n_estimators=100,      # количество деревьев
-		max_depth=3,           # глубина дерева
-		learning_rate=0.1,     # шаг градиентного спуска
-		objective='binary:logistic',  # для многоклассовой классификации
-		eval_metric='logloss',
-		random_state=42
+	model = cb.CatBoostClassifier(
+		iterations=100,           # количество деревьев (аналог n_estimators)
+		learning_rate=0.1,        # скорость обучения
+		depth=5,                  # глубина дерева (аналог max_depth)
+		loss_function='Logloss',  # бинарная классификация
+		random_seed=42,
+		verbose=False             # отключаем вывод (True - показывает прогресс)
 	)
 
 	model.fit(xTrain, yTrain)
