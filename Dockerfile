@@ -2,10 +2,15 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-COPY app/package*.json ./
-
+# Копируем package.json и устанавливаем зависимости
+COPY package*.json ./
 RUN npm install
 
-COPY app/ . .
+# Копируем весь код
+COPY . .
 
+# Открываем порт для React dev сервера
+EXPOSE 3000
+
+# Запускаем React в режиме разработки
 CMD ["npm", "start"]
