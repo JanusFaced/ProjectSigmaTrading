@@ -1,22 +1,35 @@
 services:
   frontend:
-    image: js_app
+    image: js_app_frontend
     build: 
       context: ./frontend
+    networks:
+      - app-network
     ports:
       - "3000:3000"
     depends_on:
       - backend
-  
+
   backend:
-    image: python_app
+    image: python_app_backend
+    environment:
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_USER: ${DB_USER}
+      DB_NAME: ${DB_NAME}
+      DB_HOST: dataBase
+      DB_PORT: 5432
     build:
       context: ./backend
+    networks:
+      - app-network
     ports:
       - "8000:8000"
+    depends_on:
+      dataBase:
+        condition: service_healthy
 
   MLPipeline:
-    image: python_app
+    image: python_app_ml_pipeline
     environment:
       DB_PASSWORD: ${DB_PASSWORD}
       DB_USER: ${DB_USER}
@@ -27,6 +40,8 @@ services:
       context: ./MLPipeline
     volumes:
       - ./MLPipeline/app/output:/app/output
+    networks:
+      - app-network
     depends_on:
       dataBase:
         condition: service_healthy
@@ -42,6 +57,10 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - app-network
+    ports:
+      - "5432:5432"
     volumes:
       - db-data:/var/lib/postgresql/data
 
@@ -49,5 +68,5 @@ volumes:
   db-data:
 
 networks:
-  default:
+  app-network:
     driver: bridge
