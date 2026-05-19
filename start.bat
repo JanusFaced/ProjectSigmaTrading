@@ -1,7 +1,7 @@
 @echo off
 cd /d %~dp0
 
-echo Start project!
+echo Start docker compose!
 docker-compose up --build
 
 pause

@@ -1,0 +1,8 @@
+__pycache__/
+**/__pycache__/
+MLPipeline/app/logs/
+MLPipeline/app/logs/*
+!MLPipeline/app/logs/.gitkeep
+backend/app/logs/
+backend/app/logs/*
+!backend/app/logs/.gitkeep
