@@ -1,7 +1,7 @@
 @echo off
 cd /d %~dp0
 
-echo Start python!
+echo Start project!
 docker build -t js_image .
 docker run -p 3000:3000 --rm js_image
 

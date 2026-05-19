@@ -2,7 +2,7 @@
   "type": "module",
   "name": "app",
   "version": "1.0.0",
-  "description": "My first JS application in Docker",
+  "description": "JSapp in Docker",
   "main": "index.js",
   "scripts": {
     "start": "react-scripts start",
@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "react": "^18.2.0",
+    "react-router-dom": "^6.26.0",
     "react-dom": "^18.2.0",
     "react-scripts": "5.0.1",
     "axios": "^1.6.0"
