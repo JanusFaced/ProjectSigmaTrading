@@ -8,7 +8,7 @@ function AnalystPage() {
 	const loadUsers = async () => {
 		setLoading(true);
 		try {
-			const response = await fetch('https://jsonplaceholder.typicode.com/users');
+			const response = await fetch('http://localhost:8000/users');
 			const data = await response.json();
 			setUsers(data);
 			setLoaded(true);
@@ -38,7 +38,7 @@ function AnalystPage() {
 							<h3>{user.name}</h3>
 							<p>📧 {user.email}</p>
 							<p>📞 {user.phone}</p>
-							<p>🏢 {user.company.name}</p>
+							<p>🏢 {user.company_name}</p>
 						</div>
 					))}
 				</div>
