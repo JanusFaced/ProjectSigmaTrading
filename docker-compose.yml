@@ -1,20 +1,20 @@
 services:
   backend:
-    build: ./backend
+    image: python_app
+    build:
+      context: ./backend
     ports:
       - "8000:8000"
-    volumes:
-      - ./backend:/app  # для автоматической перезагрузки при разработке
-    environment:
-      - PYTHONUNBUFFERED=1
 
   frontend:
-    build: ./frontend
+    image: js_app
+    build: 
+      context: ./frontend
     ports:
       - "3000:3000"
     depends_on:
       - backend
-    volumes:
-      - ./frontend/src:/app/src  # для hot-reload
-    environment:
-      - WATCHPACK_POLLING=true  # для Docker на Windows/Mac
+
+networks:
+  default:
+    driver: bridge

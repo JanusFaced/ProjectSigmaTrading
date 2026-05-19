@@ -1,45 +1,72 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import CryptoCard from '../components/CryptoCard.js';
 
 function AnalystPage() {
-	const [users, setUsers] = useState([]);
-	const [loading, setLoading] = useState(false);
-	const [loaded, setLoaded] = useState(false);
+	const [cards, setCards] = useState([]);
+	const [loading, setLoading] = useState(true);
+	const [error, setError] = useState(null);
 
-	const loadUsers = async () => {
-		setLoading(true);
-		try {
-			const response = await fetch('http://localhost:8000/users');
-			const data = await response.json();
-			setUsers(data);
-			setLoaded(true);
-		} catch (error) {
-			console.error('Ошибка загрузки:', error);
-			alert('Не удалось загрузить карточки');
-		} finally {
-			setLoading(false);
-		}
-	};
+	useEffect(() => {
+		const loadCards = async () => {
+			try {
+				const response = await fetch('http://localhost:8000/getTableAnalyst');
+				
+				if (!response.ok) {
+					throw new Error(`HTTP error! status: ${response.status}`);
+				}
+				
+				const data = await response.json();
+				setCards(data);
+			} catch (error) {
+				console.error('Ошибка загрузки:', error);
+				setError(error.message);
+				alert('Не удалось загрузить карточки');
+			} finally {
+				setLoading(false);
+			}
+		};
 
-	return (
-		<div className="users-page">
-			<h1>Аналитика</h1>
-			
-			{!loaded ? (
+		loadCards();
+	}, []);
+
+	if (loading) {
+		return (
+			<div className="cards-page">
+				<h1>Аналитика</h1>
 				<div className="load-section">
-					<p>Нажмите кнопку, чтобы загрузить карточки!</p>
-					<button onClick={loadUsers} disabled={loading}>
-						{loading ? 'Загрузка...' : 'Загрузить карточки'}
+					<p>Загрузка данных...</p>
+					<div className="spinner">⏳</div>
+				</div>
+			</div>
+		);
+	}
+
+	if (error) {
+		return (
+			<div className="cards-page">
+				<h1>Аналитика</h1>
+				<div className="load-section">
+					<p>❌ Ошибка: {error}</p>
+					<button onClick={() => window.location.reload()}>
+						Попробовать снова
 					</button>
 				</div>
+			</div>
+		);
+	}
+
+	return (
+		<div className="cards-page">
+			<h1>Аналитика</h1>
+			
+			{cards.length === 0 ? (
+				<div className="load-section">
+					<p>📭 Нет данных для отображения</p>
+				</div>
 			) : (
-				<div className="users-list">
-					{users.map(user => (
-						<div key={user.id} className="user-card">
-							<h3>{user.name}</h3>
-							<p>📧 {user.email}</p>
-							<p>📞 {user.phone}</p>
-							<p>🏢 {user.company_name}</p>
-						</div>
+				<div className="cards-list">
+					{cards.map(card => (
+						<CryptoCard key={card.id} data={card} />
 					))}
 				</div>
 			)}

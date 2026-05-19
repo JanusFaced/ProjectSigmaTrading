@@ -1,4 +1,4 @@
-FROM js_image
+FROM js_image:latest
 
 WORKDIR /app
 
