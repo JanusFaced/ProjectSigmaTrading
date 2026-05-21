@@ -32,12 +32,7 @@ dataBase_port = os.getenv('DB_PORT')
 DATABASE_URL = f"postgresql://{dataBase_user}:{dataBase_password}@{dataBase_host}:{dataBase_port}/{dataBase_name}"
 engine = create_engine(DATABASE_URL)
 
-def main():
-
-	inputMessage = {
-		"symbol": "BTC",
-		"timeFrame" "1d"
-	}
+def main(inputMessage):
 
 	dataFrame = dataFrameDownloader(
 		symbol=inputMessage['symbol'],
@@ -68,11 +63,6 @@ def main():
 			[0, 1],
 			default=0
 		)
-
-	plt.plot(dataFrame['datetime'], dataFrame['close'])
-	plt.plot(dataFrame['datetime'], dataFrame['close']*(1+(dataFrame['classEDU'] - 0.5)/20))
-	plt.savefig(str(current_dir/'output'/'plot0.png'))
-	plt.close()
 
 	workDataFrame = dataFrame.iloc[windowFeatures2:]
 
@@ -113,18 +103,23 @@ def main():
 	for i in range(len(importance)):
 		logger.info(f"{i}: {importance[i]:.3f}")
 
-	plt.plot(datetimeTrain, closeTrain)
-	plt.plot(datetimeTrain, closeTrain*(1+(yPredict - 0.5)/20))
-	plt.savefig(str(current_dir/'output'/'plot1.png'))
-	plt.close()
-
-	yPredict = model.predict(xTest)
-	plt.plot(datetimeTest, closeTest)
-	plt.plot(datetimeTest, closeTest*(1+(yPredict - 0.5)/20))
-	plt.savefig(str(current_dir/'output'/'plot2.png'))
-	plt.close()
-
 	logger.info('End!')
+
+	if yPredict[-1] == 0:
+		signal = "long"
+	elif yPredict[-1] == 1:
+		signal = "short"
+	else:
+		signal = "neutral"
+	
+	result = {
+		"asset": inputMessage['symbol'],
+		"ml_model": "CatBoostClass",
+		"timeframe": inputMessage['timeFrame'],
+		"signal": signal
+	}
+
+	return result
 
 def dataFrameDownloader(symbol, nameExchange, amountDays, timeFrame):
 	nameTable = f"{nameExchange}_{symbol}".lower()
@@ -211,9 +206,3 @@ def downloadHistory(symbol, nameExchange):
 
 	dataFrame.to_sql(nameTable, con=engine, if_exists='replace')
 	logger.info(f'{nameTable} is saved to dataBaseHistory!')
-
-try:
-	main()
-
-except Exception as error_body:
-	logger.critical('Critical error!!!', exc_info=True)
