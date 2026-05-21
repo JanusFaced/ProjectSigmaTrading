@@ -62,10 +62,11 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - db-data:/var/lib/postgresql/data
+      - dsmlai_edu_db-data:/var/lib/postgresql/data
 
 volumes:
-  db-data:
+  dsmlai_edu_db-data:
+    external: true
 
 networks:
   app-network:
