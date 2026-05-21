@@ -8,14 +8,8 @@ import os
 import sys
 import logging
 import make_logger
-import json
-import requests
 import ccxt
 from sqlalchemy import create_engine
-from sqlalchemy import text
-from sklearn.model_selection import GridSearchCV
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.tree import plot_tree
 from sklearn.metrics import accuracy_score
 import catboost as cb
 
@@ -40,7 +34,17 @@ engine = create_engine(DATABASE_URL)
 
 def main():
 
-	dataFrame = dataFrameDownloader(symbol='BTC', nameExchange='binance', amountDays=6*365, timeFrame='1d')
+	inputMessage = {
+		"symbol": "BTC",
+		"timeFrame" "1d"
+	}
+
+	dataFrame = dataFrameDownloader(
+		symbol=inputMessage['symbol'],
+		nameExchange='binance',
+		amountDays=6*365,
+		timeFrame=inputMessage['timeFrame']
+	)
 
 	windowFeatures0 = 5
 	windowFeatures1 = 10
@@ -91,12 +95,12 @@ def main():
 	xTest = np.column_stack((vectorF0, vectorF1, vectorF2))
 
 	model = cb.CatBoostClassifier(
-		iterations=100,           # количество деревьев (аналог n_estimators)
-		learning_rate=0.1,        # скорость обучения
-		depth=5,                  # глубина дерева (аналог max_depth)
-		loss_function='Logloss',  # бинарная классификация
+		iterations=100,
+		learning_rate=0.1,
+		depth=5,
+		loss_function='Logloss',
 		random_seed=42,
-		verbose=False             # отключаем вывод (True - показывает прогресс)
+		verbose=False
 	)
 
 	model.fit(xTrain, yTrain)

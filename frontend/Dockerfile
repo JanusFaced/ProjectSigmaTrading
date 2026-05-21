@@ -1,12 +1,12 @@
-FROM js_image:latest
+FROM node:20-alpine
 
 WORKDIR /app
 
-# Копируем весь код
+COPY package*.json ./
+RUN npm install
+
 COPY . .
 
-# Открываем порт для React dev сервера
 EXPOSE 3000
 
-# Запускаем React в режиме разработки
 CMD ["npm", "start"]
