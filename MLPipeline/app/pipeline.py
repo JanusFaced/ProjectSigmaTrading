@@ -1,9 +1,9 @@
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 import time
+import gc
 import os
 import sys
 import logging
@@ -12,6 +12,7 @@ import ccxt
 from sqlalchemy import create_engine
 from sklearn.metrics import accuracy_score
 import catboost as cb
+from dataBaseModels import Session, Signal
 
 current_file_path = Path(__file__).resolve()
 current_dir = current_file_path.parent
@@ -34,10 +35,21 @@ engine = create_engine(DATABASE_URL)
 
 def main(inputMessage):
 
+	if inputMessage['timeFrame'] == "15min":
+		amountDays = 22
+	elif inputMessage['timeFrame'] == "30min":
+		amountDays = 44
+	elif inputMessage['timeFrame'] == "1h":
+		amountDays = 88
+	elif inputMessage['timeFrame'] == "2h":
+		amountDays = 176
+	elif inputMessage['timeFrame'] == "4h":
+		amountDays = 352
+
 	dataFrame = dataFrameDownloader(
 		symbol=inputMessage['symbol'],
 		nameExchange='binance',
-		amountDays=6*365,
+		amountDays=amountDays,
 		timeFrame=inputMessage['timeFrame']
 	)
 
@@ -52,42 +64,24 @@ def main(inputMessage):
 	dataFrame['features1'] = (dataFrame['close'] - dataFrame['close'].shift(windowFeatures1))/dataFrame['close'].shift(windowFeatures1)
 	dataFrame['features2'] = (dataFrame['close'] - dataFrame['close'].shift(windowFeatures2))/dataFrame['close'].shift(windowFeatures2)
 
-	dataFrame['centreMoving'] = dataFrame['close'].rolling(window=centreMoving).mean().shift(-int(centreMoving/2))
-	dataFrame['diffCentreMoving'] = dataFrame['centreMoving'] - dataFrame['centreMoving'].shift(1)
-
-	dataFrame['classEDU'] = np.select(
-			[
-				(dataFrame['diffCentreMoving'] > 0),
-				(dataFrame['diffCentreMoving'] < 0)
-			],
-			[0, 1],
-			default=0
-		)
+	dataFrame['centreMoving'] = dataFrame['close'].rolling(window=centreMoving).mean().shift(-centreMoving//2)
+	diff = dataFrame['centreMoving'].diff()
+	dataFrame['classEDU'] = (diff < 0).astype(int)
 
 	workDataFrame = dataFrame.iloc[windowFeatures2:]
 
 	uniCut = int(len(workDataFrame)*quantile)
 
-	datetimeTrain = workDataFrame['datetime'][:uniCut]
-	closeTrain = workDataFrame['close'][:uniCut]
 	yTrain = np.array(workDataFrame['classEDU'])[:uniCut]
-	vectorF0 = np.array(workDataFrame['features0']).reshape(-1, 1)[:uniCut]
-	vectorF1 = np.array(workDataFrame['features1']).reshape(-1, 1)[:uniCut]
-	vectorF2 = np.array(workDataFrame['features2']).reshape(-1, 1)[:uniCut]
-	xTrain = np.column_stack((vectorF0, vectorF1, vectorF2))
+	xTrain = workDataFrame[['features0', 'features1', 'features2']].iloc[:uniCut].to_numpy()
 
-	datetimeTest = workDataFrame['datetime'][uniCut:]
-	closeTest = workDataFrame['close'][uniCut:]
 	yTest = np.array(workDataFrame['classEDU'])[uniCut:]
-	vectorF0 = np.array(workDataFrame['features0']).reshape(-1, 1)[uniCut:]
-	vectorF1 = np.array(workDataFrame['features1']).reshape(-1, 1)[uniCut:]
-	vectorF2 = np.array(workDataFrame['features2']).reshape(-1, 1)[uniCut:]
-	xTest = np.column_stack((vectorF0, vectorF1, vectorF2))
+	xTest = workDataFrame[['features0', 'features1', 'features2']].iloc[uniCut:].to_numpy()
 
 	model = cb.CatBoostClassifier(
-		iterations=100,
+		iterations=50,
 		learning_rate=0.1,
-		depth=5,
+		depth=4,
 		loss_function='Logloss',
 		random_seed=42,
 		verbose=False
@@ -97,46 +91,95 @@ def main(inputMessage):
 
 	yPredict = model.predict(xTrain)
 	accuracy = accuracy_score(yTrain, yPredict)
-	logger.info(f"Точность модели: {100*accuracy:.2f} %")
+	logger.info(f"Точность модели на Train: {100*accuracy:.2f} %")
 
 	importance = model.feature_importances_
 	for i in range(len(importance)):
-		logger.info(f"{i}: {importance[i]:.3f}")
+		logger.info(f"Важность фичи номер {i}: > {importance[i]:.2f} % <")
 
-	logger.info('End!')
+	yPredict = model.predict(xTest)
+	accuracy = accuracy_score(yTest, yPredict)
+	logger.info(f"Точность модели на Test: {100*accuracy:.2f} %")
 
 	if yPredict[-1] == 0:
-		signal = "long"
+		tradingSignal = "long"
 	elif yPredict[-1] == 1:
-		signal = "short"
+		tradingSignal = "short"
 	else:
-		signal = "neutral"
+		tradingSignal = "neutral"
 	
-	result = {
-		"asset": inputMessage['symbol'],
-		"ml_model": "CatBoostClass",
-		"timeframe": inputMessage['timeFrame'],
-		"signal": signal
-	}
+	logger.info(f"tradingSignal = {tradingSignal}")
 
-	return result
-
-def dataFrameDownloader(symbol, nameExchange, amountDays, timeFrame):
-	nameTable = f"{nameExchange}_{symbol}".lower()
+	dataBaseSession = Session()
 
 	try:
-		dataFrame = pd.read_sql(f"SELECT * FROM {nameTable}", engine)
-		logger.info(f'{nameTable} is exist!')
+		dataBaseSession.query(Signal).filter(
+			Signal.asset == inputMessage['symbol'],
+			Signal.timeframe == inputMessage['timeFrame']
+		).delete()
+		
+		newSignal = Signal(
+			asset=inputMessage['symbol'],
+			ml_model="CatBoostClass",
+			timeframe=inputMessage['timeFrame'],
+			signal=tradingSignal,
+			accuracy=f"{100*accuracy:.2f} %",
+		)
+		dataBaseSession.add(newSignal)
+		dataBaseSession.commit()
+		
+		logger.info(f"Saved {inputMessage['symbol']} {inputMessage['timeFrame']} -> {tradingSignal} with id={newSignal.id}")
+		
+	except Exception as e:
+		dataBaseSession.rollback()
+		logger.error(f"Error saving signal: {e}")
+	
+	finally:
+		dataBaseSession.close()
+
+def dataFrameDownloader(symbol, nameExchange, amountDays, timeFrame):
+	oneDay = 1440
+	maxDelta = 15
+	nowMuchMoreDays = 365
+	realAmountLines = oneDay*amountDays
+	nameTable = f"{nameExchange}_{symbol}".lower()
+
+	queryCode = f"""
+		SELECT * FROM (
+			SELECT * FROM {nameTable}
+			ORDER BY datetime DESC
+			LIMIT {realAmountLines}
+		) AS last_rows
+		ORDER BY datetime ASC
+	"""
+
+	try:
+		dataFrame = pd.read_sql(queryCode, engine)
+		logger.info(f'{nameTable} is exist! Fetched last {realAmountLines} rows')
+		pastDatetime = dataFrame['datetime'].iloc[-1]
+		nowDatetime = datetime.utcnow()
+		maxDeltaDatetime = timedelta(minutes=maxDelta)
+
+		if (nowDatetime - pastDatetime) > maxDeltaDatetime:
+			logger.info(f'{nameTable} is very old! Downloading fresh data...')
+
+			del dataFrame
+			gc.collect()
+
+			downloadHistory(symbol, nameExchange, nowMuchMoreDays)
+
+			dataFrame = pd.read_sql(queryCode, engine)
+			logger.info(f'{nameTable} fetched last {realAmountLines} rows')
 	
 	except Exception as error_body:
-		logger.info(f'{nameTable} is NO exist...')
-		downloadHistory(symbol, nameExchange)
-		dataFrame = pd.read_sql(f"SELECT * FROM {nameTable}", engine)
+		logger.info(f'{nameTable} does NOT exist. Downloading...')
+		downloadHistory(symbol, nameExchange, nowMuchMoreDays)
+		dataFrame = pd.read_sql(queryCode, engine)
+		logger.info(f'{nameTable} fetched last {realAmountLines} rows')
 
-	oneDay = 1440
-	dataFrame = dataFrame.tail(oneDay*amountDays)
+	logger.info(f"\n>>>>>\n {dataFrame.tail(5)} \n>>>>>\n")
 
-	dataFrame = dataFrame.set_index('datetime')
+	dataFrame.set_index('datetime', inplace=True)
 	dataFrame = dataFrame.resample(timeFrame).agg({
 		'open': 'first',
 		'high': 'max',
@@ -144,11 +187,14 @@ def dataFrameDownloader(symbol, nameExchange, amountDays, timeFrame):
 		'close': 'last',
 		'volume': 'sum'
 	})
-	dataFrame = dataFrame.reset_index()
+	dataFrame.reset_index(inplace=True)
+
+	logger.info(f"\n>>>>>\n {dataFrame.tail(5)} \n>>>>>\n")
 
 	return dataFrame
 
-def downloadHistory(symbol, nameExchange):
+def downloadHistory(symbol, nameExchange, nowMuchMoreDays):
+
 	if nameExchange == 'binance':
 		exchange = ccxt.binance()
 	elif nameExchange == 'bybit':
@@ -162,20 +208,11 @@ def downloadHistory(symbol, nameExchange):
 	timeFramePandas = '1min'
 	deltaDatetime = timedelta(minutes=1)
 	limit = 1000
-	newDataFrame = False
+	initialDatetime = datetime.utcnow() - timedelta(days=nowMuchMoreDays)
+	newDataFrame = True
+
 	logger.info(nameTable)
-	
-	try:
-		zeroDataFrame = pd.read_sql(nameTable, engine)
-		zeroDataFrame['datetime'] = pd.to_datetime(zeroDataFrame['datetime'])
-		zeroDataFrame = zeroDataFrame.drop(['index'], axis=1)
-		initialDatetime = zeroDataFrame['datetime'][len(zeroDataFrame)-1]
-		logger.info(f'{nameTable} is exist! Past datetime: {initialDatetime}')
-		newDataFrame = False
-	except Exception as error_body:
-		logger.info(f'{nameTable} is NO exist...')
-		initialDatetime = datetime(2009, 1, 1, 0, 0)
-		newDataFrame = True
+	logger.info(f'Start parsing new data! From initialDatetime => {initialDatetime}')
 
 	while True:
 		iso_string = initialDatetime.strftime('%Y-%m-%dT%H:%M:%SZ')
@@ -200,9 +237,20 @@ def downloadHistory(symbol, nameExchange):
 	zeroDataFrame['datetime'] = pd.to_datetime(zeroDataFrame['datetime'])
 	zeroDataFrame.set_index('datetime', inplace=True)
 	zeroDataFrame = zeroDataFrame[~zeroDataFrame.index.duplicated(keep='first')]
-	fullIndexes = pd.date_range(start=zeroDataFrame.index.min(), end=zeroDataFrame.index.max(), freq=timeFramePandas)
-	dataFrame = zeroDataFrame.reindex(fullIndexes).ffill()
-	dataFrame = dataFrame.reset_index(names=['datetime'])
+	
+	min_date = zeroDataFrame.index.min()
+	max_date = zeroDataFrame.index.max()
+	fullIndexes = pd.date_range(start=min_date, end=max_date, freq=timeFramePandas)
+	zeroDataFrame = zeroDataFrame.reindex(fullIndexes).ffill()
+	
+	zeroDataFrame.reset_index(inplace=True, names=['datetime'])
 
-	dataFrame.to_sql(nameTable, con=engine, if_exists='replace')
-	logger.info(f'{nameTable} is saved to dataBaseHistory!')
+	del fullIndexes
+	gc.collect()
+
+	logger.info(f'Start save {nameTable} in dataBase!')
+	zeroDataFrame.to_sql(nameTable, con=engine, if_exists='replace', chunksize=5000, method='multi')
+	logger.info(f'{nameTable} is saved to dataBase!')
+
+	del zeroDataFrame
+	gc.collect()

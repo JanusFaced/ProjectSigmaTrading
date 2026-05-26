@@ -31,21 +31,23 @@ app.conf.update(
 @app.task
 def run_pipeline(item_id, params):
     logger.info(f"Запуск задачи {item_id} с параметрами: {params}")
-    result = pipeline.main(params)
-    logger.info(f"Задача {item_id} завершена: {result}")
-    return result
+    pipeline.main(params)
+    logger.info(f"Задача {item_id} завершена!")
 
 @app.task
 def scheduled_run():
     logger.info("Запуск по расписанию!")
 
     tasks_to_run = [
-        {'id': 1, 'params': {'symbol': 'BTC', 'timeFrame': '1d'}},
-        #{'id': 2, 'params': {'symbol': 'ETH', 'timeFrame': '1d'}},
-        #{'id': 3, 'params': {'symbol': 'BNB', 'timeFrame': '1d'}},
-        #{'id': 4, 'params': {'symbol': 'BTC', 'timeFrame': '1h'}},
-        #{'id': 5, 'params': {'symbol': 'ETH', 'timeFrame': '1h'}},
-        #{'id': 6, 'params': {'symbol': 'BNB', 'timeFrame': '1h'}},
+        {'id': 1, 'params': {'symbol': 'BTC', 'timeFrame': '15min'}},
+        {'id': 2, 'params': {'symbol': 'ETH', 'timeFrame': '15min'}},
+        {'id': 3, 'params': {'symbol': 'BNB', 'timeFrame': '15min'}},
+        {'id': 4, 'params': {'symbol': 'BTC', 'timeFrame': '1h'}},
+        {'id': 5, 'params': {'symbol': 'ETH', 'timeFrame': '1h'}},
+        {'id': 6, 'params': {'symbol': 'BNB', 'timeFrame': '1h'}},
+        {'id': 7, 'params': {'symbol': 'BTC', 'timeFrame': '4h'}},
+        {'id': 8, 'params': {'symbol': 'ETH', 'timeFrame': '4h'}},
+        {'id': 9, 'params': {'symbol': 'BNB', 'timeFrame': '4h'}},
     ]
 
     for task in tasks_to_run:
@@ -55,7 +57,7 @@ def scheduled_run():
     return f"Scheduled {len(tasks_to_run)} tasks"
 
 app.conf.beat_schedule = {
-    'run-every-5-minutes': {
+    'run-work-cycle': {
         'task': 'tasks.scheduled_run',
         'schedule': crontab(minute='*/5')
     }

@@ -20,6 +20,7 @@ function CryptoCard({ data }) {
                     <tr>
                         <Label>Signal</Label>
                         <Label>ML модель</Label>
+                        <Label>Точность</Label>
                         <Label>Таймфрэйм</Label>
                     </tr>
                     <tr>
@@ -28,6 +29,7 @@ function CryptoCard({ data }) {
                             {data.signal}
                         </Signal>
                         <Value>{data.ml_model}</Value>
+                        <Value>{data.accuracy}</Value>
                         <Value>{data.timeframe}</Value>
                     </tr>
                 </tbody>
