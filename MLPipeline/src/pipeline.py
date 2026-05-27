@@ -1,28 +1,19 @@
+from typing import Optional, Literal, Union, Dict, Any
 from datetime import datetime, timedelta, timezone
-from pathlib import Path
 import pandas as pd
 import numpy as np
 import time
 import gc
 import os
 import sys
-import logging
-import make_logger
 import ccxt
 from sqlalchemy import create_engine
 from sklearn.metrics import accuracy_score
 import catboost as cb
 from dataBaseModels import Session, Signal
+from logger_setup import get_logger
 
-current_file_path = Path(__file__).resolve()
-current_dir = current_file_path.parent
-
-os.environ['LEVEL_CONFIG'] = 'INFO'
-os.environ['WAY_TO_LOG_JOURNAL'] = str(current_dir/'logs'/'log_journal.log')
-os.environ['WAY_EXTRACT_FILES'] = str(current_dir/'extract_files')
-
-make_logger.make()
-logger = logging.getLogger('MLPipeline:main')
+logger = get_logger(__name__)
 
 dataBase_password = os.getenv('DB_PASSWORD')
 dataBase_user = os.getenv('DB_USER')
@@ -33,7 +24,14 @@ dataBase_port = os.getenv('DB_PORT')
 DATABASE_URL = f"postgresql://{dataBase_user}:{dataBase_password}@{dataBase_host}:{dataBase_port}/{dataBase_name}"
 engine = create_engine(DATABASE_URL)
 
-def main(inputMessage):
+def main(inputMessage: Dict[str, Any]) -> None:
+
+	nowMuchMoreDays = 365
+	windowFeatures0 = 5
+	windowFeatures1 = 10
+	windowFeatures2 = 15
+	centreMoving = 20
+	quantile = 0.90
 
 	if inputMessage['timeFrame'] == "15min":
 		amountDays = 22
@@ -50,15 +48,9 @@ def main(inputMessage):
 		symbol=inputMessage['symbol'],
 		nameExchange='binance',
 		amountDays=amountDays,
-		timeFrame=inputMessage['timeFrame']
+		timeFrame=inputMessage['timeFrame'],
+		nowMuchMoreDays=nowMuchMoreDays
 	)
-
-	windowFeatures0 = 5
-	windowFeatures1 = 10
-	windowFeatures2 = 15
-
-	centreMoving = 20
-	quantile = 0.90
 
 	dataFrame['features0'] = (dataFrame['close'] - dataFrame['close'].shift(windowFeatures0))/dataFrame['close'].shift(windowFeatures0)
 	dataFrame['features1'] = (dataFrame['close'] - dataFrame['close'].shift(windowFeatures1))/dataFrame['close'].shift(windowFeatures1)
@@ -137,10 +129,16 @@ def main(inputMessage):
 	finally:
 		dataBaseSession.close()
 
-def dataFrameDownloader(symbol, nameExchange, amountDays, timeFrame):
+def dataFrameDownloader(
+		symbol: str,
+		nameExchange: Literal['binance', 'bybit', 'kucoin'],
+		amountDays: int,
+		timeFrame: Literal['15min', '30min', '1h', '2h', '4h'],
+		nowMuchMoreDays: int = 365
+	) -> pd.DataFrame:
+	
 	oneDay = 1440
 	maxDelta = 15
-	nowMuchMoreDays = 365
 	realAmountLines = oneDay*amountDays
 	nameTable = f"{nameExchange}_{symbol}".lower()
 
@@ -193,7 +191,11 @@ def dataFrameDownloader(symbol, nameExchange, amountDays, timeFrame):
 
 	return dataFrame
 
-def downloadHistory(symbol, nameExchange, nowMuchMoreDays):
+def downloadHistory(
+		symbol: str,
+		nameExchange: Literal['binance', 'bybit', 'kucoin'],
+		nowMuchMoreDays: int = 365
+	) -> None:
 
 	if nameExchange == 'binance':
 		exchange = ccxt.binance()
@@ -254,3 +256,5 @@ def downloadHistory(symbol, nameExchange, nowMuchMoreDays):
 
 	del zeroDataFrame
 	gc.collect()
+
+main({'symbol': 'BTC', 'timeFrame': '15min'})

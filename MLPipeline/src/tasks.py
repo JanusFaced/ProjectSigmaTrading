@@ -1,22 +1,21 @@
-from pathlib import Path
+from typing import Dict, Any, Optional, TypedDict, List
 from celery import Celery
 from celery.schedules import crontab
 import os
 import sys
 import time
-import logging
-import make_logger
 import pipeline
+from logger_setup import get_logger
 
-current_file_path = Path(__file__).resolve()
-current_dir = current_file_path.parent
+logger = get_logger(__name__)
 
-os.environ['LEVEL_CONFIG'] = 'INFO'
-os.environ['WAY_TO_LOG_JOURNAL'] = str(current_dir/'logs'/'log_journal.log')
-os.environ['WAY_EXTRACT_FILES'] = str(current_dir/'extract_files')
+class TaskParams(TypedDict):
+    symbol: str
+    timeFrame: str
 
-make_logger.make()
-logger = logging.getLogger('MLPipeline:tasks')
+class ScheduledTask(TypedDict):
+    id: int
+    params: TaskParams
 
 REDIS_URL = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
 app = Celery('MLPipeline', broker=REDIS_URL)
@@ -29,16 +28,20 @@ app.conf.update(
 )
 
 @app.task
-def run_pipeline(item_id, params):
+def run_pipeline(
+        item_id: int,
+        params: Dict[str, Any]
+    ) -> None:
+
     logger.info(f"Запуск задачи {item_id} с параметрами: {params}")
     pipeline.main(params)
     logger.info(f"Задача {item_id} завершена!")
 
 @app.task
-def scheduled_run():
+def scheduled_run() -> str:
     logger.info("Запуск по расписанию!")
 
-    tasks_to_run = [
+    tasks_to_run: List[ScheduledTask] = [
         {'id': 1, 'params': {'symbol': 'BTC', 'timeFrame': '15min'}},
         {'id': 2, 'params': {'symbol': 'ETH', 'timeFrame': '15min'}},
         {'id': 3, 'params': {'symbol': 'BNB', 'timeFrame': '15min'}},

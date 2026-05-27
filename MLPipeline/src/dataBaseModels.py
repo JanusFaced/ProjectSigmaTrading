@@ -1,3 +1,4 @@
+from typing import Any
 from sqlalchemy import Column, Integer, String, DateTime, create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
@@ -13,8 +14,7 @@ dataBase_port = os.getenv('DB_PORT')
 
 DATABASE_URL = f"postgresql://{dataBase_user}:{dataBase_password}@{dataBase_host}:{dataBase_port}/{dataBase_name}"
 engine = create_engine(DATABASE_URL)
-Base = declarative_base()
-Base.metadata.create_all(engine)
+Base: Any = declarative_base()
 Session = sessionmaker(bind=engine)
 
 class Signal(Base):
