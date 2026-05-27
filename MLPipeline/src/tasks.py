@@ -62,6 +62,6 @@ def scheduled_run() -> str:
 app.conf.beat_schedule = {
     'run-work-cycle': {
         'task': 'tasks.scheduled_run',
-        'schedule': crontab(minute='*/5')
+        'schedule': crontab(minute='*/15')
     }
 }

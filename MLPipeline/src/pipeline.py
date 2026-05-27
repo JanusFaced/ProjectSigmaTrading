@@ -26,7 +26,7 @@ engine = create_engine(DATABASE_URL)
 
 def main(inputMessage: dict[str, Any]) -> None:
 
-	nowMuchMoreDays = 365
+	nowMuchMoreDays = 300
 	windowFeatures0 = 5
 	windowFeatures1 = 10
 	windowFeatures2 = 15
@@ -34,15 +34,15 @@ def main(inputMessage: dict[str, Any]) -> None:
 	quantile = 0.90
 
 	if inputMessage['timeFrame'] == "15min":
-		amountDays = 22
+		amountDays = 15
 	elif inputMessage['timeFrame'] == "30min":
-		amountDays = 44
+		amountDays = 35
 	elif inputMessage['timeFrame'] == "1h":
-		amountDays = 88
+		amountDays = 75
 	elif inputMessage['timeFrame'] == "2h":
-		amountDays = 176
+		amountDays = 150
 	elif inputMessage['timeFrame'] == "4h":
-		amountDays = 352
+		amountDays = 300
 
 	dataFrame = dataFrameDownloader(
 		symbol=inputMessage['symbol'],
