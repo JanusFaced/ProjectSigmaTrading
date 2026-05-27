@@ -1,4 +1,4 @@
-from typing import Optional, Literal, Union, Dict, Any
+from typing import Literal, Any
 from datetime import datetime, timedelta, timezone
 import pandas as pd
 import numpy as np
@@ -24,7 +24,7 @@ dataBase_port = os.getenv('DB_PORT')
 DATABASE_URL = f"postgresql://{dataBase_user}:{dataBase_password}@{dataBase_host}:{dataBase_port}/{dataBase_name}"
 engine = create_engine(DATABASE_URL)
 
-def main(inputMessage: Dict[str, Any]) -> None:
+def main(inputMessage: dict[str, Any]) -> None:
 
 	nowMuchMoreDays = 365
 	windowFeatures0 = 5
@@ -130,7 +130,7 @@ def main(inputMessage: Dict[str, Any]) -> None:
 		dataBaseSession.close()
 
 def dataFrameDownloader(
-		symbol: str,
+		symbol: str, 
 		nameExchange: Literal['binance', 'bybit', 'kucoin'],
 		amountDays: int,
 		timeFrame: Literal['15min', '30min', '1h', '2h', '4h'],
@@ -257,4 +257,5 @@ def downloadHistory(
 	del zeroDataFrame
 	gc.collect()
 
-main({'symbol': 'BTC', 'timeFrame': '15min'})
+if __name__ == "__main__":
+	main({'symbol': 'BTC', 'timeFrame': '15min'})

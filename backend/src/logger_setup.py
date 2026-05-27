@@ -1,4 +1,4 @@
-from typing import Optional, Any
+from typing import Optional, Dict, Any
 import logging
 import logging.config
 import json
@@ -8,7 +8,7 @@ from concurrent_log_handler import ConcurrentRotatingFileHandler
 
 class LoggerSetup:
 	_initialized: bool = False
-	_loggers: dict[str, Any] = {}
+	_loggers: Dict[str, Any] = {}
 	
 	@classmethod
 	def configure(cls, 

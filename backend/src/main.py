@@ -6,16 +6,9 @@ from dataBaseModels import Session, Signal
 from pathlib import Path
 import os
 import sys
-import logging
-import make_logger
+from logger_setup import get_logger
 
-current_file_path = Path(__file__).resolve()
-current_dir = current_file_path.parent
-os.environ['LEVEL_CONFIG'] = 'INFO'
-os.environ['WAY_TO_LOG_JOURNAL'] = str(current_dir / 'logs' / 'log_journal.log')
-
-make_logger.make()
-logger = logging.getLogger('BACKEND:main')
+logger = get_logger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):

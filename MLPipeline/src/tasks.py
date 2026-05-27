@@ -1,4 +1,4 @@
-from typing import Dict, Any, Optional, TypedDict, List
+from typing import TypedDict, Any
 from celery import Celery
 from celery.schedules import crontab
 import os
@@ -30,7 +30,7 @@ app.conf.update(
 @app.task
 def run_pipeline(
         item_id: int,
-        params: Dict[str, Any]
+        params: dict[str, Any]
     ) -> None:
 
     logger.info(f"Запуск задачи {item_id} с параметрами: {params}")
@@ -41,7 +41,7 @@ def run_pipeline(
 def scheduled_run() -> str:
     logger.info("Запуск по расписанию!")
 
-    tasks_to_run: List[ScheduledTask] = [
+    tasks_to_run: list[ScheduledTask] = [
         {'id': 1, 'params': {'symbol': 'BTC', 'timeFrame': '15min'}},
         {'id': 2, 'params': {'symbol': 'ETH', 'timeFrame': '15min'}},
         {'id': 3, 'params': {'symbol': 'BNB', 'timeFrame': '15min'}},
