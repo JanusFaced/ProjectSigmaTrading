@@ -1,91 +1,92 @@
 services:
-    frontend:
-        image: js_app_frontend
-        build: 
-            context: ./frontend
-        command: npm start
-        networks:
-            - app-network
-        ports:
-            - "3000:3000"
-        depends_on:
-            - backend
-        volumes:
-            - ./frontend/logs:/app/logs
-        environment:
-            - LOG_PATH=/app/logs
-        deploy:
-            resources:
-                limits:
-                    cpus: '1.00'
-                    memory: 1024M
-        restart: unless-stopped
-        profiles: ["dev"]
-
-    backend:
-        image: python_app_backend
-        environment:
-            DB_PASSWORD: ${DB_PASSWORD}
-            DB_USER: ${DB_USER}
-            DB_NAME: ${DB_NAME}
-            DB_HOST: dataBase
-            DB_PORT: 5432
-            REDIS_URL: redis://redis:6379/0
-        build:
-            context: ./backend
-        command: sh -c "cd src && uvicorn main:app --host 0.0.0.0 --port 8000 --workers 4"
-        networks:
-            - app-network
-        ports:
-            - "8000:8000"
-        depends_on:
-            - dataBase
-        volumes:
-            - ./backend/src/logs:/app/src/logs
-        deploy:
-            resources:
-                limits:
-                    cpus: '1.00'
-                    memory: 1024M
-        restart: unless-stopped
-        profiles: ["dev"]
-
-    celery_beat:
-        image: python_app_ml_pipeline_celery_beat
-        build: ./MLPipeline
-        command: sh -c "cd src && celery -A tasks beat --loglevel=info"
-        networks:
-            - app-network
-        depends_on:
-            - redis
-            - dataBase
-            - celery_worker
-        environment:
-            DB_PASSWORD: ${DB_PASSWORD}
-            DB_USER: ${DB_USER}
-            DB_NAME: ${DB_NAME}
-            DB_HOST: dataBase
-            DB_PORT: 5432
-            REDIS_URL: redis://redis:6379/0
-        volumes:
-            - ./MLPipeline/src/logs:/app/src/logs
-        deploy:
-            resources:
-                limits:
-                    cpus: '0.15'
-                    memory: 128M
-        restart: unless-stopped
-        profiles: ["dev"]
+#    frontend:
+#        image: js_app_frontend
+#        build: 
+#            context: ./frontend
+#        command: npm start
+#        networks:
+#            - app-network
+#        ports:
+#            - "3000:3000"
+#        depends_on:
+#            - backend
+#        volumes:
+#            - ./frontend/logs:/app/logs
+#        environment:
+#            - LOG_PATH=/app/logs
+#        deploy:
+#            resources:
+#                limits:
+#                    cpus: '1.00'
+#                    memory: 1024M
+#        restart: unless-stopped
+#        profiles: ["dev"]
+#
+#    backend:
+#        image: python_app_backend
+#        environment:
+#            DB_PASSWORD: ${DB_PASSWORD}
+#            DB_USER: ${DB_USER}
+#            DB_NAME: ${DB_NAME}
+#            DB_HOST: dataBase
+#            DB_PORT: 5432
+#            REDIS_URL: redis://redis:6379/0
+#        build:
+#            context: ./backend
+#        command: sh -c "cd src && uvicorn main:app --host 0.0.0.0 --port 8000 --workers 4"
+#        networks:
+#            - app-network
+#        ports:
+#            - "8000:8000"
+#        depends_on:
+#            - dataBase
+#        volumes:
+#            - ./backend/src/logs:/app/src/logs
+#        deploy:
+#            resources:
+#                limits:
+#                    cpus: '1.00'
+#                    memory: 1024M
+#        restart: unless-stopped
+#        profiles: ["dev"]
+#
+#    celery_beat:
+#        image: python_app_ml_pipeline_celery_beat
+#        build: ./MLPipeline
+#        command: sh -c "cd src && celery -A tasks beat --loglevel=info"
+#        networks:
+#            - app-network
+#        depends_on:
+#            - redis
+#            - dataBase
+#            - celery_worker
+#        environment:
+#            DB_PASSWORD: ${DB_PASSWORD}
+#            DB_USER: ${DB_USER}
+#            DB_NAME: ${DB_NAME}
+#            DB_HOST: dataBase
+#            DB_PORT: 5432
+#            REDIS_URL: redis://redis:6379/0
+#        volumes:
+#            - ./MLPipeline/src/logs:/app/src/logs
+#        deploy:
+#            resources:
+#                limits:
+#                    cpus: '0.15'
+#                    memory: 128M
+#        restart: unless-stopped
+#        profiles: ["dev"]
 
     celery_worker:
         image: python_app_ml_pipeline_celery_worker
         build: ./MLPipeline
-        command: sh -c "cd src && celery -A tasks worker --loglevel=info --concurrency=1 --max-tasks-per-child=50"
+        command: sh -c "cd src && python pipeline.py"
+#        command: sh -c "cd src && celery -A tasks worker --loglevel=info --concurrency=1 --max-tasks-per-child=50"
         networks:
             - app-network
         depends_on:
             - dataBase
-            - redis
+#            - redis
         environment:
             DB_PASSWORD: ${DB_PASSWORD}
             DB_USER: ${DB_USER}
@@ -103,19 +104,19 @@ services:
         restart: unless-stopped
         profiles: ["dev"]
 
-    redis:
-        image: redis:7-alpine
-        networks:
-            - app-network
-        ports:
-            - "6379:6379"
-        deploy:
-            resources:
-                limits:
-                    cpus: '0.15'
-                    memory: 128M
-        restart: unless-stopped
-        profiles: ["dev"]
+#    redis:
+#        image: redis:7-alpine
+#        networks:
+#            - app-network
+#        ports:
+#            - "6379:6379"
+#        deploy:
+#            resources:
+#                limits:
+#                    cpus: '0.15'
+#                    memory: 128M
+#        restart: unless-stopped
+#        profiles: ["dev"]
 
     dataBase:
         image: postgres:16.0
