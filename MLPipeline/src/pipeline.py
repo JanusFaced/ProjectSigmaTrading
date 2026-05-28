@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, TypedDict
 import pandas as pd
 import numpy as np
 import os
@@ -10,6 +10,13 @@ import dataFrameDownloader
 from logger_setup import get_logger
 
 logger = get_logger(__name__)
+
+class SignalDict(TypedDict):
+	asset: str
+	ml_model: str
+	timeframe: str
+	signal: str
+	accuracy: str
 
 def main(inputMessage: dict[str, Any]) -> None:
 
@@ -50,34 +57,17 @@ def main(inputMessage: dict[str, Any]) -> None:
 
 	tradingSignal = {0: "long", 1: "short"}.get(yPredict[-1], "neutral")
 	
-	dataBaseSession = Session()
+	signalData: SignalDict = {
+		"asset": inputMessage['symbol'],
+		"ml_model": "CatBoostClass",
+		"timeframe": inputMessage['timeFrame'],
+		"signal": tradingSignal,
+		"accuracy": f"{100*accuracy:.2f} %",
+	}
 
-	try:
-		dataBaseSession.query(Signal).filter(
-			Signal.asset == inputMessage['symbol'],
-			Signal.timeframe == inputMessage['timeFrame']
-		).delete()
-		
-		newSignal = Signal(
-			asset=inputMessage['symbol'],
-			ml_model="CatBoostClass",
-			timeframe=inputMessage['timeFrame'],
-			signal=tradingSignal,
-			accuracy=f"{100*accuracy:.2f} %",
-		)
-		dataBaseSession.add(newSignal)
-		dataBaseSession.commit()
-		
-		logger.info(f"Saved {inputMessage['symbol']} {inputMessage['timeFrame']} -> {tradingSignal} with id={newSignal.id}")
-		
-	except Exception as e:
-		dataBaseSession.rollback()
-		logger.error(f"Error saving signal: {e}")
-	
-	finally:
-		dataBaseSession.close()
+	sendToDataBase(signalData=signalData)
 
-	logger.info(f"dataBaseSession is ended succesfull!")
+	logger.info(f"sendToDataBase is ended succesfull!")
 
 def prepareDataFrame(
 		dataFrame: pd.DataFrame,
@@ -102,6 +92,34 @@ def makeClass(dataFrameSeries: pd.Series, windowFeatures: int) -> pd.Series:
 	centreMoving = dataFrameSeries.rolling(window=windowFeatures).mean().shift(-windowFeatures//2)
 	diff = centreMoving.diff()
 	return (diff < 0).astype(int)
+
+def sendToDataBase(signalData: SignalDict) -> None:
+	dataBaseSession = Session()
+
+	try:
+		dataBaseSession.query(Signal).filter(
+			Signal.asset == signalData['asset'],
+			Signal.timeframe == signalData['timeframe']
+		).delete()
+		
+		newSignal = Signal(
+			asset=signalData['asset'],
+			ml_model=signalData['ml_model'],
+			timeframe=signalData['timeframe'],
+			signal=signalData['signal'],
+			accuracy=signalData['accuracy'],
+		)
+		dataBaseSession.add(newSignal)
+		dataBaseSession.commit()
+		
+		logger.info(f"Saved {signalData['asset']} {signalData['timeframe']} -> {signalData['signal']} with id={newSignal.id}")
+		
+	except Exception as e:
+		dataBaseSession.rollback()
+		logger.error(f"Error saving signal: {e}")
+	
+	finally:
+		dataBaseSession.close()
 
 if __name__ == "__main__":
 	main({'symbol': 'BTC', 'timeFrame': '15min'})

@@ -22,25 +22,25 @@ engine = create_engine(DATABASE_URL)
 def main(
 		symbol: str, 
 		nameExchange: Literal['binance', 'bybit', 'kucoin'],
-		timeFrame: Literal['15min', '30min', '1h', '2h', '4h']
+		timeFrame: Literal['15min', '30min', '1h', '2h', '4h'],
+		nowMuchMoreDays: int = 300,
+		maxDelta: int = 15
 	) -> pd.DataFrame:
 	
-	nowMuchMoreDays = 300
-	maxDelta = 15
-	oneDay = 1440
-	changeDays = {
+	maxDeltaDatetime = timedelta(minutes=maxDelta)
+	changeDays: dict = {
 		"15min": 15,
 		"30min": 35,
 		"1h": 75,
 		"2h": 150,
 		"4h": 300
 	}
+	oneDay: int = 1440
+	amountDays: int = changeDays[timeFrame]
+	realAmountLines: int = oneDay*amountDays
+	nameTable: str = f"{nameExchange}_{symbol}".lower()
 
-	amountDays = changeDays[timeFrame]
-	realAmountLines = oneDay*amountDays
-	nameTable = f"{nameExchange}_{symbol}".lower()
-
-	queryCode = f"""
+	queryCode: str = f"""
 		SELECT * FROM (
 			SELECT * FROM {nameTable}
 			ORDER BY datetime DESC
@@ -49,37 +49,44 @@ def main(
 		ORDER BY datetime ASC
 	"""
 
+	downloadData: bool = False
 	try:
 		dataFrame = pd.read_sql(queryCode, engine)
 		logger.info(f'{nameTable} is exist! Fetched last {realAmountLines} rows')
 		pastDatetime = dataFrame['datetime'].iloc[-1]
 		nowDatetime = datetime.utcnow()
-		maxDeltaDatetime = timedelta(minutes=maxDelta)
-
-		if (nowDatetime - pastDatetime) > maxDeltaDatetime:
-			logger.info(f'{nameTable} is very old! Downloading fresh data...')
-			downloadHistory.main(symbol, nameExchange, nowMuchMoreDays)
-			dataFrame = pd.read_sql(queryCode, engine)
-			logger.info(f'{nameTable} fetched last {realAmountLines} rows')
 	
 	except Exception as error_body:
-		logger.info(f'{nameTable} does NOT exist. Downloading...')
-		downloadHistory.main(symbol, nameExchange, nowMuchMoreDays)
+		logger.info(f'{nameTable} does NOT exist!')
+		downloadData = True
+
+	if (nowDatetime - pastDatetime) > maxDeltaDatetime:
+		logger.info(f'{nameTable} is very old!')
+		downloadData = True
+
+	if downloadData:
+		downloadHistory.main(
+			symbol=symbol,
+			nameExchange=nameExchange,
+			nowMuchMoreDays=nowMuchMoreDays
+		)
 		dataFrame = pd.read_sql(queryCode, engine)
 		logger.info(f'{nameTable} fetched last {realAmountLines} rows')
 
-	logger.info(f"\n>>>>>\n {dataFrame.tail(5)} \n>>>>>\n")
+	dataFrame = resampleDataframe(dataframe=dataFrame, timeframe=timeFrame)
 
-	dataFrame.set_index('datetime', inplace=True)
-	dataFrame = dataFrame.resample(timeFrame).agg({
+	return dataFrame
+
+def resampleDataframe(dataframe: pd.DataFrame, timeframe: str) -> pd.DataFrame:
+
+	dataframe.set_index('datetime', inplace=True)
+	dataframe = dataframe.resample(timeframe).agg({
 		'open': 'first',
 		'high': 'max',
 		'low': 'min',
 		'close': 'last',
 		'volume': 'sum'
 	})
-	dataFrame.reset_index(inplace=True)
+	dataframe.reset_index(inplace=True)
 
-	logger.info(f"\n>>>>>\n {dataFrame.tail(5)} \n>>>>>\n")
-
-	return dataFrame
+	return dataframe
