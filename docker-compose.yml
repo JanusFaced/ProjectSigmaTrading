@@ -76,7 +76,7 @@ services:
 #                    memory: 128M
 #        restart: unless-stopped
 #        profiles: ["dev"]
-
+#
     celery_worker:
         image: python_app_ml_pipeline_celery_worker
         build: ./MLPipeline
@@ -95,15 +95,16 @@ services:
             DB_PORT: 5432
             REDIS_URL: redis://redis:6379/0
         volumes:
+            - ./MLPipeline/src/output:/app/src/output
             - ./MLPipeline/src/logs:/app/src/logs
         deploy:
             resources:
                 limits:
                     cpus: '1.00'
                     memory: 1024M
-        restart: unless-stopped
+#        restart: unless-stopped
         profiles: ["dev"]
-
+#
 #    redis:
 #        image: redis:7-alpine
 #        networks:

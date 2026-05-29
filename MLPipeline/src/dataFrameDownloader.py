@@ -22,8 +22,8 @@ engine = create_engine(DATABASE_URL)
 def main(
 		symbol: str, 
 		nameExchange: Literal['binance', 'bybit', 'kucoin'],
-		timeFrame: Literal['15min', '30min', '1h', '2h', '4h'],
-		nowMuchMoreDays: int = 300,
+		timeFrame: Literal['15min', '30min', '1h'],
+		nowMuchMoreDays: int = 75,
 		maxDelta: int = 15
 	) -> pd.DataFrame:
 	
@@ -31,9 +31,7 @@ def main(
 	changeDays: dict = {
 		"15min": 15,
 		"30min": 35,
-		"1h": 75,
-		"2h": 150,
-		"4h": 300
+		"1h": 75
 	}
 	oneDay: int = 1440
 	amountDays: int = changeDays[timeFrame]
@@ -60,9 +58,9 @@ def main(
 		logger.info(f'{nameTable} does NOT exist!')
 		downloadData = True
 
-	if (nowDatetime - pastDatetime) > maxDeltaDatetime:
-		logger.info(f'{nameTable} is very old!')
-		downloadData = True
+#	if (nowDatetime - pastDatetime) > maxDeltaDatetime:
+#		logger.info(f'{nameTable} is very old!')
+#		downloadData = True
 
 	if downloadData:
 		downloadHistory.main(

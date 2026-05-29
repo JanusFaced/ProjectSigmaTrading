@@ -45,12 +45,12 @@ def scheduled_run() -> str:
         {'id': 1, 'params': {'symbol': 'BTC', 'timeFrame': '15min'}},
         {'id': 2, 'params': {'symbol': 'ETH', 'timeFrame': '15min'}},
         {'id': 3, 'params': {'symbol': 'BNB', 'timeFrame': '15min'}},
-        {'id': 4, 'params': {'symbol': 'BTC', 'timeFrame': '1h'}},
-        {'id': 5, 'params': {'symbol': 'ETH', 'timeFrame': '1h'}},
-        {'id': 6, 'params': {'symbol': 'BNB', 'timeFrame': '1h'}},
-        {'id': 7, 'params': {'symbol': 'BTC', 'timeFrame': '4h'}},
-        {'id': 8, 'params': {'symbol': 'ETH', 'timeFrame': '4h'}},
-        {'id': 9, 'params': {'symbol': 'BNB', 'timeFrame': '4h'}},
+        {'id': 4, 'params': {'symbol': 'BTC', 'timeFrame': '30min'}},
+        {'id': 5, 'params': {'symbol': 'ETH', 'timeFrame': '30min'}},
+        {'id': 6, 'params': {'symbol': 'BNB', 'timeFrame': '30min'}},
+        {'id': 7, 'params': {'symbol': 'BTC', 'timeFrame': '1h'}},
+        {'id': 8, 'params': {'symbol': 'ETH', 'timeFrame': '1h'}},
+        {'id': 9, 'params': {'symbol': 'BNB', 'timeFrame': '1h'}},
     ]
 
     for task in tasks_to_run:
