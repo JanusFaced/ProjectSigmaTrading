@@ -7,9 +7,9 @@ requests==2.31.0
 python-dotenv==1.0.1
 concurrent-log-handler==0.9.25
 numba==0.61.0
-scikit-learn==1.8.0
-statsmodels==0.14.6
+darts==0.44.1
 catboost==1.2.10
+scikit-learn==1.8.0
 SQLAlchemy==2.0.28
 celery==5.3.4
 redis==5.0.1
