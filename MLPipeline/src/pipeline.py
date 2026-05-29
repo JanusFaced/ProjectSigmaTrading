@@ -38,16 +38,16 @@ if __name__ == "__main__":
 
 
 		{'symbol': 'BTC', 'timeFrame': '15min', "task": "regression"},
-#		{'symbol': 'ETH', 'timeFrame': '15min', "task": "regression"},
-#		{'symbol': 'BNB', 'timeFrame': '15min', "task": "regression"},
-#
-#		{'symbol': 'BTC', 'timeFrame': '30min', "task": "regression"},
-#		{'symbol': 'ETH', 'timeFrame': '30min', "task": "regression"},
-#		{'symbol': 'BNB', 'timeFrame': '30min', "task": "regression"},
-#
-#		{'symbol': 'BTC', 'timeFrame': '1h', "task": "regression"},
-#		{'symbol': 'ETH', 'timeFrame': '1h', "task": "regression"},
-#		{'symbol': 'BNB', 'timeFrame': '1h', "task": "regression"},
+		{'symbol': 'ETH', 'timeFrame': '15min', "task": "regression"},
+		{'symbol': 'BNB', 'timeFrame': '15min', "task": "regression"},
+
+		{'symbol': 'BTC', 'timeFrame': '30min', "task": "regression"},
+		{'symbol': 'ETH', 'timeFrame': '30min', "task": "regression"},
+		{'symbol': 'BNB', 'timeFrame': '30min', "task": "regression"},
+
+		{'symbol': 'BTC', 'timeFrame': '1h', "task": "regression"},
+		{'symbol': 'ETH', 'timeFrame': '1h', "task": "regression"},
+		{'symbol': 'BNB', 'timeFrame': '1h', "task": "regression"},
 	]
 
 	for msg in listMSGs:

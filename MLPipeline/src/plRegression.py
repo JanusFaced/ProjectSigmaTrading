@@ -5,7 +5,9 @@ import pandas as pd
 import numpy as np
 import os
 import sys
-from sklearn.linear_model import LinearRegression
+from sklearn.model_selection import GridSearchCV
+from sklearn.linear_model import ElasticNet
+from statsmodels.tsa.arima.model import ARIMA
 from sklearn.metrics import accuracy_score
 from sklearn.metrics import mean_absolute_percentage_error
 from sklearn.metrics import r2_score
@@ -20,11 +22,28 @@ def main(inputMessage: dict[str, Any], dataFrame: pd.DataFrame) -> None:
 	quantile = 0.90
 	uniCut = int(len(dataFrame)*quantile)
 
-	model = LinearRegression()
+	imageModel = ElasticNet()
+
+	param_grid = {
+		'alpha': [0.0001, 0.001, 0.01, 0.1, 1, 10, 100],
+		'l1_ratio': [0.1, 0.3, 0.5, 0.7, 0.9, 1.0]
+	}
+
+	grid_search = GridSearchCV(
+		estimator=imageModel,
+		param_grid=param_grid,
+		cv=5,
+		scoring='neg_root_mean_squared_error',
+		n_jobs=-1,
+		verbose=1
+	)
 
 	yData: NDArray[np.float64] = np.array(dataFrame['futureDiff'])[:uniCut]
 	xData: NDArray[NDArray[np.float64]] = dataFrame[featuresList].iloc[:uniCut].to_numpy()
-	model.fit(xData, yData)
+	grid_search.fit(xData, yData)
+	logger.info(f"Лучшие параметры: {grid_search.best_params_}")
+	logger.info(f"Лучшая ошибка: {round(abs(100*(grid_search.best_score_)), 2)} %")
+	model = grid_search.best_estimator_
 
 	yData: NDArray[np.float64] = np.array(dataFrame['futureDiff'])[uniCut:]
 	xData: NDArray[NDArray[np.float64]] = dataFrame[featuresList].iloc[uniCut:].to_numpy()
@@ -41,7 +60,9 @@ def main(inputMessage: dict[str, Any], dataFrame: pd.DataFrame) -> None:
 
 	makeRecursivePredict(
 		recusiveXData=xData[-1:],
-		model=model
+		model=model,
+		symbol=inputMessage['symbol'],
+		timeFrame=inputMessage['timeFrame']
 	)
 
 def prepareDataFrame(
@@ -64,7 +85,9 @@ def makeDiff(dataFrameSeries: pd.Series, shift: int = 1) -> pd.Series:
 
 def makeRecursivePredict(
 		recusiveXData: NDArray[NDArray[np.float64]],
-		model: LinearRegression,
+		model: ElasticNet,
+		symbol: str,
+		timeFrame: str
 	) -> None:
 
 	pastVector: NDArray[np.float64] = recusiveXData[0]
@@ -87,5 +110,6 @@ def makeRecursivePredict(
 	plt.plot(time[:lenth], result[:lenth])
 	plt.plot(time[lenth:], result[lenth:])
 	plt.savefig(
-	    os.path.join("output/", "predict.png"),
+		os.path.join("output/", f"predict_{symbol}_{timeFrame}.png"),
 	)
+	plt.close()
