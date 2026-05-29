@@ -5,8 +5,6 @@ import pandas as pd
 import numpy as np
 import os
 import sys
-from sklearn.model_selection import GridSearchCV
-from sklearn.linear_model import ElasticNet
 from statsmodels.tsa.arima.model import ARIMA
 from sklearn.metrics import accuracy_score
 from sklearn.metrics import mean_absolute_percentage_error
@@ -17,98 +15,37 @@ logger = get_logger(__name__)
 
 def main(inputMessage: dict[str, Any], dataFrame: pd.DataFrame) -> None:
 
-	dataFrame, featuresList = prepareDataFrame(dataFrame=dataFrame)
+	symbol = inputMessage["symbol"]
+	timeFrame = inputMessage["timeFrame"]
 
-	quantile = 0.90
-	uniCut = int(len(dataFrame)*quantile)
+	amountCandles = 10
+	uniCut = len(dataFrame) - amountCandles
 
-	imageModel = ElasticNet()
+	yDataEdu: NDArray[np.float64] = np.array(dataFrame['close'])[:uniCut]
 
-	param_grid = {
-		'alpha': [0.0001, 0.001, 0.01, 0.1, 1, 10, 100],
-		'l1_ratio': [0.1, 0.3, 0.5, 0.7, 0.9, 1.0]
-	}
+	imageModel = ARIMA(yDataEdu, order=(10, 1, 1))
+	model = imageModel.fit()
 
-	grid_search = GridSearchCV(
-		estimator=imageModel,
-		param_grid=param_grid,
-		cv=5,
-		scoring='neg_root_mean_squared_error',
-		n_jobs=-1,
-		verbose=1
-	)
+	yDataTest: NDArray[np.float64] = np.array(dataFrame['close'])[uniCut:]
 
-	yData: NDArray[np.float64] = np.array(dataFrame['futureDiff'])[:uniCut]
-	xData: NDArray[NDArray[np.float64]] = dataFrame[featuresList].iloc[:uniCut].to_numpy()
-	grid_search.fit(xData, yData)
-	logger.info(f"Лучшие параметры: {grid_search.best_params_}")
-	logger.info(f"Лучшая ошибка: {round(abs(100*(grid_search.best_score_)), 2)} %")
-	model = grid_search.best_estimator_
+	yPredict = model.forecast(steps=len(yDataTest))
+	print(f"Прогноз следующих значений: {yPredict}")
 
-	yData: NDArray[np.float64] = np.array(dataFrame['futureDiff'])[uniCut:]
-	xData: NDArray[NDArray[np.float64]] = dataFrame[featuresList].iloc[uniCut:].to_numpy()
-	yPredict: NDArray[np.float64] = model.predict(xData)
 
-	yDataCorrect: NDArray[np.float64] = (yData + 1)*dataFrame['close'][uniCut:]
-	yPredictCorrect: NDArray[np.float64] = (yPredict + 1)*dataFrame['close'][uniCut:]
-
-	mape = mean_absolute_percentage_error(yDataCorrect[:-1], yPredictCorrect[:-1])
-	r2 = r2_score(yDataCorrect[:-1], yPredictCorrect[:-1])
+	mape = mean_absolute_percentage_error(yDataTest, yPredict)
+	r2 = r2_score(yDataTest, yPredict)
 
 	logger.info(f"Относительная ошибка: {100*mape:.4f} %")
 	logger.info(f"Коэффициент детерминации: {r2:.4f}")
 
-	makeRecursivePredict(
-		recusiveXData=xData[-1:],
-		model=model,
-		symbol=inputMessage['symbol'],
-		timeFrame=inputMessage['timeFrame']
-	)
+	yDataEdu = yDataEdu[-amountCandles:]
 
-def prepareDataFrame(
-		dataFrame: pd.DataFrame,
-		shifts: list = range(1,20)
-	) -> tuple[pd.DataFrame, list]:
+	lenth = len(yDataEdu)
+	time = range(len(yDataEdu) + len(yDataTest))
 
-	featuresList: list = []
-	for shift in shifts:
-		name = f'featureShift{shift}'
-		featuresList.append(name)
-		dataFrame[name] = makeDiff(dataFrameSeries=dataFrame['close'], shift=shift)
-	
-	dataFrame['futureDiff'] = makeDiff(dataFrameSeries=dataFrame['close'], shift=0)
-	
-	return dataFrame.iloc[max(shifts):], featuresList
-
-def makeDiff(dataFrameSeries: pd.Series, shift: int = 1) -> pd.Series:
-	return dataFrameSeries.shift(shift-1)/dataFrameSeries.shift(shift) - 1
-
-def makeRecursivePredict(
-		recusiveXData: NDArray[NDArray[np.float64]],
-		model: ElasticNet,
-		symbol: str,
-		timeFrame: str
-	) -> None:
-
-	pastVector: NDArray[np.float64] = recusiveXData[0]
-	lenth: int = len(recusiveXData[0])
-
-	for _ in range(lenth):
-		yPredict: float = model.predict(recusiveXData)[0]
-		workVector: NDArray[np.float64] = recusiveXData[0]
-		workVector = np.append(workVector[1:], yPredict)
-		recusiveXData = np.array([workVector])
-
-	futureVector: NDArray[np.float64] = recusiveXData[0]
-	
-	uniteArray = 1 + np.concatenate([pastVector, futureVector])
-	result = 100*(np.cumprod(uniteArray))
-	time = range(0, lenth*2)
-
-	logger.info(f"result cumprod = \n{result}")
-
-	plt.plot(time[:lenth], result[:lenth])
-	plt.plot(time[lenth:], result[lenth:])
+	plt.plot(time[:lenth], yDataEdu, color="black")
+	plt.plot(time[lenth:], yDataTest, color="blue")
+	plt.plot(time[lenth:], yPredict, color="purple")
 	plt.savefig(
 		os.path.join("output/", f"predict_{symbol}_{timeFrame}.png"),
 	)
