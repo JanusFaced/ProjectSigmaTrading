@@ -3,6 +3,9 @@ from typing import List, Dict, Any, Optional
 import numpy as np
 from darts import TimeSeries
 from dataBaseModels import Session, Forecast, ChartPoint, PointType
+from logger_setup import get_logger
+
+logger = get_logger(__name__)
 
 class ForecastService:
 
@@ -17,6 +20,17 @@ class ForecastService:
 		predicted_series: TimeSeries,
 		mape: float,
 	) -> int:
+
+		old_forecasts = self.db.query(Forecast).filter(
+			Forecast.symbol == symbol,
+			Forecast.timeframe == timeframe
+		).all()
+		
+		for old in old_forecasts:
+			logger.info(f"🗑️ Удаляю старый прогноз #{old.id} для {symbol} {timeframe}")
+			self.db.delete(old)
+		
+		self.db.flush()
 
 		historical_prices = historical_series.values().flatten()
 		historical_timestamps = historical_series.time_index
@@ -56,20 +70,7 @@ class ForecastService:
 		
 		self.db.commit()
 		
-		print(f"✅ Сохранено: {len(historical_prices)} исторических + {len(predicted_prices)} предсказанных точек")
+		logger.info(f"✅ Сохранён НОВЫЙ прогноз #{forecast.id}: {len(historical_prices)} исторических + {len(predicted_prices)} предсказанных точек")
+		logger.info(f"📊 Для {symbol} {timeframe} теперь актуален только этот прогноз")
+
 		return forecast.id
-	
-	def get_forecast_points(self, forecast_id: int) -> List[Dict]:
-		points = self.db.query(ChartPoint).filter(
-			ChartPoint.forecast_id == forecast_id
-		).order_by(ChartPoint.index).all()
-		
-		return [
-			{
-				'index': p.index,
-				'type': p.point_type.value,
-				'price': p.price,
-				'timestamp': p.timestamp.isoformat()
-			}
-			for p in points
-		]

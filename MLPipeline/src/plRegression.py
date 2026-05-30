@@ -1,5 +1,4 @@
 from typing import Any, TypedDict
-import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 import os
@@ -65,20 +64,14 @@ def main(inputMessage: dict[str, Any], dataFrame: pd.DataFrame) -> None:
 	yPredictSeries = model.predict(n=len(yDataTest))
 
 	yPredict: np.ndarray[np.float64] = yPredictSeries.values().flatten()
-	mape = mean_absolute_percentage_error(yDataTest, yPredict)
+	mape = 100*mean_absolute_percentage_error(yDataTest, yPredict)
 	r2 = r2_score(yDataTest, yPredict)
-	logger.info(f"Относительная ошибка: {100*mape:.4f} %")
+	logger.info(f"Относительная ошибка: {mape:.4f} %")
 	logger.info(f"Коэффициент детерминации: {r2:.4f}")
 
 	model.fit(seriesFull)
 	yPredictSeries = model.predict(n=futuresDays)
 	seriesFull = seriesFull[-futuresDays:]
-
-	seriesFull.plot(label='PastData', color="black")
-	yPredictSeries.plot(label='PredictFutureData', color="purple")
-	plt.savefig(os.path.join("output/", f"predict_{symbol}_{timeFrame}.png"))
-	plt.close()
-
 
 	try:
 		db_session = Session()

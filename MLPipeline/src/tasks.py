@@ -42,15 +42,31 @@ def scheduled_run() -> str:
     logger.info("Запуск по расписанию!")
 
     tasks_to_run: list[ScheduledTask] = [
-        {'id': 1, 'params': {'symbol': 'BTC', 'timeFrame': '15min'}},
-        {'id': 2, 'params': {'symbol': 'ETH', 'timeFrame': '15min'}},
-        {'id': 3, 'params': {'symbol': 'BNB', 'timeFrame': '15min'}},
-        {'id': 4, 'params': {'symbol': 'BTC', 'timeFrame': '30min'}},
-        {'id': 5, 'params': {'symbol': 'ETH', 'timeFrame': '30min'}},
-        {'id': 6, 'params': {'symbol': 'BNB', 'timeFrame': '30min'}},
-        {'id': 7, 'params': {'symbol': 'BTC', 'timeFrame': '1h'}},
-        {'id': 8, 'params': {'symbol': 'ETH', 'timeFrame': '1h'}},
-        {'id': 9, 'params': {'symbol': 'BNB', 'timeFrame': '1h'}},
+        {'id': 1, 'params': {'symbol': 'BTC', 'timeFrame': '15min', "task": "classification"}},
+        {'id': 2, 'params': {'symbol': 'ETH', 'timeFrame': '15min', "task": "classification"}},
+        {'id': 3, 'params': {'symbol': 'BNB', 'timeFrame': '15min', "task": "classification"}},
+
+        {'id': 4, 'params': {'symbol': 'BTC', 'timeFrame': '30min', "task": "classification"}},
+        {'id': 5, 'params': {'symbol': 'ETH', 'timeFrame': '30min', "task": "classification"}},
+        {'id': 6, 'params': {'symbol': 'BNB', 'timeFrame': '30min', "task": "classification"}},
+
+        {'id': 7, 'params': {'symbol': 'BTC', 'timeFrame': '1h', "task": "classification"}},
+        {'id': 8, 'params': {'symbol': 'ETH', 'timeFrame': '1h', "task": "classification"}},
+        {'id': 9, 'params': {'symbol': 'BNB', 'timeFrame': '1h', "task": "classification"}},
+
+
+
+        {'id': 10, 'params': {'symbol': 'BTC', 'timeFrame': '15min', "task": "regression"}},
+        {'id': 11, 'params': {'symbol': 'ETH', 'timeFrame': '15min', "task": "regression"}},
+        {'id': 12, 'params': {'symbol': 'BNB', 'timeFrame': '15min', "task": "regression"}},
+
+        {'id': 13, 'params': {'symbol': 'BTC', 'timeFrame': '30min', "task": "regression"}},
+        {'id': 14, 'params': {'symbol': 'ETH', 'timeFrame': '30min', "task": "regression"}},
+        {'id': 15, 'params': {'symbol': 'BNB', 'timeFrame': '30min', "task": "regression"}},
+        
+        {'id': 16, 'params': {'symbol': 'BTC', 'timeFrame': '1h', "task": "regression"}},
+        {'id': 17, 'params': {'symbol': 'ETH', 'timeFrame': '1h', "task": "regression"}},
+        {'id': 18, 'params': {'symbol': 'BNB', 'timeFrame': '1h', "task": "regression"}},
     ]
 
     for task in tasks_to_run:

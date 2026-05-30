@@ -58,9 +58,9 @@ def main(
 		logger.info(f'{nameTable} does NOT exist!')
 		downloadData = True
 
-#	if (nowDatetime - pastDatetime) > maxDeltaDatetime:
-#		logger.info(f'{nameTable} is very old!')
-#		downloadData = True
+	if (nowDatetime - pastDatetime) > maxDeltaDatetime:
+		logger.info(f'{nameTable} is very old!')
+		downloadData = True
 
 	if downloadData:
 		downloadHistory.main(

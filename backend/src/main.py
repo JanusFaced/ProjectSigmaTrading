@@ -2,8 +2,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
-from dataBaseModels import Session, Signal
-from pathlib import Path
+from dataBaseModels import Session, Signal, Forecast, ChartPoint, PointType
 import os
 import sys
 from logger_setup import get_logger
@@ -25,7 +24,7 @@ app = FastAPI(
 
 app.add_middleware(
 	CORSMiddleware,
-	allow_origins=["*"],  # В продакшене замените на конкретные домены
+	allow_origins=["*"],  # В продакшене на домен
 	allow_credentials=True,
 	allow_methods=["*"],
 	allow_headers=["*"],
@@ -60,6 +59,76 @@ async def get_table_analyst():
 	finally:
 		dataBaseSession.close()
 
+@app.get('/getForecastsList', response_model=list[dict])
+async def get_forecasts_list():
+	dataBaseSession = Session()
+	
+	try:
+		forecasts = dataBaseSession.query(Forecast).order_by(Forecast.id.desc()).all()
+		
+		result = []
+		for f in forecasts:
+			result.append({
+				"id": f.id,
+				"symbol": f.symbol,
+				"timeframe": f.timeframe,
+				"mape_score": f.mape_score
+			})
+		
+		return result
+	
+	except Exception as e:
+		logger.error(f"Error fetching forecasts: {str(e)}")
+		raise HTTPException(status_code=500, detail=str(e))
+	
+	finally:
+		dataBaseSession.close()
+
+@app.get('/getForecastData/{forecast_id}', response_model=dict)
+async def get_forecast_data(forecast_id: int):
+	dataBaseSession = Session()
+	
+	try:		
+		forecast = dataBaseSession.query(Forecast).filter(Forecast.id == forecast_id).first()
+		if not forecast:
+			raise HTTPException(status_code=404, detail="Forecast not found")
+		
+		points = dataBaseSession.query(ChartPoint).filter(
+			ChartPoint.forecast_id == forecast_id
+		).order_by(ChartPoint.index).all()
+
+		historical_prices = []
+		predicted_prices = []
+		
+		for p in points:
+			point_data = {
+				"index": p.index,
+				"price": p.price,
+				"timestamp": p.timestamp.isoformat()
+			}
+			
+			if p.point_type == PointType.HISTORICAL:
+				historical_prices.append(point_data)
+			else:
+				predicted_prices.append(point_data)
+
+		return {
+			"symbol": forecast.symbol,
+			"timeframe": forecast.timeframe,
+			"mape_score": forecast.mape_score,
+			"historical": historical_prices,
+			"prediction": predicted_prices
+		}
+	
+	except HTTPException:
+		raise
+	except Exception as e:
+		logger.error(f"Error fetching forecast data: {str(e)}")
+		raise HTTPException(status_code=500, detail=str(e))
+	
+	finally:
+		dataBaseSession.close()
+
 @app.get('/health')
 async def health_check():
 	return {"status": "healthy", "framework": "FastAPI"}
@@ -71,9 +140,9 @@ async def root():
 		"version": "1.0.0",
 		"endpoints": [
 			"/getTableAnalyst",
-			"/health",
-			"/docs",
-			"/redoc"
+			"/getForecastsList",
+			"/getForecastData/{forecast_id}",
+			"/health"
 		]
 	}
 

@@ -12,17 +12,17 @@ function Navigation() {
         <Nav>
             <NavContainer>
                 <Logo>
-                    <NavLink to="/">[ SIGNALS ]</NavLink>
+                    <NavLink to="/">[ PREDICT ]</NavLink>
                 </Logo>
                 <NavLinks>
                     <NavItem>
-                        <NavLink to="/signals/">Главная</NavLink>
+                        <NavLink to="/predict/">Главная</NavLink>
                     </NavItem>
                     <NavItem>
-                        <NavLink to="/signals/analyst">Аналитика</NavLink>
+                        <NavLink to="/predict/analyst">Предсказания</NavLink>
                     </NavItem>
                     <NavItem>
-                        <NavLink to="/signals/about">О проекте</NavLink>
+                        <NavLink to="/predict/about">О проекте</NavLink>
                     </NavItem>
                 </NavLinks>
             </NavContainer>

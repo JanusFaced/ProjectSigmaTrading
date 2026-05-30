@@ -23,17 +23,17 @@ def main(inputMessage: dict[str, Any]) -> None:
 if __name__ == "__main__":
 
 	listMSGs = [
-#		{'symbol': 'BTC', 'timeFrame': '15min', "task": "classification"},
-#		{'symbol': 'ETH', 'timeFrame': '15min', "task": "classification"},
-#		{'symbol': 'BNB', 'timeFrame': '15min', "task": "classification"},
-#
-#		{'symbol': 'BTC', 'timeFrame': '30min', "task": "classification"},
-#		{'symbol': 'ETH', 'timeFrame': '30min', "task": "classification"},
-#		{'symbol': 'BNB', 'timeFrame': '30min', "task": "classification"},
-#
-#		{'symbol': 'BTC', 'timeFrame': '1h', "task": "classification"},
-#		{'symbol': 'ETH', 'timeFrame': '1h', "task": "classification"},
-#		{'symbol': 'BNB', 'timeFrame': '1h', "task": "classification"},
+		{'symbol': 'BTC', 'timeFrame': '15min', "task": "classification"},
+		{'symbol': 'ETH', 'timeFrame': '15min', "task": "classification"},
+		{'symbol': 'BNB', 'timeFrame': '15min', "task": "classification"},
+
+		{'symbol': 'BTC', 'timeFrame': '30min', "task": "classification"},
+		{'symbol': 'ETH', 'timeFrame': '30min', "task": "classification"},
+		{'symbol': 'BNB', 'timeFrame': '30min', "task": "classification"},
+
+		{'symbol': 'BTC', 'timeFrame': '1h', "task": "classification"},
+		{'symbol': 'ETH', 'timeFrame': '1h', "task": "classification"},
+		{'symbol': 'BNB', 'timeFrame': '1h', "task": "classification"},
 
 
 
