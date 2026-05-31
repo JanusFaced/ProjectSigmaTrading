@@ -53,13 +53,12 @@ def main(
 		logger.info(f'{nameTable} is exist! Fetched last {realAmountLines} rows')
 		pastDatetime = dataFrame['datetime'].iloc[-1]
 		nowDatetime = datetime.utcnow()
+		if (nowDatetime - pastDatetime) > maxDeltaDatetime:
+			logger.info(f'{nameTable} is very old!')
+			downloadData = True
 	
 	except Exception as error_body:
 		logger.info(f'{nameTable} does NOT exist!')
-		downloadData = True
-
-	if (nowDatetime - pastDatetime) > maxDeltaDatetime:
-		logger.info(f'{nameTable} is very old!')
 		downloadData = True
 
 	if downloadData:

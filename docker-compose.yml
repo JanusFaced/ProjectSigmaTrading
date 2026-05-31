@@ -130,7 +130,7 @@ services:
         ports:
             - "5432:5432"
         volumes:
-            - dsmlai_edu_db-data:/var/lib/postgresql/data
+            - db-data:/var/lib/postgresql/data
         deploy:
             resources:
                 limits:
@@ -158,8 +158,7 @@ services:
         profiles: ["lint"]
 
 volumes:
-    dsmlai_edu_db-data:
-        external: true
+    db-data:
 
 networks:
     app-network:
