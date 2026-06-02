@@ -15,7 +15,7 @@ function AnalystPage() {
     useEffect(() => {
         const loadCards = async () => {
             try {
-                const response = await fetch('http://localhost:8000/getTableAnalyst');
+                const response = await fetch('https://projectsigmatrading.ru/api/getTableAnalyst');
                 
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);

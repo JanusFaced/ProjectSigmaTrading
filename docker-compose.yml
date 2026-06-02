@@ -6,8 +6,8 @@ services:
         command: npm start
         networks:
             - app-network
-        ports:
-            - "3000:3000"
+#        ports:
+#            - "3000:3000"
         depends_on:
             - backend
         volumes:
@@ -36,8 +36,8 @@ services:
         command: sh -c "cd src && uvicorn main:app --host 0.0.0.0 --port 8000 --workers 4"
         networks:
             - app-network
-        ports:
-            - "8000:8000"
+ #       ports:
+ #           - "8000:8000"
         depends_on:
             - dataBase
         volumes:
@@ -109,8 +109,8 @@ services:
         image: redis:7-alpine
         networks:
             - app-network
-        ports:
-            - "6379:6379"
+#        ports:
+#            - "6379:6379"
         deploy:
             resources:
                 limits:
@@ -127,8 +127,8 @@ services:
             POSTGRES_DB: ${DB_NAME}
         networks:
             - app-network
-        ports:
-            - "5432:5432"
+#        ports:
+#            - "5432:5432"
         volumes:
             - db-data:/var/lib/postgresql/data
         deploy:
@@ -136,6 +136,22 @@ services:
                 limits:
                     cpus: '0.25'
                     memory: 256M
+        restart: unless-stopped
+        profiles: ["dev"]
+
+    nginx:
+        image: nginx:alpine
+        ports:
+            - "80:80"
+            - "443:443"
+        volumes:
+            - ./nginx/conf.d:/etc/nginx/conf.d:ro
+            - ./nginx/ssl:/etc/nginx/ssl:ro
+        depends_on:
+            - backend
+            - frontend
+        networks:
+            - app-network
         restart: unless-stopped
         profiles: ["dev"]
 
@@ -159,6 +175,8 @@ services:
 
 volumes:
     db-data:
+        name: projectsigmatrading_db-data
+        driver: local
 
 networks:
     app-network:

@@ -17,14 +17,19 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
 	title="BACKEND API",
-	description="Public API для получения торговых сигналов",
+	description="Public API",
 	version="1.0.0",
 	lifespan=lifespan
 )
 
 app.add_middleware(
 	CORSMiddleware,
-	allow_origins=["*"],  # В продакшене на домен
+	allow_origins=[
+		"https://projectsigmatrading.ru",
+		"http://projectsigmatrading.ru",
+		"https://62.113.37.47",
+		"http://62.113.37.47"
+	],
 	allow_credentials=True,
 	allow_methods=["*"],
 	allow_headers=["*"],
@@ -33,7 +38,7 @@ app.add_middleware(
 @app.get('/getTableAnalyst', response_model=list[dict])
 async def get_table_analyst():
 	dataBaseSession = Session()
-	
+
 	try:
 		logger.info("Fetching all signals from database")
 		signals = dataBaseSession.query(Signal).all()

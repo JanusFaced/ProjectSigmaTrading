@@ -36,7 +36,7 @@ ChartJS.register(
   Legend
 );
 
-const API_BASE = 'http://localhost:8000';
+const API_BASE = 'https://projectsigmatrading.ru/api';
 
 function AnalystPage() {
   const [forecasts, setForecasts] = useState([]);
