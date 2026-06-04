@@ -7,6 +7,8 @@ import {
     CardsList
 } from './AnalystPage.styles.jsx';
 
+const API_BASE = process.env.REACT_APP_API_URL;
+
 function AnalystPage() {
     const [cards, setCards] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -15,7 +17,7 @@ function AnalystPage() {
     useEffect(() => {
         const loadCards = async () => {
             try {
-                const response = await fetch('https://projectsigmatrading.ru/api/getTableAnalyst');
+                const response = await fetch(`${API_BASE}/getTableAnalyst`);
                 
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);

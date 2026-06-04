@@ -16,17 +16,17 @@ function PortfolioSection() {
     const projects = [
         { 
             title: 'Генератор сигналов', 
-            tech: 'CatBoost, React, Flask', 
-            path: '/signals',  // ← изменено с href на path
+            tech: 'CatBoost, SKlearn, FastAPI', 
+            path: '/signals',
             description: 'Генерация торговых сигналов на основе ML моделей',
-            techList: ['CatBoost', 'React', 'Flask', 'PostgreSQL']
+            techList: ['CatBoost', 'SKlearn', 'FastAPI', 'PostgreSQL']
         },
         { 
             title: 'Предсказатель графика', 
-            tech: 'SKlearn, React, Flask', 
-            path: '/predict',   // ← изменено с href на path
+            tech: 'Darts, CatBoost, FastAPI', 
+            path: '/predict',
             description: 'Предсказание движения цены криптовалют',
-            techList: ['SKlearn', 'React', 'Flask', 'Pandas']
+            techList: ['Darts', 'CatBoost', 'FastAPI', 'PostgreSQL']
         },
     ];
 
@@ -39,14 +39,13 @@ function PortfolioSection() {
                         <ProjectCard key={idx}>
                             <ProjectImage />
                             <ProjectInfo>
-                                {/* Используем Link вместо обычной ссылки */}
                                 <ProjectLink 
                                     as={Link}
                                     to={project.path}
                                 >
                                     <h3>
                                         {project.title}
-                                        <ExternalIcon>→</ExternalIcon>
+                                        <ExternalIcon> → ПЕРЕЙТИ В ПРОЕКТ </ExternalIcon>
                                     </h3>
                                 </ProjectLink>
                                 <p>{project.description || project.tech}</p>
