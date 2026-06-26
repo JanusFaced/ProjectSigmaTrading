@@ -1,94 +1,94 @@
 services:
-    frontend:
-        image: js_app_frontend
-        build:
-            context: ./frontend
-            args:
-                - REACT_APP_API_URL=http://localhost:8000
-        command: npm start
-        networks:
-            - app-network
-        ports:
-            - "3000:3000"
-        depends_on:
-            - backend
-        volumes:
-            - ./frontend/logs:/app/logs
-        environment:
-            - LOG_PATH=/app/logs
-        deploy:
-            resources:
-                limits:
-                    cpus: '1.00'
-                    memory: 1024M
-        restart: unless-stopped
-        profiles: ["dev"]
+#    frontend:
+#        image: js_app_frontend
+#        build:
+#            context: ./frontend
+#            args:
+#                - REACT_APP_API_URL=http://localhost:8000
+#        command: npm start
+#        networks:
+#            - app-network
+#        ports:
+#            - "3000:3000"
+#        depends_on:
+#            - backend
+#        volumes:
+#            - ./frontend/logs:/app/logs
+#        environment:
+#            - LOG_PATH=/app/logs
+#        deploy:
+#            resources:
+#                limits:
+#                    cpus: '1.00'
+#                    memory: 1024M
+#        restart: unless-stopped
+#        profiles: ["dev"]
 
-    backend:
-        image: python_app_backend
-        environment:
-            DB_PASSWORD: ${DB_PASSWORD}
-            DB_USER: ${DB_USER}
-            DB_NAME: ${DB_NAME}
-            DB_HOST: dataBase
-            DB_PORT: 5432
-            REDIS_URL: redis://redis:6379/0
-        build:
-            context: ./backend
-        command: sh -c "cd src && uvicorn main:app --host 0.0.0.0 --port 8000 --workers 4"
-        networks:
-            - app-network
-        ports:
-            - "8000:8000"
-        depends_on:
-            - dataBase
-        volumes:
-            - ./backend/src/logs:/app/src/logs
-        deploy:
-            resources:
-                limits:
-                    cpus: '1.00'
-                    memory: 1024M
-        restart: unless-stopped
-        profiles: ["dev"]
+#    backend:
+#        image: python_app_backend
+#        environment:
+#            DB_PASSWORD: ${DB_PASSWORD}
+#            DB_USER: ${DB_USER}
+#            DB_NAME: ${DB_NAME}
+#            DB_HOST: dataBase
+#            DB_PORT: 5432
+#            REDIS_URL: redis://redis:6379/0
+#        build:
+#            context: ./backend
+#        command: sh -c "cd src && uvicorn main:app --host 0.0.0.0 --port 8000 --workers 4"
+#        networks:
+#            - app-network
+#        ports:
+#            - "8000:8000"
+#        depends_on:
+#            - dataBase
+#        volumes:
+#            - ./backend/src/logs:/app/src/logs
+#        deploy:
+#            resources:
+#                limits:
+#                    cpus: '1.00'
+#                    memory: 1024M
+#        restart: unless-stopped
+#        profiles: ["dev"]
 
-    celery_beat:
-        image: python_app_ml_pipeline_celery_beat
-        build: ./MLPipeline
-        command: sh -c "cd src && celery -A tasks beat --loglevel=info"
-        networks:
-            - app-network
-        depends_on:
-            - redis
-            - dataBase
-            - celery_worker
-        environment:
-            DB_PASSWORD: ${DB_PASSWORD}
-            DB_USER: ${DB_USER}
-            DB_NAME: ${DB_NAME}
-            DB_HOST: dataBase
-            DB_PORT: 5432
-            REDIS_URL: redis://redis:6379/0
-        volumes:
-            - ./MLPipeline/src/logs:/app/src/logs
-        deploy:
-            resources:
-                limits:
-                    cpus: '0.25'
-                    memory: 256M
-        restart: unless-stopped
-        profiles: ["dev"]
+#   celery_beat:
+#        image: python_app_ml_pipeline_celery_beat
+#        build: ./MLPipeline
+#        command: sh -c "cd src && celery -A tasks beat --loglevel=info"
+#        networks:
+#            - app-network
+#        depends_on:
+#            - redis
+#            - dataBase
+#            - celery_worker
+#        environment:
+#            DB_PASSWORD: ${DB_PASSWORD}
+#            DB_USER: ${DB_USER}
+#            DB_NAME: ${DB_NAME}
+#            DB_HOST: dataBase
+#            DB_PORT: 5432
+#            REDIS_URL: redis://redis:6379/0
+#        volumes:
+#            - ./MLPipeline/src/logs:/app/src/logs
+#        deploy:
+#            resources:
+#                limits:
+#                    cpus: '0.25'
+#                    memory: 256M
+#        restart: unless-stopped
+#        profiles: ["dev"]
 
     celery_worker:
         image: python_app_ml_pipeline_celery_worker
         build: ./MLPipeline
-#        command: sh -c "cd src && python pipeline.py"
-        command: sh -c "cd src && celery -A tasks worker --loglevel=info --concurrency=1 --max-tasks-per-child=50"
+        command: sh -c "cd src && python pipeline.py"
+#        command: sh -c "cd src && celery -A tasks worker --loglevel=info --concurrency=1 --max-tasks-per-child=50"
         networks:
             - app-network
         depends_on:
             - dataBase
-            - redis
+#            - redis
         environment:
             DB_PASSWORD: ${DB_PASSWORD}
             DB_USER: ${DB_USER}
@@ -97,29 +97,29 @@ services:
             DB_PORT: 5432
             REDIS_URL: redis://redis:6379/0
         volumes:
-#            - ./MLPipeline/src/output:/app/src/output
+            - ./MLPipeline/src/output:/app/src/output
             - ./MLPipeline/src/logs:/app/src/logs
-        deploy:
-            resources:
-                limits:
-                    cpus: '1.00'
-                    memory: 1024M
-        restart: unless-stopped
+#        deploy:
+#            resources:
+#                limits:
+#                    cpus: '1.00'
+#                    memory: 1024M
+#        restart: unless-stopped
         profiles: ["dev"]
 
-    redis:
-        image: redis:7-alpine
-        networks:
-            - app-network
-        ports:
-            - "6379:6379"
-        deploy:
-            resources:
-                limits:
-                    cpus: '0.25'
-                    memory: 256M
-        restart: unless-stopped
-        profiles: ["dev"]
+#    redis:
+#        image: redis:7-alpine
+#        networks:
+#            - app-network
+#        ports:
+#            - "6379:6379"
+#        deploy:
+#            resources:
+#                limits:
+#                    cpus: '0.25'
+#                    memory: 256M
+#        restart: unless-stopped
+#        profiles: ["dev"]
 
     dataBase:
         image: postgres:16.0
@@ -132,37 +132,36 @@ services:
         ports:
             - "5432:5432"
         volumes:
-            - db-data:/var/lib/postgresql/data
-        deploy:
-            resources:
-                limits:
-                    cpus: '0.25'
-                    memory: 256M
+            - quantta_db-data:/var/lib/postgresql/data
+#        deploy:
+#            resources:
+#                limits:
+#                    cpus: '0.25'
+#                    memory: 256M
         restart: unless-stopped
         profiles: ["dev"]
 
-    mypybackend:
-        image: python_app_backend_mypy
-        build: ./backend
-        command: mypy src/ --config-file /app/pyproject.toml
-        volumes:
-            - ./backend/src:/app/src
-            - ./backend/pyproject.toml:/app/pyproject.toml
-        profiles: ["lint"]
+#    mypybackend:
+#        image: python_app_backend_mypy
+#        build: ./backend
+#        command: mypy src/ --config-file /app/pyproject.toml
+#        volumes:
+#            - ./backend/src:/app/src
+#            - ./backend/pyproject.toml:/app/pyproject.toml
+#        profiles: ["lint"]
 
-    mypyMLPipeline:
-        image: python_app_ml_pipeline_mypy
-        build: ./MLPipeline
-        command: mypy src/ --config-file /app/pyproject.toml
-        volumes:
-            - ./MLPipeline/src:/app/src
-            - ./MLPipeline/pyproject.toml:/app/pyproject.toml
-        profiles: ["lint"]
+#    mypyMLPipeline:
+#        image: python_app_ml_pipeline_mypy
+#        build: ./MLPipeline
+#        command: mypy src/ --config-file /app/pyproject.toml
+#        volumes:
+#            - ./MLPipeline/src:/app/src
+#            - ./MLPipeline/pyproject.toml:/app/pyproject.toml
+#        profiles: ["lint"]
 
 volumes:
-    db-data:
-        name: projectsigmatrading_db-data
-        driver: local
+    quantta_db-data:
+        external: true
 
 networks:
     app-network:
