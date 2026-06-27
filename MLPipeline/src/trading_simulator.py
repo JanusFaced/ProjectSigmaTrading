@@ -5,6 +5,7 @@ import numpy as np
 import sys
 import os
 import backtrader as bt
+import saveToDB
 from logger_setup import get_logger
 from pathlib import Path
 
@@ -383,3 +384,13 @@ def backTestAnalyst(inputMessage: dict[str, Any], report: Dict) -> None:
 	plt.plot(balanceBody)
 	plt.savefig(fileName)
 	plt.close()
+
+	nameStrategy = f"{strategy}_{symbol}_{timeFrame}_{type}_{nameExchange}"
+	inputData = {
+		"strategy": nameStrategy,
+		"year_profit": geom_mean_profit,
+		"max_drawdown": max_drawdawn,
+		"sharp": sharp_classic
+	}
+	saveToDB.saveBacktests(inputData=inputData)
+	logger.info('saveBacktests!')

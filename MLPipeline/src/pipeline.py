@@ -27,6 +27,7 @@ from strategies import tree_class
 from strategies import forest_class
 from strategies import boost_class
 import trading_simulator
+import imitation_connector
 from logger_setup import get_logger
 
 logger = get_logger(__name__)
@@ -115,7 +116,7 @@ def main(inputMessage: dict[str, Any]) -> None:
 	if inputMessage['mode'] == 'test':
 		trading_simulator.main(inputMessage, dataFrame)
 	elif inputMessage['mode'] == 'imitation':
-		pass
+		imitation_connector.main(inputMessage, dataFrame)
 	elif inputMessage['mode'] == 'real':
 		pass
 
