@@ -16,11 +16,6 @@ services:
 #            - ./frontend/logs:/app/logs
 #        environment:
 #            - LOG_PATH=/app/logs
-#        deploy:
-#            resources:
-#                limits:
-#                    cpus: '1.00'
-#                    memory: 1024M
 #        restart: unless-stopped
 #        profiles: ["dev"]
 
@@ -44,11 +39,6 @@ services:
 #            - dataBase
 #        volumes:
 #            - ./backend/src/logs:/app/src/logs
-#        deploy:
-#            resources:
-#                limits:
-#                    cpus: '1.00'
-#                    memory: 1024M
 #        restart: unless-stopped
 #        profiles: ["dev"]
 
@@ -71,11 +61,6 @@ services:
 #            REDIS_URL: redis://redis:6379/0
 #        volumes:
 #            - ./MLPipeline/src/logs:/app/src/logs
-#        deploy:
-#            resources:
-#                limits:
-#                    cpus: '0.25'
-#                    memory: 256M
 #        restart: unless-stopped
 #        profiles: ["dev"]
 
@@ -99,11 +84,6 @@ services:
         volumes:
             - ./MLPipeline/src/output:/app/src/output
             - ./MLPipeline/src/logs:/app/src/logs
-#        deploy:
-#            resources:
-#                limits:
-#                    cpus: '1.00'
-#                    memory: 1024M
 #        restart: unless-stopped
         profiles: ["dev"]
 
@@ -113,11 +93,6 @@ services:
 #            - app-network
 #        ports:
 #            - "6379:6379"
-#        deploy:
-#            resources:
-#                limits:
-#                    cpus: '0.25'
-#                    memory: 256M
 #        restart: unless-stopped
 #        profiles: ["dev"]
 
@@ -133,11 +108,6 @@ services:
             - "5432:5432"
         volumes:
             - quantta_db-data:/var/lib/postgresql/data
-#        deploy:
-#            resources:
-#                limits:
-#                    cpus: '0.25'
-#                    memory: 256M
         restart: unless-stopped
         profiles: ["dev"]
 

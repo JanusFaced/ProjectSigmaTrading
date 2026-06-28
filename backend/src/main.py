@@ -2,7 +2,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
-from dataBaseModels import Session, Signal, Forecast, ChartPoint, PointType
+from dataBaseModels import Session, Backtest, Signal, Trade
 import os
 import sys
 from logger_setup import get_logger
@@ -25,10 +25,11 @@ app = FastAPI(
 app.add_middleware(
 	CORSMiddleware,
 	allow_origins=[
-		"https://projectsigmatrading.ru",
-		"http://projectsigmatrading.ru",
-		"https://62.113.37.47",
-		"http://62.113.37.47"
+#		"https://projectsigmatrading.ru",
+#		"http://projectsigmatrading.ru",
+#		"https://62.113.37.47",
+#		"http://62.113.37.47"
+		"*"
 	],
 	allow_credentials=True,
 	allow_methods=["*"],
@@ -64,71 +65,30 @@ async def get_table_analyst():
 	finally:
 		dataBaseSession.close()
 
-@app.get('/getForecastsList', response_model=list[dict])
-async def get_forecasts_list():
+@app.get('/getTableBacktest', response_model=list[dict])
+async def get_table_backtest():
 	dataBaseSession = Session()
-	
+
 	try:
-		forecasts = dataBaseSession.query(Forecast).order_by(Forecast.id.desc()).all()
+		logger.info("Fetching all backtests from database")
+		backtests = dataBaseSession.query(Backtest).all()
 		
-		result = []
-		for f in forecasts:
-			result.append({
-				"id": f.id,
-				"symbol": f.symbol,
-				"timeframe": f.timeframe,
-				"mape_score": f.mape_score
+		tableBacktest = []
+		for backtest in backtests:
+			tableBacktest.append({
+				"id": backtest.id,
+				"strategy": backtest.strategy,
+				"year_profit": backtest.year_profit,
+				"max_drawdown": backtest.max_drawdown,
+				"sharp": backtest.sharp,
+				"datetime": backtest.datetime
 			})
 		
-		return result
+		logger.info(f"Successfully fetched {len(tableBacktest)} backtests")
+		return tableBacktest
 	
 	except Exception as e:
-		logger.error(f"Error fetching forecasts: {str(e)}")
-		raise HTTPException(status_code=500, detail=str(e))
-	
-	finally:
-		dataBaseSession.close()
-
-@app.get('/getForecastData/{forecast_id}', response_model=dict)
-async def get_forecast_data(forecast_id: int):
-	dataBaseSession = Session()
-	
-	try:		
-		forecast = dataBaseSession.query(Forecast).filter(Forecast.id == forecast_id).first()
-		if not forecast:
-			raise HTTPException(status_code=404, detail="Forecast not found")
-		
-		points = dataBaseSession.query(ChartPoint).filter(
-			ChartPoint.forecast_id == forecast_id
-		).order_by(ChartPoint.index).all()
-
-		historical_prices = []
-		predicted_prices = []
-		
-		for p in points:
-			point_data = {
-				"index": p.index,
-				"price": p.price,
-				"timestamp": p.timestamp.isoformat()
-			}
-			
-			if p.point_type == PointType.HISTORICAL:
-				historical_prices.append(point_data)
-			else:
-				predicted_prices.append(point_data)
-
-		return {
-			"symbol": forecast.symbol,
-			"timeframe": forecast.timeframe,
-			"mape_score": forecast.mape_score,
-			"historical": historical_prices,
-			"prediction": predicted_prices
-		}
-	
-	except HTTPException:
-		raise
-	except Exception as e:
-		logger.error(f"Error fetching forecast data: {str(e)}")
+		logger.error(f"Error fetching backtests: {str(e)}")
 		raise HTTPException(status_code=500, detail=str(e))
 	
 	finally:

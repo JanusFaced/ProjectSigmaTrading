@@ -37,79 +37,54 @@ def main(inputMessage: dict[str, Any]) -> None:
 
 	if inputMessage["strategy"] == "moving":
 		dataFrame = moving.main(inputMessage, dataFrame)
-
 	elif inputMessage["strategy"] == "channel":
 		dataFrame = channel.main(inputMessage, dataFrame)
-
 	elif inputMessage["strategy"] == "oscillator":
 		dataFrame = oscillator.main(inputMessage, dataFrame)
-
 	elif inputMessage["strategy"] == "cross":
 		dataFrame = cross.main(inputMessage, dataFrame)
-
 	elif inputMessage["strategy"] == "trend":
 		dataFrame = trend.main(inputMessage, dataFrame)
-
 	elif inputMessage["strategy"] == "stoploss":
 		dataFrame = stoploss.main(inputMessage, dataFrame)
-
 	elif inputMessage["strategy"] == "lr_channel":
 		dataFrame = lr_channel.main(inputMessage, dataFrame)
-
 	elif inputMessage["strategy"] == "lr_stoploss":
 		dataFrame = lr_stoploss.main(inputMessage, dataFrame)
-
 	elif inputMessage["strategy"] == "lr_curve":
 		dataFrame = lr_curve.main(inputMessage, dataFrame)
-
 	elif inputMessage["strategy"] == "modeling_curve":
 		dataFrame = modeling_curve.main(inputMessage, dataFrame)
-
 	elif inputMessage["strategy"] == "modeling_channel":
 		dataFrame = modeling_channel.main(inputMessage, dataFrame)
-
 	elif inputMessage["strategy"] == "modeling_stoploss":
 		dataFrame = modeling_stoploss.main(inputMessage, dataFrame)
-
 	elif inputMessage["strategy"] == "smooth_modeling_close":
 		dataFrame = smooth_modeling_close.main(inputMessage, dataFrame)
-
 	elif inputMessage["strategy"] == "lr_modeling_close":
 		dataFrame = lr_modeling_close.main(inputMessage, dataFrame)
-
 	elif inputMessage["strategy"] == "lr_modeling_ind":
 		dataFrame = lr_modeling_ind.main(inputMessage, dataFrame)
-
 	elif inputMessage["strategy"] == "lr_modeling_channel":
 		dataFrame = lr_modeling_channel.main(inputMessage, dataFrame)
-
 	elif inputMessage["strategy"] == "forest_modeling_ind":
 		dataFrame = forest_modeling_ind.main(inputMessage, dataFrame)
-
 	elif inputMessage["strategy"] == "forest_modeling_close_w":
 		dataFrame = forest_modeling_close_w.main(inputMessage, dataFrame)
-
 	elif inputMessage["strategy"] == "forest_modeling_close_i":
 		dataFrame = forest_modeling_close_w.main(inputMessage, dataFrame)
-
 	elif inputMessage["strategy"] == "boost_modeling_ind":
 		dataFrame = boost_modeling_ind.main(inputMessage, dataFrame)
-
 	elif inputMessage["strategy"] == "boost_modeling_close_w":
 		dataFrame = boost_modeling_close_w.main(inputMessage, dataFrame)
-
 	elif inputMessage["strategy"] == "boost_modeling_close_i":
 		dataFrame = boost_modeling_close_i.main(inputMessage, dataFrame)
-
 	elif inputMessage["strategy"] == "logreg_class":
 		dataFrame = logreg_class.main(inputMessage, dataFrame)
-
 	elif inputMessage["strategy"] == "tree_class":
 		dataFrame = tree_class.main(inputMessage, dataFrame)
-
 	elif inputMessage["strategy"] == "forest_class":
 		dataFrame = forest_class.main(inputMessage, dataFrame)
-
 	elif inputMessage["strategy"] == "boost_class":
 		dataFrame = boost_class.main(inputMessage, dataFrame)
 
