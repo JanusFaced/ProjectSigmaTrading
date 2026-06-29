@@ -28,6 +28,7 @@ from strategies import forest_class
 from strategies import boost_class
 import trading_simulator
 import imitation_connector
+import filters
 from logger_setup import get_logger
 
 logger = get_logger(__name__)
@@ -35,6 +36,7 @@ logger = get_logger(__name__)
 def main(inputMessage: dict[str, Any]) -> None:
 	dataFrame: pd.DataFrame = dataFrameDownloader.main(inputMessage)
 
+	#__rollingTA__
 	if inputMessage["strategy"] == "moving":
 		dataFrame = moving.main(inputMessage, dataFrame)
 	elif inputMessage["strategy"] == "channel":
@@ -59,6 +61,8 @@ def main(inputMessage: dict[str, Any]) -> None:
 		dataFrame = modeling_channel.main(inputMessage, dataFrame)
 	elif inputMessage["strategy"] == "modeling_stoploss":
 		dataFrame = modeling_stoploss.main(inputMessage, dataFrame)
+
+	#__rollingML__
 	elif inputMessage["strategy"] == "smooth_modeling_close":
 		dataFrame = smooth_modeling_close.main(inputMessage, dataFrame)
 	elif inputMessage["strategy"] == "lr_modeling_close":
@@ -67,6 +71,8 @@ def main(inputMessage: dict[str, Any]) -> None:
 		dataFrame = lr_modeling_ind.main(inputMessage, dataFrame)
 	elif inputMessage["strategy"] == "lr_modeling_channel":
 		dataFrame = lr_modeling_channel.main(inputMessage, dataFrame)
+
+	#__retrainML__
 	elif inputMessage["strategy"] == "forest_modeling_ind":
 		dataFrame = forest_modeling_ind.main(inputMessage, dataFrame)
 	elif inputMessage["strategy"] == "forest_modeling_close_w":
@@ -97,50 +103,70 @@ def main(inputMessage: dict[str, Any]) -> None:
 
 if __name__ == "__main__":
 
-	listMSGs = [
-		{'mode': 'test', 'nameExchange': 'binance', 'symbol': 'BTC', 'type': 'futures', 'timeFrame': '1min', 'strategy': 'moving'},
-		{'mode': 'test', 'nameExchange': 'binance', 'symbol': 'BTC', 'type': 'futures', 'timeFrame': '2min', 'strategy': 'moving'},
-		{'mode': 'test', 'nameExchange': 'binance', 'symbol': 'BTC', 'type': 'futures', 'timeFrame': '4min', 'strategy': 'moving'},
-		{'mode': 'test', 'nameExchange': 'binance', 'symbol': 'BTC', 'type': 'futures', 'timeFrame': '8min', 'strategy': 'moving'},
-		{'mode': 'test', 'nameExchange': 'binance', 'symbol': 'BTC', 'type': 'futures', 'timeFrame': '15min', 'strategy': 'moving'},
-		{'mode': 'test', 'nameExchange': 'binance', 'symbol': 'BTC', 'type': 'futures', 'timeFrame': '30min', 'strategy': 'moving'},
-		{'mode': 'test', 'nameExchange': 'binance', 'symbol': 'BTC', 'type': 'futures', 'timeFrame': '1h', 'strategy': 'moving'},
-		{'mode': 'test', 'nameExchange': 'binance', 'symbol': 'BTC', 'type': 'futures', 'timeFrame': '2h', 'strategy': 'moving'},
-		{'mode': 'test', 'nameExchange': 'binance', 'symbol': 'BTC', 'type': 'futures', 'timeFrame': '4h', 'strategy': 'moving'},
-		{'mode': 'test', 'nameExchange': 'binance', 'symbol': 'BTC', 'type': 'futures', 'timeFrame': '6h', 'strategy': 'moving'},
-		{'mode': 'test', 'nameExchange': 'binance', 'symbol': 'BTC', 'type': 'futures', 'timeFrame': '8h', 'strategy': 'moving'},
-		{'mode': 'test', 'nameExchange': 'binance', 'symbol': 'BTC', 'type': 'futures', 'timeFrame': '12h', 'strategy': 'moving'},
-		{'mode': 'test', 'nameExchange': 'binance', 'symbol': 'BTC', 'type': 'futures', 'timeFrame': '1d', 'strategy': 'moving'},
+	mode = 'imitation'
 
-		{'mode': 'test', 'nameExchange': 'binance', 'symbol': 'ETH', 'type': 'futures', 'timeFrame': '1min', 'strategy': 'moving'},
-		{'mode': 'test', 'nameExchange': 'binance', 'symbol': 'ETH', 'type': 'futures', 'timeFrame': '2min', 'strategy': 'moving'},
-		{'mode': 'test', 'nameExchange': 'binance', 'symbol': 'ETH', 'type': 'futures', 'timeFrame': '4min', 'strategy': 'moving'},
-		{'mode': 'test', 'nameExchange': 'binance', 'symbol': 'ETH', 'type': 'futures', 'timeFrame': '8min', 'strategy': 'moving'},
-		{'mode': 'test', 'nameExchange': 'binance', 'symbol': 'ETH', 'type': 'futures', 'timeFrame': '15min', 'strategy': 'moving'},
-		{'mode': 'test', 'nameExchange': 'binance', 'symbol': 'ETH', 'type': 'futures', 'timeFrame': '30min', 'strategy': 'moving'},
-		{'mode': 'test', 'nameExchange': 'binance', 'symbol': 'ETH', 'type': 'futures', 'timeFrame': '1h', 'strategy': 'moving'},
-		{'mode': 'test', 'nameExchange': 'binance', 'symbol': 'ETH', 'type': 'futures', 'timeFrame': '2h', 'strategy': 'moving'},
-		{'mode': 'test', 'nameExchange': 'binance', 'symbol': 'ETH', 'type': 'futures', 'timeFrame': '4h', 'strategy': 'moving'},
-		{'mode': 'test', 'nameExchange': 'binance', 'symbol': 'ETH', 'type': 'futures', 'timeFrame': '6h', 'strategy': 'moving'},
-		{'mode': 'test', 'nameExchange': 'binance', 'symbol': 'ETH', 'type': 'futures', 'timeFrame': '8h', 'strategy': 'moving'},
-		{'mode': 'test', 'nameExchange': 'binance', 'symbol': 'ETH', 'type': 'futures', 'timeFrame': '12h', 'strategy': 'moving'},
-		{'mode': 'test', 'nameExchange': 'binance', 'symbol': 'ETH', 'type': 'futures', 'timeFrame': '1d', 'strategy': 'moving'},
-
-		{'mode': 'test', 'nameExchange': 'binance', 'symbol': 'BNB', 'type': 'futures', 'timeFrame': '1min', 'strategy': 'moving'},
-		{'mode': 'test', 'nameExchange': 'binance', 'symbol': 'BNB', 'type': 'futures', 'timeFrame': '2min', 'strategy': 'moving'},
-		{'mode': 'test', 'nameExchange': 'binance', 'symbol': 'BNB', 'type': 'futures', 'timeFrame': '4min', 'strategy': 'moving'},
-		{'mode': 'test', 'nameExchange': 'binance', 'symbol': 'BNB', 'type': 'futures', 'timeFrame': '8min', 'strategy': 'moving'},
-		{'mode': 'test', 'nameExchange': 'binance', 'symbol': 'BNB', 'type': 'futures', 'timeFrame': '15min', 'strategy': 'moving'},
-		{'mode': 'test', 'nameExchange': 'binance', 'symbol': 'BNB', 'type': 'futures', 'timeFrame': '30min', 'strategy': 'moving'},
-		{'mode': 'test', 'nameExchange': 'binance', 'symbol': 'BNB', 'type': 'futures', 'timeFrame': '1h', 'strategy': 'moving'},
-		{'mode': 'test', 'nameExchange': 'binance', 'symbol': 'BNB', 'type': 'futures', 'timeFrame': '2h', 'strategy': 'moving'},
-		{'mode': 'test', 'nameExchange': 'binance', 'symbol': 'BNB', 'type': 'futures', 'timeFrame': '4h', 'strategy': 'moving'},
-		{'mode': 'test', 'nameExchange': 'binance', 'symbol': 'BNB', 'type': 'futures', 'timeFrame': '6h', 'strategy': 'moving'},
-		{'mode': 'test', 'nameExchange': 'binance', 'symbol': 'BNB', 'type': 'futures', 'timeFrame': '8h', 'strategy': 'moving'},
-		{'mode': 'test', 'nameExchange': 'binance', 'symbol': 'BNB', 'type': 'futures', 'timeFrame': '12h', 'strategy': 'moving'},
-		{'mode': 'test', 'nameExchange': 'binance', 'symbol': 'BNB', 'type': 'futures', 'timeFrame': '1d', 'strategy': 'moving'},
-
+	listNameExchange = ['binance']
+	listSymbol = ['BTC', 'ETH', 'BNB']
+	listTypeMarket = ['futures']
+	listTimeFrame = ['1min', '2min', '4min', '8min', '15min', '30min', '1h', '2h', '4h', '6h', '8h', '12h', '1d']
+	listStrategy = [
+		'moving',
+		'channel',
+		'oscillator',
+		'cross',
+		'trend',
+		'stoploss',
+		'lr_channel',
+		'lr_stoploss',
+		'lr_curve',
+		'modeling_curve',
+		'modeling_channel',
+		'modeling_stoploss',
+		'smooth_modeling_close',
+		'lr_modeling_close',
+		'lr_modeling_ind',
+		'lr_modeling_channel',
+		'forest_modeling_ind',
+		'forest_modeling_close_w',
+		'forest_modeling_close_i',
+		'boost_modeling_ind',
+		'boost_modeling_close_w',
+		'boost_modeling_close_i',
+		'logreg_class',
+		'tree_class',
+		'forest_class',
+		'boost_class'
 	]
 
-	for msg in listMSGs:
-		main(msg)
+	listMSGs = []
+	for nameExchange in listNameExchange:
+		for symbol in listSymbol:
+			for typeMarket in listTypeMarket:
+				for timeFrame in listTimeFrame:
+					for strategy in listStrategy:
+						listMSGs.append({
+							'mode': mode,
+							'nameExchange': nameExchange,
+							'symbol': symbol,
+							'type': typeMarket,
+							'timeFrame': timeFrame,
+							'strategy': strategy
+						})
+
+	lenthCombi = len(listMSGs)
+	logger.info(f"full lenth combination = {lenthCombi}")
+
+	if mode == "imitation":
+		listMSGs = filters.forImitation(listMSGs=listMSGs, target_year_profit=0.0)
+		lenthCombi = len(listMSGs)
+		logger.info(f"filter for imitation lenth combination = {lenthCombi}")
+	elif mode == "real":
+		listMSGs = filters.forReal(listMSGs=listMSGs, target_year_profit=0.0)
+		lenthCombi = len(listMSGs)
+		logger.info(f"filter for real lenth combination = {lenthCombi}")
+
+	#for msg in listMSGs:
+	#	try:
+	#		main(msg)
+	#	except Exception as e:
+	#		logger.info(f"error: {e}")

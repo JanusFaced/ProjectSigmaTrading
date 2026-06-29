@@ -71,7 +71,7 @@ async def get_table_backtest():
 
 	try:
 		logger.info("Fetching all backtests from database")
-		backtests = dataBaseSession.query(Backtest).all()
+		backtests = dataBaseSession.query(Backtest).order_by(Backtest.year_profit.desc()).all()
 		
 		tableBacktest = []
 		for backtest in backtests:
