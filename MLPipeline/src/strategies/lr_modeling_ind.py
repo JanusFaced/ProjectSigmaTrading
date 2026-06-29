@@ -23,7 +23,7 @@ def main(inputMessage: dict[str, Any], dataFrame: pd.DataFrame) -> pd.DataFrame:
 	timeFrame = inputMessage['timeFrame']
 	strategy = inputMessage['strategy']
 
-	train_ratio: float = 0.50
+	train_size: int = 1000
 
 	windowInd = 20
 	dataFrame['indicator'] = dataFrame['close'].rolling(window=windowInd).mean()
@@ -36,8 +36,6 @@ def main(inputMessage: dict[str, Any], dataFrame: pd.DataFrame) -> pd.DataFrame:
 	seriesClose = TimeSeries.from_dataframe(dataFrame, time_col='datetime', value_cols='close')
 	seriesVolume = TimeSeries.from_dataframe(dataFrame, time_col='datetime', value_cols='volume')
 	seriesIndicator = TimeSeries.from_dataframe(dataFrame, time_col='datetime', value_cols='indicator')
-
-	train_size = int(len(seriesClose)*train_ratio)
 
 	trainSeriesOpen, testSeriesOpen = seriesOpen[:train_size], seriesOpen[train_size:]
 	trainSeriesHigh, testSeriesHigh = seriesHigh[:train_size], seriesHigh[train_size:]
@@ -62,6 +60,7 @@ def main(inputMessage: dict[str, Any], dataFrame: pd.DataFrame) -> pd.DataFrame:
 		start=train_size,
 		forecast_horizon=1,
 		stride=1,
+		train_length=train_size,
 		retrain=True,
 		overlap_end=True,
 		verbose=True

@@ -24,23 +24,28 @@ def main(inputMessage: dict[str, Any], dataFrame: pd.DataFrame) -> pd.DataFrame:
 	timeFrame = inputMessage['timeFrame']
 	strategy = inputMessage['strategy']
 
-	train_ratio: float = 0.50
+	train_size: int = 1000
+	train_step: int = 1000
 	name_origin = 'origin'
 	future_covariates_cols = ['roc_0', 'roc_1', 'roc_2']
 
-	windowInd0 = 10
-	windowInd1 = 20
-	windowInd2 = 30
+	windowInd0 = 10 #10
+	windowInd1 = 20 #20
+	windowInd2 = 30 #30
+	windowClass = 30 #30
+	futureShift = -windowClass//2
+
 	dataFrame['roc_0'] = dataFrame['close']/dataFrame['close'].shift(windowInd0) - 1
 	dataFrame['roc_1'] = dataFrame['close']/dataFrame['close'].shift(windowInd1) - 1
 	dataFrame['roc_2'] = dataFrame['close']/dataFrame['close'].shift(windowInd2) - 1
 
-	dataFrame['ma'] = dataFrame['close'].rolling(window=windowInd1).mean()
-	dataFrame['ma_class'] = dataFrame['ma'].shift(-windowInd1//2)
+	dataFrame['ma'] = dataFrame['close'].rolling(window=windowClass).mean()
+	dataFrame['ma_class'] = dataFrame['ma'].shift(futureShift)
 	dataFrame['ma_class_diff'] = dataFrame['ma_class']/dataFrame['ma_class'].shift(1) - 1
 	dataFrame['origin'] = np.select([dataFrame['ma_class_diff']>0, dataFrame['ma_class_diff']<0], [1,0], default=1)
 
-	dataFrame = dataFrame.loc[windowInd2:]
+	cutPoint = max([windowInd0, windowInd1, windowInd2, windowClass])
+	dataFrame = dataFrame.loc[cutPoint:]
 
 	seriesOpen = TimeSeries.from_dataframe(dataFrame, time_col='datetime', value_cols='open')
 	seriesHigh = TimeSeries.from_dataframe(dataFrame, time_col='datetime', value_cols='high')
@@ -49,8 +54,6 @@ def main(inputMessage: dict[str, Any], dataFrame: pd.DataFrame) -> pd.DataFrame:
 	seriesVolume = TimeSeries.from_dataframe(dataFrame, time_col='datetime', value_cols='volume')
 	seriesOrigin = TimeSeries.from_dataframe(dataFrame, time_col='datetime', value_cols='origin')
 	seriesCovariates = TimeSeries.from_dataframe(dataFrame, time_col='datetime', value_cols=future_covariates_cols)
-
-	train_size = int(len(seriesClose)*train_ratio)
 
 	trainSeriesOpen, testSeriesOpen = seriesOpen[:train_size], seriesOpen[train_size:]
 	trainSeriesHigh, testSeriesHigh = seriesHigh[:train_size], seriesHigh[train_size:]
@@ -83,13 +86,17 @@ def main(inputMessage: dict[str, Any], dataFrame: pd.DataFrame) -> pd.DataFrame:
 		future_covariates=trainSeriesCovariates
 	)
 
+	def logicRetrain(counter, pred_time, train_series, past_covariates, future_covariates):
+		return counter % train_step == 0
+
 	historical_forecasts = model.historical_forecasts(
-		series=testSeriesOrigin,
-		future_covariates=testSeriesCovariates,
-		start=0,
+		series=seriesOrigin,
+		future_covariates=seriesCovariates,
+		start=train_size,
 		forecast_horizon=1,
 		stride=1,
-		retrain=False,
+		train_length=train_size,
+		retrain=logicRetrain,
 		overlap_end=True,
 		verbose=True
 	)

@@ -3,6 +3,9 @@ __pycache__/
 MLPipeline/src/logs/
 MLPipeline/src/logs/*
 !MLPipeline/src/logs/.gitkeep
+MLPipeline/src/output/
+MLPipeline/src/output/*
+!MLPipeline/src/output/.gitkeep
 backend/src/logs/
 backend/src/logs/*
 !backend/src/logs/.gitkeep
