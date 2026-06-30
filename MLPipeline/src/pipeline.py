@@ -1,18 +1,13 @@
 from typing import Any
 import dataFrameDownloader
 from strategies import moving
-from strategies import oscillator
-from strategies import cross
 from strategies import trend
-from strategies import stoploss
-from strategies import lr_stoploss
+from strategies import channel
 from strategies import lr_curve
+from strategies import lr_channel
+from strategies import lr_forecast
 from strategies import modeling_curve
-from strategies import modeling_stoploss
-from strategies import smooth_modeling_close
-from strategies import lr_modeling_close
-from strategies import lr_modeling_ind
-from strategies import lr_modeling_channel
+from strategies import modeling_channel
 from strategies import tree_class
 from strategies import forest_class
 from strategies import boost_class
@@ -29,32 +24,20 @@ def main(inputMessage: dict[str, Any]) -> None:
 	#__rollingTA__
 	if inputMessage["strategy"] == "moving":
 		dataFrame = moving.main(inputMessage, dataFrame)
-	elif inputMessage["strategy"] == "oscillator":
-		dataFrame = oscillator.main(inputMessage, dataFrame)
-	elif inputMessage["strategy"] == "cross":
-		dataFrame = cross.main(inputMessage, dataFrame)
 	elif inputMessage["strategy"] == "trend":
 		dataFrame = trend.main(inputMessage, dataFrame)
-	elif inputMessage["strategy"] == "stoploss":
-		dataFrame = stoploss.main(inputMessage, dataFrame)
-	elif inputMessage["strategy"] == "lr_stoploss":
-		dataFrame = lr_stoploss.main(inputMessage, dataFrame)
+	elif inputMessage["strategy"] == "channel":
+		dataFrame = channel.main(inputMessage, dataFrame)
 	elif inputMessage["strategy"] == "lr_curve":
 		dataFrame = lr_curve.main(inputMessage, dataFrame)
+	elif inputMessage["strategy"] == "lr_channel":
+		dataFrame = lr_channel.main(inputMessage, dataFrame)
+	elif inputMessage["strategy"] == "lr_forecast":
+		dataFrame = lr_forecast.main(inputMessage, dataFrame)
 	elif inputMessage["strategy"] == "modeling_curve":
 		dataFrame = modeling_curve.main(inputMessage, dataFrame)
-	elif inputMessage["strategy"] == "modeling_stoploss":
-		dataFrame = modeling_stoploss.main(inputMessage, dataFrame)
-
-	#__rollingML__
-	elif inputMessage["strategy"] == "smooth_modeling_close":
-		dataFrame = smooth_modeling_close.main(inputMessage, dataFrame)
-	elif inputMessage["strategy"] == "lr_modeling_close":
-		dataFrame = lr_modeling_close.main(inputMessage, dataFrame)
-	elif inputMessage["strategy"] == "lr_modeling_ind":
-		dataFrame = lr_modeling_ind.main(inputMessage, dataFrame)
-	elif inputMessage["strategy"] == "lr_modeling_channel":
-		dataFrame = lr_modeling_channel.main(inputMessage, dataFrame)
+	elif inputMessage["strategy"] == "modeling_channel":
+		dataFrame = modeling_channel.main(inputMessage, dataFrame)
 
 	#__retrainML__
 	elif inputMessage["strategy"] == "tree_class":
@@ -73,7 +56,7 @@ def main(inputMessage: dict[str, Any]) -> None:
 
 if __name__ == "__main__":
 
-	mode = 'test'
+	mode = 'stats'
 
 	listNameExchange = ['binance']
 	listSymbol = [
@@ -91,18 +74,13 @@ if __name__ == "__main__":
 	listTimeFrame = ['1min', '2min', '4min', '8min', '15min', '30min', '1h', '2h', '4h', '6h', '8h', '12h', '1d']
 	listStrategy = [
 		'moving',
-		'oscillator',
-		'cross',
 		'trend',
-		'stoploss',
-		'lr_stoploss',
+		'channel',
 		'lr_curve',
+		'lr_channel',
+		'lr_forecast',
 		'modeling_curve',
-		'modeling_stoploss',
-		'smooth_modeling_close',
-		'lr_modeling_close',
-		'lr_modeling_ind',
-		'lr_modeling_channel',
+		'modeling_channel',
 		'tree_class',
 		'forest_class',
 		'boost_class'
@@ -143,4 +121,4 @@ if __name__ == "__main__":
 				logger.info(f"error: {e}")
 
 	if mode in ['stats', 'test']:
-		filters.makeStats(listTimeFrame=listTimeFrame, listStrategy=listStrategy)
+		filters.makeStats(listSymbol=listSymbol, listTimeFrame=listTimeFrame, listStrategy=listStrategy)

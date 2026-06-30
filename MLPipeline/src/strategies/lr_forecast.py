@@ -35,9 +35,6 @@ def main(inputMessage: dict[str, Any], dataFrame: pd.DataFrame) -> pd.DataFrame:
 		'1d': 1440
 	}
 
-	upLine = 0.70
-	downLine = 0.30
-
 	volativity_window = 200
 	signal_window = 20
 	trend_window = 200
@@ -48,15 +45,15 @@ def main(inputMessage: dict[str, Any], dataFrame: pd.DataFrame) -> pd.DataFrame:
 	dataFrame['volativity'] = dataFrame['diff'].rolling(window=volativity_window).mean()
 
 	dataFrame['signal_window'] = (signal_window*base_volativity/dataFrame['volativity']).fillna(signal_window).astype(np.int64)
-	dataFrame['adaptive_oscillator'] = adaptive_oscillator(closeVector=dataFrame['close'].values, windowVector=dataFrame['signal_window'].values)
+	dataFrame['model'] = adaptive_lr_forecast(diffVector=dataFrame['diff'].values, windowVector=dataFrame['signal_window'].values)
 
 	dataFrame['trend_window'] = (trend_window*base_volativity/dataFrame['volativity']).fillna(trend_window).astype(np.int64)
 	dataFrame['trend'] = adaptive_roc(closeVector=dataFrame['close'].values, windowVector=dataFrame['trend_window'].values)
 
 	dataFrame['long_signal'] = np.select(
 		[
-			(dataFrame['adaptive_oscillator'] > upLine) & (dataFrame['trend'] > 0),
-			(dataFrame['adaptive_oscillator'] < upLine) & (dataFrame['trend'] > 0)
+			(dataFrame['diff'] > dataFrame['model']) & (dataFrame['trend'] > 0),
+			(dataFrame['diff'] < dataFrame['model']) & (dataFrame['trend'] > 0)
 		],
 		[
 			-1,
@@ -67,8 +64,8 @@ def main(inputMessage: dict[str, Any], dataFrame: pd.DataFrame) -> pd.DataFrame:
 
 	dataFrame['short_signal'] = np.select(
 		[
-			(dataFrame['adaptive_oscillator'] > downLine) & (dataFrame['trend'] < 0),
-			(dataFrame['adaptive_oscillator'] < downLine) & (dataFrame['trend'] < 0)
+			(dataFrame['diff'] > dataFrame['model']) & (dataFrame['trend'] < 0),
+			(dataFrame['diff'] < dataFrame['model']) & (dataFrame['trend'] < 0)
 		],
 		[
 			-1,
@@ -77,36 +74,60 @@ def main(inputMessage: dict[str, Any], dataFrame: pd.DataFrame) -> pd.DataFrame:
 		default=-1
 	)
 
-	#superName = f"voladaptation_{nameExchange}_{symbol}_{type}_{timeFrame}.png"
-	#plt.plot(dataFrame['datetime'], dataFrame['close'], color="black")
-	#plt.plot(dataFrame['datetime'], dataFrame['adaptive_moving'], color="red")
-	#plt.plot(dataFrame['datetime'], dataFrame['signal_window'], color="orange")
-	#plt.plot(dataFrame['datetime'], dataFrame['trend_window'], color="purple")
+	#testDF = dataFrame.tail(50)
+	#superName = f"lr_channel_{nameExchange}_{symbol}_{type}_{timeFrame}.png"
+	#plt.plot(testDF['datetime'], testDF['diff'], color="black")
+	#plt.plot(testDF['datetime'], testDF['model'], color="orange")
 	#plt.savefig(str(output_dir / superName ))
 	#plt.close()
 
 	return dataFrame[['datetime', 'open', 'high', 'low', 'close', 'volume', 'long_signal', 'short_signal']]
 
 @njit
-def adaptive_oscillator(
-		closeVector: npt.NDArray[np.float64],
+def adaptive_lr_forecast(
+		diffVector: npt.NDArray[np.float64],
 		windowVector: npt.NDArray[np.int64]
-	) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.float64], npt.NDArray[np.float64]]:
+	) -> npt.NDArray[np.float64]:
 	
-	lenth = len(closeVector)
-	oscillator = np.empty(lenth)
+	lenth = len(diffVector)
+	modelLineVector = np.empty(lenth)
 	firstIndex = int(np.max(windowVector))
 
 	for i in range(firstIndex, lenth):
-		real_i = i+1
+		real_i = i
 		window = windowVector[i]
-		cutClose = closeVector[real_i-window:real_i]
-		maxValue = np.max(cutClose)
-		minValue = np.min(cutClose)
-		streamValue = cutClose[-1]
-		oscillator[i] = (streamValue - minValue)/(maxValue - minValue)
+		cutWindow = diffVector[real_i-window:real_i]
+		modelLineVector[i] = linearRegression(cutWindow)
 
-	return oscillator
+	return modelLineVector
+
+@njit
+def linearRegression(cutWindow: npt.NDArray[np.float64]) -> np.float64:
+	lenth = len(cutWindow)
+	if lenth < 2:
+		lastValue = cutWindow[0] if lenth == 1 else 0.0
+
+	else:
+		sum_x = lenth*(lenth + 1) / 2
+		sum_x2 = lenth*(lenth + 1) * (2*lenth + 1)/6
+		
+		sum_y = 0.0
+		sum_xy = 0.0
+		for i in range(lenth):
+			xi = i + 1
+			sum_y += cutWindow[i]
+			sum_xy += xi*cutWindow[i]
+		
+		denominator = lenth*sum_x2 - sum_x*sum_x
+		if denominator == 0:
+			lastValue = cutWindow[-1]
+
+		else:
+			parametr_b = (lenth * sum_xy - sum_x * sum_y) / denominator
+			parametr_a = (sum_y - parametr_b * sum_x) / lenth
+			lastValue = parametr_a + parametr_b*lenth
+	
+	return lastValue
 
 @njit
 def adaptive_roc(closeVector: npt.NDArray[np.float64], windowVector: npt.NDArray[np.int64]) -> npt.NDArray[np.float64]:

@@ -50,7 +50,7 @@ def sort_cols_and_rows(inputList, name):
 
 	return outputList
 
-def makeStats(listTimeFrame: dict, listStrategy: dict) -> None:
+def makeStats(listSymbol: dict, listTimeFrame: dict, listStrategy: dict) -> None:
 	dataBaseSession = Session()
 
 	try:
@@ -80,7 +80,7 @@ def makeStats(listTimeFrame: dict, listStrategy: dict) -> None:
 	newTableBacktest = []
 	for table in tableBacktest:
 		splitStrategy = table["strategy"].rsplit('_', 4)
-		if (splitStrategy[2] in listTimeFrame) and (splitStrategy[0] in listStrategy):
+		if (splitStrategy[2] in listTimeFrame) and (splitStrategy[1] in listSymbol) and (splitStrategy[0] in listStrategy):
 			newTableBacktest.append({
 				"id": table["id"],
 				"strategy": table["strategy"],
