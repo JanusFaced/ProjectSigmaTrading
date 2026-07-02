@@ -36,65 +36,49 @@ def main(inputMessage: dict[str, Any], dataFrame: pd.DataFrame) -> pd.DataFrame:
 		'1d': 1440
 	}
 
-	volativity_window = 200
-	signal_window = 20
-	trend_window = 200
-	base_volativity_1m = 0.0001
-	base_volativity = base_volativity_1m*convertor[timeFrame]
+	volativityWindow = 200
+	signalWindow = 20
+	trendWindow = 200
+	minimalMulti = 1
+	baseVolativity1m = 0.0004
+	baseVolativity = baseVolativity1m*convertor[timeFrame]
 
 	dataFrame['diff'] = np.abs(dataFrame['close']/dataFrame['close'].shift(1) - 1)
-	dataFrame['volativity'] = dataFrame['diff'].rolling(window=volativity_window).mean()
+	dataFrame['volativity'] = dataFrame['diff'].rolling(window=volativityWindow).mean()
+	dataFrame['multiWindow'] = baseVolativity/dataFrame['volativity']
 
-	dataFrame['signal_window'] = (signal_window*base_volativity/dataFrame['volativity']).fillna(signal_window).astype(np.int64)
-	dataFrame['indicator'] = adaptive_moving(
-		closeVector=dataFrame['close'].values,
-		windowVector=dataFrame['signal_window'].values
-	)
+	dataFrame['signalWindow'] = (signalWindow*dataFrame['multiWindow']).fillna(signalWindow).astype(np.int64).clip(lower=2)
+	dataFrame['trendWindow'] = (trendWindow*dataFrame['multiWindow']).fillna(trendWindow).astype(np.int64).clip(lower=2)
 
-	dataFrame['original'] = dataFrame['indicator']/dataFrame['indicator'].shift(1) - 1
-	dataFrame['primary'] = dataFrame['close']/dataFrame['close'].shift(1) - 1
+	dataFrame['signal_diff'] = adaptive_roc(closeVector=dataFrame['close'].values, windowVector=dataFrame['signalWindow'].values)
+	dataFrame['original'] = np.abs(dataFrame['signal_diff'])
 
-	dataFrame['signal_window'] = (signal_window*base_volativity/dataFrame['volativity']).fillna(signal_window).astype(np.int64)
+	dataFrame['primary'] = adaptive_volume(volumeVector=dataFrame['volume'].values, windowVector=dataFrame['signalWindow'].values)
+
 	dataFrame['model'] = adaptive_modeling(
 		secondaryVector=dataFrame['original'].values,
 		primaryVector=dataFrame['primary'].values,
-		windowVector=dataFrame['signal_window'].values
+		windowVector=dataFrame['signalWindow'].values
 	)
 
-	dataFrame['trend_window'] = (trend_window*base_volativity/dataFrame['volativity']).fillna(trend_window).astype(np.int64)
-	dataFrame['trend'] = adaptive_roc(
-		closeVector=dataFrame['close'].values,
-		windowVector=dataFrame['trend_window'].values
+	dataFrame['trend'] = adaptive_roc(closeVector=dataFrame['close'].values, windowVector=dataFrame['trendWindow'].values)
+
+	dataFrame['strategy'] = np.select(
+		[
+			(dataFrame['signal_diff'] > -dataFrame['model']) & (dataFrame['trend'] > 0) & (dataFrame['multiWindow'] > minimalMulti),
+			(dataFrame['signal_diff'] < dataFrame['model']) & (dataFrame['trend'] < 0) & (dataFrame['multiWindow'] > minimalMulti)
+		],
+		[2, 0], default=1
 	)
 
-	dataFrame['long_signal'] = np.select(
-		[
-			(dataFrame['original'] > dataFrame['model']) & (dataFrame['trend'] > 0),
-			(dataFrame['original'] < dataFrame['model']) & (dataFrame['trend'] > 0)
-		],
-		[
-			-1,
-			1
-		],
-		default=1
-	)
-
-	dataFrame['short_signal'] = np.select(
-		[
-			(dataFrame['original'] > dataFrame['model']) & (dataFrame['trend'] < 0),
-			(dataFrame['original'] < dataFrame['model']) & (dataFrame['trend'] < 0)
-		],
-		[
-			-1,
-			1
-		],
-		default=-1
-	)
+	dataFrame['long_signal'] = np.select([dataFrame['strategy'] == 2], [-1], default=1)
+	dataFrame['short_signal'] = np.select([dataFrame['strategy'] == 0], [1], default=-1)
 
 	#testDF = dataFrame.tail(50)
 	#superName = f"{strategy}_{nameExchange}_{symbol}_{type}_{timeFrame}.png"
-	#plt.plot(testDF['datetime'], testDF['original'], color="black")
-	#plt.plot(testDF['datetime'], testDF['model'], color="purple")
+	#plt.plot(testDF['datetime'], testDF['diff'], color="black")
+	#plt.plot(testDF['datetime'], testDF['model'], color="green")
+	#plt.plot(testDF['datetime'], -testDF['model'], color="red")
 	#plt.savefig(str(output_dir / superName ))
 	#plt.close()
 
@@ -180,3 +164,18 @@ def adaptive_roc(closeVector: npt.NDArray[np.float64], windowVector: npt.NDArray
 		rocVector[i] = cutClose[-1]/cutClose[0] - 1
 
 	return rocVector
+
+@njit
+def adaptive_volume(volumeVector: npt.NDArray[np.float64], windowVector: npt.NDArray[np.int64]) -> npt.NDArray[np.float64]:
+	lenth = len(volumeVector)
+
+	sumVector = np.empty(lenth, dtype=np.float64)
+	firstIndex = int(np.max(windowVector))
+
+	for i in range(firstIndex, lenth):
+		real_i = i+1
+		window = windowVector[i]
+		cutClose = volumeVector[real_i-window:real_i]
+		sumVector[i] = np.sum(cutClose)
+
+	return sumVector

@@ -24,7 +24,10 @@ def main(inputMessage: dict[str, Any], dataFrame: pd.DataFrame) -> None:
 	logger.info(f' > Start backtesting {nameStrategy}')
 	report = backTester(inputMessage, dataFrame)
 	logger.info(' > End backtesting')
-	backTestAnalyst(inputMessage, report)
+	backTestAnalyst(
+		inputMessage=inputMessage,
+		report=report
+	)
 
 def backTester(inputMessage: dict[str, Any], dataFrame: pd.DataFrame) -> Dict:
 
@@ -120,11 +123,13 @@ def backTester(inputMessage: dict[str, Any], dataFrame: pd.DataFrame) -> Dict:
 
 	start_fiat = 100
 	shift_signal = 0
+	leverage = 1
 	fees = 0.001
 	spred = 0.001
 	min_lot = 10
 	max_lot = start_fiat
 
+	dataFrame = dataFrame.copy()
 	dataFrame.set_index('datetime', inplace=True)
 	dataFrame['long_signal'] = dataFrame['long_signal'].shift(shift_signal)
 	dataFrame['short_signal'] = dataFrame['short_signal'].shift(shift_signal)
@@ -137,7 +142,7 @@ def backTester(inputMessage: dict[str, Any], dataFrame: pd.DataFrame) -> Dict:
 	cerebro.broker.set_cash(start_fiat)
 	cerebro.broker.setcommission(
 		commission=fees,
-		leverage=1
+		leverage=leverage
 	)
 	cerebro.broker.addcommissioninfo(FractionalCommission())
 
@@ -154,21 +159,25 @@ def backTester(inputMessage: dict[str, Any], dataFrame: pd.DataFrame) -> Dict:
 	amount_stop_loss = 0
 	amount_take_profit = 0
 
-	if (trads > 0):
-
+	try:
 		amount_profit_signal = analyzer.won.total
-		amount_loss_signal = analyzer.lost.total
+	except:
+		amount_profit_signal = 0
 
+	try:
+		amount_loss_signal = analyzer.lost.total
+	except:
+		amount_loss_signal = 0
+
+	if (trads > 0) and (amount_profit_signal > 0) and (amount_loss_signal > 0):
 		average_profit_size = analyzer.won.pnl.average/start_fiat
 		average_loss_size = analyzer.lost.pnl.average/start_fiat
 		max_profit_size = analyzer.won.pnl.max/start_fiat
 		max_loss_size = analyzer.lost.pnl.max/start_fiat
 
 		average_len_trad = analyzer.len.average
-
 		max_len_trad = analyzer.len.max
 		min_len_trad = analyzer.len.min
-
 		win_loss = amount_profit_signal/trads
 
 		win_loss = int(round(100*win_loss, 0))
@@ -201,9 +210,7 @@ def backTester(inputMessage: dict[str, Any], dataFrame: pd.DataFrame) -> Dict:
 		average_profit_size = np.nan
 		max_profit_size = np.nan
 		average_loss_size = np.nan
-		max_loss_size = np.nan
-		amount_loss_signal = 0
-		amount_profit_signal = 0
+		max_loss_size = np.nan	
 
 	send_list = {
 		'winrate': win_loss,
@@ -232,7 +239,12 @@ def backTester(inputMessage: dict[str, Any], dataFrame: pd.DataFrame) -> Dict:
 
 	return send_list
 
-def backTestAnalyst(inputMessage: dict[str, Any], report: Dict) -> None:
+def backTestAnalyst(
+		inputMessage: dict[str, Any],
+		report: Dict
+	) -> None:
+
+	testMode = inputMessage['testMode']
 
 	nameExchange = inputMessage['nameExchange']
 	symbol = inputMessage['symbol']
@@ -280,7 +292,6 @@ def backTestAnalyst(inputMessage: dict[str, Any], report: Dict) -> None:
 	graph_body_old = np.array(balanceBody)
 	graph_cold_old = np.array(balanceCold)
 
-	test_mode = 'cumulative'
 	profit_multiple = yearSize/period
 	value_part = int(len(graph_body_old)/period)
 	solid_len = value_part*period
@@ -291,7 +302,7 @@ def backTestAnalyst(inputMessage: dict[str, Any], report: Dict) -> None:
 	graph_old = graph_body_old + graph_cold_old
 	graph = graph_body + graph_cold
 
-	if (test_mode == 'cumulative'):
+	if (testMode == 'cumul'):
 		arr = np.array(graph_body_old)
 		drawdowns = (start_deposit - arr)/start_deposit
 		max_drawdown = np.max(drawdowns)
@@ -301,7 +312,7 @@ def backTestAnalyst(inputMessage: dict[str, Any], report: Dict) -> None:
 		else:
 			max_time_drawdown = 0
 
-	elif (test_mode == 'reinvestment'):
+	elif (testMode == 'reinvest'):
 		arr = np.array(graph_old)
 		max_accum = np.maximum.accumulate(arr)
 		drawdowns = (max_accum - arr) / max_accum
@@ -341,10 +352,10 @@ def backTestAnalyst(inputMessage: dict[str, Any], report: Dict) -> None:
 	else:
 		sharp = -999
 
-	if (test_mode == 'cumulative'):
+	if (testMode == 'cumul'):
 		year_profit = profit_multiple*mean_profit
 
-	elif (test_mode == 'reinvestment'):
+	elif (testMode == 'reinvest'):
 		mean_profit = (1 + (graph[-1] - graph[0])/graph[0])**(1/solid_len)
 		year_profit = mean_profit**(period*profit_multiple) - 1
 

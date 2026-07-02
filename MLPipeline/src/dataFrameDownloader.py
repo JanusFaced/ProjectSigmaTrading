@@ -55,41 +55,40 @@ def backTime(
 
 	maxDeltaDatetime = timedelta(days=maxDelta)
 	
-	modeMultiple = "relative"
-	commonMultiple: int = 3
-	standartDeep: int = 1440
+	modeMultiple = "identical"
+	standartDeep: int = 4500
 
 	if modeMultiple == "identical":
 		multiple: dict = {
-			"1min": 1440*commonMultiple,
-			"2min": 1440*commonMultiple,
-			"4min": 1440*commonMultiple,
-			"8min": 1440*commonMultiple,
-			"15min": 1440*commonMultiple,
-			"30min": 1440*commonMultiple,
-			"1h": 1440*commonMultiple,
-			"2h": 1440*commonMultiple,
-			"4h": 1440*commonMultiple,
-			"6h": 1440*commonMultiple,
-			"8h": 1440*commonMultiple,
-			"12h": 1440*commonMultiple,
-			"1d": 1440*commonMultiple
+			"1min": 1440,
+			"2min": 1440,
+			"4min": 1440,
+			"8min": 1440,
+			"15min": 1440,
+			"30min": 1440,
+			"1h": 1440,
+			"2h": 1440,
+			"4h": 1440,
+			"6h": 1440,
+			"8h": 1440,
+			"12h": 1440,
+			"1d": 1440
 		}
 	elif modeMultiple == "relative":
 		multiple: dict = {
-			"1min": 1*commonMultiple,
-			"2min": 2*commonMultiple,
-			"4min": 4*commonMultiple,
-			"8min": 8*commonMultiple,
-			"15min": 15*commonMultiple,
-			"30min": 30*commonMultiple,
-			"1h": 60*commonMultiple,
-			"2h": 120*commonMultiple,
-			"4h": 240*commonMultiple,
-			"6h": 360*commonMultiple,
-			"8h": 480*commonMultiple,
-			"12h": 720*commonMultiple,
-			"1d": 1440*commonMultiple
+			"1min": 1,
+			"2min": 2,
+			"4min": 4,
+			"8min": 8,
+			"15min": 15,
+			"30min": 30,
+			"1h": 60,
+			"2h": 120,
+			"4h": 240,
+			"6h": 360,
+			"8h": 480,
+			"12h": 720,
+			"1d": 1440
 		}
 	realAmountLines: int = standartDeep*multiple[timeFrame]
 	nameTable: str = f"{nameExchange}_{symbol}_{type}".lower()
@@ -148,25 +147,24 @@ def inTime(
 	) -> pd.DataFrame:
 	
 	maxDeltaDatetime = timedelta(minutes=maxDelta)
-	commonMultiple: int = 3
+	standartDeep: int = 1440
 	changeDays: dict = {
-		"1min": 1*commonMultiple,
-		"2min": 2*commonMultiple,
-		"4min": 4*commonMultiple,
-		"8min": 8*commonMultiple,
-		"15min": 15*commonMultiple,
-		"30min": 30*commonMultiple,
-		"1h": 60*commonMultiple,
-		"2h": 120*commonMultiple,
-		"4h": 240*commonMultiple,
-		"6h": 360*commonMultiple,
-		"8h": 480*commonMultiple,
-		"12h": 720*commonMultiple,
-		"1d": 1440*commonMultiple
+		"1min": 1,
+		"2min": 2,
+		"4min": 4,
+		"8min": 8,
+		"15min": 15,
+		"30min": 30,
+		"1h": 60,
+		"2h": 120,
+		"4h": 240,
+		"6h": 360,
+		"8h": 480,
+		"12h": 720,
+		"1d": 1440
 	}
-	oneDay: int = 1440
 	amountDays: int = changeDays[timeFrame]
-	realAmountLines: int = oneDay*amountDays
+	realAmountLines: int = standartDeep*amountDays
 	nameTable: str = f"{nameExchange}_{symbol}".lower()
 
 	queryCode: str = f"""
