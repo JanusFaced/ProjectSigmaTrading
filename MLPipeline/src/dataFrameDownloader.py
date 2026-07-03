@@ -57,7 +57,7 @@ def backTime(
 	maxDeltaDatetime = timedelta(days=maxDelta)
 	
 	modeMultiple = "identical"
-	standartDeep: int = 1000000
+	standartDeep: int = 5000000
 
 	if modeMultiple == "identical":
 		realAmountLines: int = standartDeep

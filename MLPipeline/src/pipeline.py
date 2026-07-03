@@ -32,8 +32,9 @@ def main(inputMessage: dict[str, Any]) -> None:
 
 if __name__ == "__main__":
 
-	mode = 'stats'
+	mode = 'imitation'
 	testMode = 'cumul'
+	target_year_profit = 30.0
 
 	listNameExchange = ['binance']
 	listSymbol = [
@@ -45,27 +46,10 @@ if __name__ == "__main__":
 	]
 	listTypeMarket = ['futures']
 	listTimeFrame = [
-		'4min',
-		'5min',
-		'6min', #good
 		'8min',
-		'9min',
-		'10min',
-		'12min', #good
-		'15min',
-		'16min',
-		'18min', #good
-		'20min',
-		'24min', #good
-		'25min',
-		'30min',
-		'32min',
-		'36min', #good
-		'40min',
-		'45min',
-		'48min', #good
-		'50min',
-		'1h'
+		'18min',
+		'36min',
+		'48min',
 	]
 	listStrategy = [
 		'moving',
@@ -94,11 +78,11 @@ if __name__ == "__main__":
 	logger.info(f"full lenth combination = {lenthCombi}")
 
 	if mode == "imitation":
-		listMSGs = filters.forImitation(listMSGs=listMSGs, target_year_profit=0.0)
+		listMSGs = filters.forImitation(listMSGs=listMSGs, target_year_profit=target_year_profit)
 		lenthCombi = len(listMSGs)
 		logger.info(f"filter for imitation lenth combination = {lenthCombi}")
 	elif mode == "real":
-		listMSGs = filters.forReal(listMSGs=listMSGs, target_year_profit=0.0)
+		listMSGs = filters.forReal(listMSGs=listMSGs, target_year_profit=target_year_profit)
 		lenthCombi = len(listMSGs)
 		logger.info(f"filter for real lenth combination = {lenthCombi}")
 
