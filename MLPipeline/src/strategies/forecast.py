@@ -6,6 +6,7 @@ import numpy.typing as npt
 from numba import njit
 import os
 import sys
+from convertorTF import convertorTimeFrame
 from logger_setup import get_logger
 from pathlib import Path
 
@@ -19,28 +20,12 @@ def main(inputMessage: dict[str, Any], dataFrame: pd.DataFrame) -> pd.DataFrame:
 	type = inputMessage['type']
 	timeFrame = inputMessage['timeFrame']
 
-	convertor = {
-		'1min': 1,
-		'2min': 2,
-		'4min': 4,
-		'8min': 8,
-		'15min': 15,
-		'30min': 30,
-		'1h': 60,
-		'2h': 120,
-		'4h': 240,
-		'6h': 360,
-		'8h': 480,
-		'12h': 720,
-		'1d': 1440
-	}
-
 	volativityWindow = 200
 	signalWindow = 20
 	trendWindow = 200
 	minimalMulti = 1
 	baseVolativity1m = 0.0004
-	baseVolativity = baseVolativity1m*convertor[timeFrame]
+	baseVolativity = baseVolativity1m*convertorTimeFrame(timeFrame)
 
 	dataFrame['diff'] = np.abs(dataFrame['close']/dataFrame['close'].shift(1) - 1)
 	dataFrame['volativity'] = dataFrame['diff'].rolling(window=volativityWindow).mean()

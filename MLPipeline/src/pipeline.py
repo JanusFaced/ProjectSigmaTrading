@@ -32,12 +32,12 @@ def main(inputMessage: dict[str, Any]) -> None:
 
 if __name__ == "__main__":
 
-	mode = 'test'
+	mode = 'stats'
 	testMode = 'cumul'
 
 	listNameExchange = ['binance']
 	listSymbol = [
-#		'ETH',
+		'ETH',
 		'BNB',
 		'SOL',
 		'TRX',
@@ -45,19 +45,27 @@ if __name__ == "__main__":
 	]
 	listTypeMarket = ['futures']
 	listTimeFrame = [
-		'1min',
-		'2min',
 		'4min',
+		'5min',
+		'6min', #good
 		'8min',
+		'9min',
+		'10min',
+		'12min', #good
 		'15min',
+		'16min',
+		'18min', #good
+		'20min',
+		'24min', #good
+		'25min',
 		'30min',
-		'1h',
-		'2h',
-		'4h',
-		'6h',
-		'8h',
-		'12h',
-		'1d'
+		'32min',
+		'36min', #good
+		'40min',
+		'45min',
+		'48min', #good
+		'50min',
+		'1h'
 	]
 	listStrategy = [
 		'moving',
@@ -96,10 +104,10 @@ if __name__ == "__main__":
 
 	if mode != 'stats':
 		for msg in listMSGs:
-			#try:
-			main(msg)
-			#except Exception as e:
-			#	logger.info(f"error: {e}")
+			try:
+				main(msg)
+			except Exception as e:
+				logger.info(f"error: {e}")
 
 	if mode in ['stats', 'test']:
 		filters.makeStats(listSymbol=listSymbol, listTimeFrame=listTimeFrame, listStrategy=listStrategy)

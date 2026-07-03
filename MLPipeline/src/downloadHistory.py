@@ -68,14 +68,6 @@ def backTime(
 		if type == 'futures':
 			exchange.options['defaultType'] = 'future'
 
-	elif nameExchange == 'okx':
-		exchange = ccxt.okx()
-		exchange.options['defaultType'] = 'swap'
-	
-	elif nameExchange == 'bitget':
-		exchange = ccxt.bitget()
-		exchange.options['defaultType'] = 'swap'
-
 	else:
 		raise ValueError(f"Неизвестная биржа: {nameExchange}")
 
@@ -185,14 +177,6 @@ def inTime(
 		exchange = ccxt.kucoin()
 		if type == 'futures':
 			exchange.options['defaultType'] = 'future'
-
-	elif nameExchange == 'okx':
-		exchange = ccxt.okx()
-		exchange.options['defaultType'] = 'swap'
-	
-	elif nameExchange == 'bitget':
-		exchange = ccxt.bitget()
-		exchange.options['defaultType'] = 'swap'
 
 	else:
 		raise ValueError(f"Неизвестная биржа: {nameExchange}")

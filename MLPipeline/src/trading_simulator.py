@@ -6,6 +6,7 @@ import sys
 import os
 import backtrader as bt
 import saveToDB
+from convertorTF import convertorTimeFrame
 from logger_setup import get_logger
 from pathlib import Path
 
@@ -269,23 +270,10 @@ def backTestAnalyst(
 	amountLossSignal = report['amountLossSignal']
 	amountProfitSignal = report['amountProfitSignal']
 
-	convertor = {
-		'1min': 525600,
-		'2min': 262800,
-		'4min': 131400,
-		'8min': 65700,
-		'15min': 35040,
-		'30min': 17520,
-		'1h': 8760,
-		'2h': 4380,
-		'4h': 2190,
-		'6h': 1460,
-		'8h': 1095,
-		'12h': 730,
-		'1d': 365
-	}
-
-	yearSize = convertor[timeFrame]
+	integerTimeFrame = convertorTimeFrame(timeFrame)
+	multipleTimeFrame = 1440//integerTimeFrame
+	yearSize = 365*multipleTimeFrame
+	
 	period = 500
 
 	start_deposit = 100

@@ -6,6 +6,7 @@ import os
 import sys
 from sqlalchemy import create_engine, inspect
 import downloadHistory
+from convertorTF import convertorTimeFrame
 from logger_setup import get_logger
 
 logger = get_logger(__name__)
@@ -42,10 +43,10 @@ def main(inputMessage: dict) -> pd.DataFrame:
 	return dataFrame
 
 def backTime(
-		nameExchange: Literal['binance', 'bybit', 'kucoin'],
+		nameExchange: str,
 		symbol: str,
 		type: str,
-		timeFrame: Literal['1min', '2min', '4min', '8min', '15min', '30min', '1h', '2h', '4h', '6h', '8h', '12h', '1d'],
+		timeFrame: str,
 		mode: str,
 		maxDelta: int = 30
 	) -> pd.DataFrame:
@@ -56,41 +57,13 @@ def backTime(
 	maxDeltaDatetime = timedelta(days=maxDelta)
 	
 	modeMultiple = "identical"
-	standartDeep: int = 4500
+	standartDeep: int = 1000000
 
 	if modeMultiple == "identical":
-		multiple: dict = {
-			"1min": 1440,
-			"2min": 1440,
-			"4min": 1440,
-			"8min": 1440,
-			"15min": 1440,
-			"30min": 1440,
-			"1h": 1440,
-			"2h": 1440,
-			"4h": 1440,
-			"6h": 1440,
-			"8h": 1440,
-			"12h": 1440,
-			"1d": 1440
-		}
+		realAmountLines: int = standartDeep
 	elif modeMultiple == "relative":
-		multiple: dict = {
-			"1min": 1,
-			"2min": 2,
-			"4min": 4,
-			"8min": 8,
-			"15min": 15,
-			"30min": 30,
-			"1h": 60,
-			"2h": 120,
-			"4h": 240,
-			"6h": 360,
-			"8h": 480,
-			"12h": 720,
-			"1d": 1440
-		}
-	realAmountLines: int = standartDeep*multiple[timeFrame]
+		realAmountLines: int = standartDeep*convertorTimeFrame(timeFrame)
+	
 	nameTable: str = f"{nameExchange}_{symbol}_{type}".lower()
 
 	queryCode: str = f"""
@@ -137,10 +110,10 @@ def backTime(
 	return dataFrame
 
 def inTime(
-		nameExchange: Literal['binance', 'bybit', 'kucoin'],
+		nameExchange: str,
 		symbol: str, 
 		type: str,
-		timeFrame: Literal['1min', '2min', '4min', '8min', '15min', '30min', '1h', '2h', '4h', '6h', '8h', '12h', '1d'],
+		timeFrame: str,
 		mode: str,
 		nowMuchMoreDays: int = 75,
 		maxDelta: int = 15
@@ -148,22 +121,7 @@ def inTime(
 	
 	maxDeltaDatetime = timedelta(minutes=maxDelta)
 	standartDeep: int = 1440
-	changeDays: dict = {
-		"1min": 1,
-		"2min": 2,
-		"4min": 4,
-		"8min": 8,
-		"15min": 15,
-		"30min": 30,
-		"1h": 60,
-		"2h": 120,
-		"4h": 240,
-		"6h": 360,
-		"8h": 480,
-		"12h": 720,
-		"1d": 1440
-	}
-	amountDays: int = changeDays[timeFrame]
+	amountDays: int = convertorTimeFrame(timeFrame)
 	realAmountLines: int = standartDeep*amountDays
 	nameTable: str = f"{nameExchange}_{symbol}".lower()
 
