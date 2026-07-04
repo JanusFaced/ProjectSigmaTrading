@@ -32,66 +32,70 @@ def main(inputMessage: dict[str, Any]) -> None:
 
 if __name__ == "__main__":
 
-	mode = 'imitation'
-	testMode = 'cumul'
-	target_year_profit = 30.0
+	def sub_main():
+		mode = 'imitation'
+		testMode = 'cumul'
+		target_year_profit = 30.0
 
-	listNameExchange = ['binance']
-	listSymbol = [
-		'ETH',
-		'BNB',
-		'SOL',
-		'TRX',
-		'ADA',
-	]
-	listTypeMarket = ['futures']
-	listTimeFrame = [
-		'8min',
-		'18min',
-		'36min',
-		'48min',
-	]
-	listStrategy = [
-		'moving',
-		'channel',
-		'forecast',
-		'modeling'
-	]
+		listNameExchange = ['binance']
+		listSymbol = [
+			'ETH',
+			'BNB',
+			'SOL',
+			'TRX',
+			'ADA',
+		]
+		listTypeMarket = ['futures']
+		listTimeFrame = [
+			'8min',
+			'18min',
+			'36min',
+			'48min',
+		]
+		listStrategy = [
+			'moving',
+			'channel',
+			'forecast',
+			'modeling'
+		]
 
-	listMSGs = []
-	for nameExchange in listNameExchange:
-		for symbol in listSymbol:
+		listMSGs = []
+		for nameExchange in listNameExchange:
 			for typeMarket in listTypeMarket:
 				for timeFrame in listTimeFrame:
-					for strategy in listStrategy:
-						listMSGs.append({
-							'mode': mode,
-							'testMode': testMode,
-							'nameExchange': nameExchange,
-							'symbol': symbol,
-							'type': typeMarket,
-							'timeFrame': timeFrame,
-							'strategy': strategy
-						})
+					for symbol in listSymbol:
+						for strategy in listStrategy:
+							listMSGs.append({
+								'mode': mode,
+								'testMode': testMode,
+								'nameExchange': nameExchange,
+								'symbol': symbol,
+								'type': typeMarket,
+								'timeFrame': timeFrame,
+								'strategy': strategy
+							})
 
-	lenthCombi = len(listMSGs)
-	logger.info(f"full lenth combination = {lenthCombi}")
-
-	if mode == "imitation":
-		listMSGs = filters.forImitation(listMSGs=listMSGs, target_year_profit=target_year_profit)
 		lenthCombi = len(listMSGs)
-		logger.info(f"filter for imitation lenth combination = {lenthCombi}")
-	elif mode == "real":
-		listMSGs = filters.forReal(listMSGs=listMSGs, target_year_profit=target_year_profit)
-		lenthCombi = len(listMSGs)
-		logger.info(f"filter for real lenth combination = {lenthCombi}")
+		logger.info(f"full lenth combination = {lenthCombi}")
 
-	if mode != 'stats':
-		for msg in listMSGs:
-			try:
-				main(msg)
-			except Exception as e:
-				logger.info(f"error: {e}")
+		if mode == "imitation":
+			listMSGs = filters.forImitation(listMSGs=listMSGs, target_year_profit=target_year_profit)
+			lenthCombi = len(listMSGs)
+			logger.info(f"filter for imitation lenth combination = {lenthCombi}")
+		elif mode == "real":
+			listMSGs = filters.forReal(listMSGs=listMSGs, target_year_profit=target_year_profit)
+			lenthCombi = len(listMSGs)
+			logger.info(f"filter for real lenth combination = {lenthCombi}")
 
-	if mode in ['stats', 'test']:
-		filters.makeStats(listSymbol=listSymbol, listTimeFrame=listTimeFrame, listStrategy=listStrategy)
+		if mode != 'stats':
+			for msg in listMSGs:
+				try:
+					main(msg)
+				except Exception as e:
+					logger.info(f"error: {e}")
+
+		if mode in ['stats', 'test']:
+			filters.makeStats(listSymbol=listSymbol, listTimeFrame=listTimeFrame, listStrategy=listStrategy)
+
+	while True:
+		sub_main()
