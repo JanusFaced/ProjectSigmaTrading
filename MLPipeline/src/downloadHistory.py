@@ -20,7 +20,7 @@ DATABASE_URL = f"postgresql://{dataBase_user}:{dataBase_password}@{dataBase_host
 engine = create_engine(DATABASE_URL)
 
 def main(
-		nameExchange: Literal['binance', 'bybit', 'kucoin'],
+		nameExchange: str,
 		symbol: str,
 		type: str,
 		mode: str,
@@ -45,7 +45,7 @@ def main(
 	return dataFrame
 
 def backTime(
-		nameExchange: Literal['binance', 'bybit', 'kucoin'],
+		nameExchange: str,
 		symbol: str,
 		type: str
 	) -> None:
@@ -157,7 +157,7 @@ def backTime(
 	logger.info(f'{nameTable} is saved to dataBase!')
 
 def inTime(
-		nameExchange: Literal['binance', 'bybit', 'kucoin'],
+		nameExchange: str,
 		symbol: str,
 		type: str,
 		nowMuchMoreDays: int = 365

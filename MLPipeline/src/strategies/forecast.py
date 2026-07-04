@@ -23,24 +23,25 @@ def main(inputMessage: dict[str, Any], dataFrame: pd.DataFrame) -> pd.DataFrame:
 	volativityWindow = 200
 	signalWindow = 20
 	trendWindow = 200
-	minimalMulti = 1
+	maxMulti = 15
+	minMulti = 1
 	baseVolativity1m = 0.0004
 	baseVolativity = baseVolativity1m*convertorTimeFrame(timeFrame)
 
 	dataFrame['diff'] = np.abs(dataFrame['close']/dataFrame['close'].shift(1) - 1)
 	dataFrame['volativity'] = dataFrame['diff'].rolling(window=volativityWindow).mean()
-	dataFrame['multiWindow'] = baseVolativity/dataFrame['volativity']
+	dataFrame['window'] = baseVolativity/dataFrame['volativity']
 
-	dataFrame['signalWindow'] = (signalWindow*dataFrame['multiWindow']).fillna(signalWindow).astype(np.int64).clip(lower=2)
-	dataFrame['trendWindow'] = (trendWindow*dataFrame['multiWindow']).fillna(trendWindow).astype(np.int64).clip(lower=2)
+	dataFrame['signalWindow'] = (signalWindow*dataFrame['window']).fillna(signalWindow).astype(np.int64).clip(lower=2)
+	dataFrame['trendWindow'] = (trendWindow*dataFrame['window']).fillna(trendWindow).astype(np.int64).clip(lower=2)
 
 	dataFrame['model'] = adaptive_lr_forecast(diffVector=dataFrame['diff'].values, windowVector=dataFrame['signalWindow'].values)
 	dataFrame['trend'] = adaptive_roc(closeVector=dataFrame['close'].values, windowVector=dataFrame['trendWindow'].values)
 
 	dataFrame['strategy'] = np.select(
 		[
-			(dataFrame['diff'] > dataFrame['model']) & (dataFrame['trend'] > 0) & (dataFrame['multiWindow'] > minimalMulti),
-			(dataFrame['diff'] < dataFrame['model']) & (dataFrame['trend'] < 0) & (dataFrame['multiWindow'] > minimalMulti)
+			(dataFrame['diff'] > dataFrame['model']) & (dataFrame['trend'] > 0) & (maxMulti > dataFrame['window']) & (dataFrame['window'] > minMulti),
+			(dataFrame['diff'] < dataFrame['model']) & (dataFrame['trend'] < 0) & (maxMulti > dataFrame['window']) & (dataFrame['window'] > minMulti)
 		],
 		[2, 0], default=1
 	)

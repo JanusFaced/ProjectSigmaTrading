@@ -23,28 +23,29 @@ def main(inputMessage: dict[str, Any], dataFrame: pd.DataFrame) -> pd.DataFrame:
 	volativityWindow = 200
 	signalWindow = 20
 	trendWindow = 200
-	minimalMulti = 1
+	maxMulti = 15
+	minMulti = 1
 	baseVolativity1m = 0.0004
 	baseVolativity = baseVolativity1m*convertorTimeFrame(timeFrame)
 
 	dataFrame['diff'] = np.abs(dataFrame['close']/dataFrame['close'].shift(1) - 1)
 	dataFrame['volativity'] = dataFrame['diff'].rolling(window=volativityWindow).mean()
-	dataFrame['multiWindow'] = baseVolativity/dataFrame['volativity']
+	dataFrame['window'] = baseVolativity/dataFrame['volativity']
 
-	dataFrame['signalWindow'] = (signalWindow*dataFrame['multiWindow']).fillna(signalWindow).astype(np.int64).clip(lower=2)
-	dataFrame['trendWindow'] = (trendWindow*dataFrame['multiWindow']).fillna(trendWindow).astype(np.int64).clip(lower=2)
+	dataFrame['signalWindow'] = (signalWindow*dataFrame['window']).fillna(signalWindow).astype(np.int64).clip(lower=2)
+	dataFrame['trendWindow'] = (trendWindow*dataFrame['window']).fillna(trendWindow).astype(np.int64).clip(lower=2)
 
 	upLine, baseLine, downLine = adaptive_lr_channel(closeVector=dataFrame['close'].values, windowVector=dataFrame['signalWindow'].values)
-	dataFrame['upLineChannel'] = upLine
-	dataFrame['baseLineChannel'] = baseLine
-	dataFrame['downLineChannel'] = downLine
+	dataFrame['upLine'] = upLine
+	dataFrame['baseLine'] = baseLine
+	dataFrame['downLine'] = downLine
 
 	dataFrame['trend'] = adaptive_roc(closeVector=dataFrame['close'].values, windowVector=dataFrame['trendWindow'].values)
 
 	dataFrame['strategy'] = np.select(
 		[
-			(dataFrame['close'] > dataFrame['downLineChannel']) & (dataFrame['trend'] > 0) & (dataFrame['multiWindow'] > minimalMulti),
-			(dataFrame['close'] < dataFrame['upLineChannel']) & (dataFrame['trend'] < 0) & (dataFrame['multiWindow'] > minimalMulti)
+			(dataFrame['close'] > dataFrame['downLine']) & (dataFrame['trend'] > 0) & (maxMulti > dataFrame['window']) & (dataFrame['window'] > minMulti),
+			(dataFrame['close'] < dataFrame['upLine']) & (dataFrame['trend'] < 0) & (maxMulti > dataFrame['window']) & (dataFrame['window'] > minMulti)
 		],
 		[2, 0], default=1
 	)
@@ -55,9 +56,9 @@ def main(inputMessage: dict[str, Any], dataFrame: pd.DataFrame) -> pd.DataFrame:
 	#testDF = dataFrame.tail(50)
 	#superName = f"lr_channel_{nameExchange}_{symbol}_{type}_{timeFrame}.png"
 	#plt.plot(testDF['datetime'], testDF['close'], color="black")
-	#plt.plot(testDF['datetime'], testDF['upLineChannel'], color="green")
-	#plt.plot(testDF['datetime'], testDF['baseLineChannel'], color="orange")
-	#plt.plot(testDF['datetime'], testDF['downLineChannel'], color="red")
+	#plt.plot(testDF['datetime'], testDF['upLine'], color="green")
+	#plt.plot(testDF['datetime'], testDF['baseLine'], color="orange")
+	#plt.plot(testDF['datetime'], testDF['downLine'], color="red")
 	#plt.plot(testDF['datetime'], testDF['signalWindow'], color="orange")
 	#plt.plot(testDF['datetime'], testDF['trendWindow'], color="purple")
 	#plt.savefig(str(output_dir / superName ))

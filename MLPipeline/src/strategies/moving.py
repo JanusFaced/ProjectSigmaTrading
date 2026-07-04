@@ -23,24 +23,25 @@ def main(inputMessage: dict[str, Any], dataFrame: pd.DataFrame) -> pd.DataFrame:
 	volativityWindow = 200
 	signalWindow = 20
 	trendWindow = 200
-	minimalMulti = 1
+	maxMulti = 15
+	minMulti = 1
 	baseVolativity1m = 0.0004
 	baseVolativity = baseVolativity1m*convertorTimeFrame(timeFrame)
 
 	dataFrame['diff'] = np.abs(dataFrame['close']/dataFrame['close'].shift(1) - 1)
 	dataFrame['volativity'] = dataFrame['diff'].rolling(window=volativityWindow).mean()
-	dataFrame['multiWindow'] = baseVolativity/dataFrame['volativity']
+	dataFrame['window'] = baseVolativity/dataFrame['volativity']
 
-	dataFrame['signalWindow'] = (signalWindow*dataFrame['multiWindow']).fillna(signalWindow).astype(np.int64).clip(lower=2)
-	dataFrame['trendWindow'] = (trendWindow*dataFrame['multiWindow']).fillna(trendWindow).astype(np.int64).clip(lower=2)
+	dataFrame['signalWindow'] = (signalWindow*dataFrame['window']).fillna(signalWindow).astype(np.int64).clip(lower=2)
+	dataFrame['trendWindow'] = (trendWindow*dataFrame['window']).fillna(trendWindow).astype(np.int64).clip(lower=2)
 
-	dataFrame['adaptive_moving'] = adaptive_moving(closeVector=dataFrame['close'].values, windowVector=dataFrame['signalWindow'].values)
-	dataFrame['adaptive_roc'] = adaptive_roc(closeVector=dataFrame['close'].values, windowVector=dataFrame['trendWindow'].values)
+	dataFrame['moving'] = adaptiveMoving(closeVector=dataFrame['close'].values, windowVector=dataFrame['signalWindow'].values)
+	dataFrame['trend'] = adaptiveRoc(closeVector=dataFrame['close'].values, windowVector=dataFrame['trendWindow'].values)
 
 	dataFrame['strategy'] = np.select(
 		[
-			(dataFrame['close'] > dataFrame['adaptive_moving']) & (dataFrame['adaptive_roc'] > 0) & (dataFrame['multiWindow'] > minimalMulti),
-			(dataFrame['close'] < dataFrame['adaptive_moving']) & (dataFrame['adaptive_roc'] < 0) & (dataFrame['multiWindow'] > minimalMulti)
+			(dataFrame['close'] > dataFrame['moving']) & (dataFrame['trend'] > 0) & (maxMulti > dataFrame['window']) & (dataFrame['window'] > minMulti),
+			(dataFrame['close'] < dataFrame['moving']) & (dataFrame['trend'] < 0) & (maxMulti > dataFrame['window']) & (dataFrame['window'] > minMulti)
 		],
 		[2, 0], default=1
 	)
@@ -49,8 +50,6 @@ def main(inputMessage: dict[str, Any], dataFrame: pd.DataFrame) -> pd.DataFrame:
 	dataFrame['short_signal'] = np.select([dataFrame['strategy'] == 0], [1], default=-1)
 
 	#superName = f"voladaptation_{nameExchange}_{symbol}_{type}_{timeFrame}.png"
-	#plt.plot(dataFrame['datetime'], dataFrame['close'], color="black")
-	#plt.plot(dataFrame['datetime'], dataFrame['adaptive_moving'], color="red")
 	#plt.plot(dataFrame['datetime'], dataFrame['signalWindow'], color="orange")
 	#plt.plot(dataFrame['datetime'], dataFrame['trendWindow'], color="purple")
 	#plt.savefig(str(output_dir / superName ))
@@ -59,7 +58,7 @@ def main(inputMessage: dict[str, Any], dataFrame: pd.DataFrame) -> pd.DataFrame:
 	return dataFrame[['datetime', 'open', 'high', 'low', 'close', 'volume', 'long_signal', 'short_signal']]
 
 @njit
-def adaptive_moving(closeVector: npt.NDArray[np.float64], windowVector: npt.NDArray[np.int64]) -> npt.NDArray[np.float64]:
+def adaptiveMoving(closeVector: npt.NDArray[np.float64], windowVector: npt.NDArray[np.int64]) -> npt.NDArray[np.float64]:
 	lenth = len(closeVector)
 
 	movingVector = np.empty(lenth)
@@ -74,7 +73,7 @@ def adaptive_moving(closeVector: npt.NDArray[np.float64], windowVector: npt.NDAr
 	return movingVector
 
 @njit
-def adaptive_roc(closeVector: npt.NDArray[np.float64], windowVector: npt.NDArray[np.int64]) -> npt.NDArray[np.float64]:
+def adaptiveRoc(closeVector: npt.NDArray[np.float64], windowVector: npt.NDArray[np.int64]) -> npt.NDArray[np.float64]:
 	lenth = len(closeVector)
 
 	rocVector = np.empty(lenth)

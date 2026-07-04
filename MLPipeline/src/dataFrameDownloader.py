@@ -57,7 +57,7 @@ def backTime(
 	maxDeltaDatetime = timedelta(days=maxDelta)
 	
 	modeMultiple = "identical"
-	standartDeep: int = 5000000
+	standartDeep: int = 5_000_000
 
 	if modeMultiple == "identical":
 		realAmountLines: int = standartDeep
@@ -115,15 +115,14 @@ def inTime(
 		type: str,
 		timeFrame: str,
 		mode: str,
-		nowMuchMoreDays: int = 75,
-		maxDelta: int = 15
+		nowMuchMoreDays: int = 125
 	) -> pd.DataFrame:
 	
-	maxDeltaDatetime = timedelta(minutes=maxDelta)
-	standartDeep: int = 1440
-	amountDays: int = convertorTimeFrame(timeFrame)
-	realAmountLines: int = standartDeep*amountDays
-	nameTable: str = f"{nameExchange}_{symbol}".lower()
+	valueConvertor: int = convertorTimeFrame(timeFrame)
+	maxDeltaDatetime = timedelta(minutes=valueConvertor)
+	standartDeep: int = 3000
+	realAmountLines: int = standartDeep*valueConvertor
+	nameTable: str = f"short_{nameExchange}_{symbol}_{type}".lower()
 
 	queryCode: str = f"""
 		SELECT * FROM (
