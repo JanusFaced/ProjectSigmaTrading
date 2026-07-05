@@ -1,0 +1,458 @@
+[
+    {
+        "mode": "stats",
+        "nameExchange": "binance",
+        "symbol": "ETH",
+        "type": "futures",
+        "timeFrame": "8min",
+        "strategy": "moving"
+    },
+    {
+        "mode": "stats",
+        "nameExchange": "binance",
+        "symbol": "ETH",
+        "type": "futures",
+        "timeFrame": "8min",
+        "strategy": "channel"
+    },
+    {
+        "mode": "stats",
+        "nameExchange": "binance",
+        "symbol": "ETH",
+        "type": "futures",
+        "timeFrame": "8min",
+        "strategy": "forecast"
+    },
+    {
+        "mode": "stats",
+        "nameExchange": "binance",
+        "symbol": "ETH",
+        "type": "futures",
+        "timeFrame": "8min",
+        "strategy": "modeling"
+    },
+    {
+        "mode": "stats",
+        "nameExchange": "binance",
+        "symbol": "BNB",
+        "type": "futures",
+        "timeFrame": "8min",
+        "strategy": "moving"
+    },
+    {
+        "mode": "stats",
+        "nameExchange": "binance",
+        "symbol": "BNB",
+        "type": "futures",
+        "timeFrame": "8min",
+        "strategy": "forecast"
+    },
+    {
+        "mode": "stats",
+        "nameExchange": "binance",
+        "symbol": "SOL",
+        "type": "futures",
+        "timeFrame": "8min",
+        "strategy": "moving"
+    },
+    {
+        "mode": "stats",
+        "nameExchange": "binance",
+        "symbol": "SOL",
+        "type": "futures",
+        "timeFrame": "8min",
+        "strategy": "channel"
+    },
+    {
+        "mode": "stats",
+        "nameExchange": "binance",
+        "symbol": "SOL",
+        "type": "futures",
+        "timeFrame": "8min",
+        "strategy": "forecast"
+    },
+    {
+        "mode": "stats",
+        "nameExchange": "binance",
+        "symbol": "SOL",
+        "type": "futures",
+        "timeFrame": "8min",
+        "strategy": "modeling"
+    },
+    {
+        "mode": "stats",
+        "nameExchange": "binance",
+        "symbol": "TRX",
+        "type": "futures",
+        "timeFrame": "8min",
+        "strategy": "moving"
+    },
+    {
+        "mode": "stats",
+        "nameExchange": "binance",
+        "symbol": "TRX",
+        "type": "futures",
+        "timeFrame": "8min",
+        "strategy": "channel"
+    },
+    {
+        "mode": "stats",
+        "nameExchange": "binance",
+        "symbol": "TRX",
+        "type": "futures",
+        "timeFrame": "8min",
+        "strategy": "modeling"
+    },
+    {
+        "mode": "stats",
+        "nameExchange": "binance",
+        "symbol": "ADA",
+        "type": "futures",
+        "timeFrame": "8min",
+        "strategy": "forecast"
+    },
+    {
+        "mode": "stats",
+        "nameExchange": "binance",
+        "symbol": "ADA",
+        "type": "futures",
+        "timeFrame": "8min",
+        "strategy": "modeling"
+    },
+    {
+        "mode": "stats",
+        "nameExchange": "binance",
+        "symbol": "ETH",
+        "type": "futures",
+        "timeFrame": "18min",
+        "strategy": "moving"
+    },
+    {
+        "mode": "stats",
+        "nameExchange": "binance",
+        "symbol": "ETH",
+        "type": "futures",
+        "timeFrame": "18min",
+        "strategy": "channel"
+    },
+    {
+        "mode": "stats",
+        "nameExchange": "binance",
+        "symbol": "ETH",
+        "type": "futures",
+        "timeFrame": "18min",
+        "strategy": "forecast"
+    },
+    {
+        "mode": "stats",
+        "nameExchange": "binance",
+        "symbol": "ETH",
+        "type": "futures",
+        "timeFrame": "18min",
+        "strategy": "modeling"
+    },
+    {
+        "mode": "stats",
+        "nameExchange": "binance",
+        "symbol": "BNB",
+        "type": "futures",
+        "timeFrame": "18min",
+        "strategy": "channel"
+    },
+    {
+        "mode": "stats",
+        "nameExchange": "binance",
+        "symbol": "SOL",
+        "type": "futures",
+        "timeFrame": "18min",
+        "strategy": "moving"
+    },
+    {
+        "mode": "stats",
+        "nameExchange": "binance",
+        "symbol": "SOL",
+        "type": "futures",
+        "timeFrame": "18min",
+        "strategy": "channel"
+    },
+    {
+        "mode": "stats",
+        "nameExchange": "binance",
+        "symbol": "SOL",
+        "type": "futures",
+        "timeFrame": "18min",
+        "strategy": "forecast"
+    },
+    {
+        "mode": "stats",
+        "nameExchange": "binance",
+        "symbol": "SOL",
+        "type": "futures",
+        "timeFrame": "18min",
+        "strategy": "modeling"
+    },
+    {
+        "mode": "stats",
+        "nameExchange": "binance",
+        "symbol": "TRX",
+        "type": "futures",
+        "timeFrame": "18min",
+        "strategy": "moving"
+    },
+    {
+        "mode": "stats",
+        "nameExchange": "binance",
+        "symbol": "TRX",
+        "type": "futures",
+        "timeFrame": "18min",
+        "strategy": "channel"
+    },
+    {
+        "mode": "stats",
+        "nameExchange": "binance",
+        "symbol": "ADA",
+        "type": "futures",
+        "timeFrame": "18min",
+        "strategy": "moving"
+    },
+    {
+        "mode": "stats",
+        "nameExchange": "binance",
+        "symbol": "ADA",
+        "type": "futures",
+        "timeFrame": "18min",
+        "strategy": "forecast"
+    },
+    {
+        "mode": "stats",
+        "nameExchange": "binance",
+        "symbol": "ADA",
+        "type": "futures",
+        "timeFrame": "18min",
+        "strategy": "modeling"
+    },
+    {
+        "mode": "stats",
+        "nameExchange": "binance",
+        "symbol": "ETH",
+        "type": "futures",
+        "timeFrame": "36min",
+        "strategy": "moving"
+    },
+    {
+        "mode": "stats",
+        "nameExchange": "binance",
+        "symbol": "ETH",
+        "type": "futures",
+        "timeFrame": "36min",
+        "strategy": "channel"
+    },
+    {
+        "mode": "stats",
+        "nameExchange": "binance",
+        "symbol": "ETH",
+        "type": "futures",
+        "timeFrame": "36min",
+        "strategy": "forecast"
+    },
+    {
+        "mode": "stats",
+        "nameExchange": "binance",
+        "symbol": "ETH",
+        "type": "futures",
+        "timeFrame": "36min",
+        "strategy": "modeling"
+    },
+    {
+        "mode": "stats",
+        "nameExchange": "binance",
+        "symbol": "BNB",
+        "type": "futures",
+        "timeFrame": "36min",
+        "strategy": "moving"
+    },
+    {
+        "mode": "stats",
+        "nameExchange": "binance",
+        "symbol": "BNB",
+        "type": "futures",
+        "timeFrame": "36min",
+        "strategy": "channel"
+    },
+    {
+        "mode": "stats",
+        "nameExchange": "binance",
+        "symbol": "BNB",
+        "type": "futures",
+        "timeFrame": "36min",
+        "strategy": "modeling"
+    },
+    {
+        "mode": "stats",
+        "nameExchange": "binance",
+        "symbol": "SOL",
+        "type": "futures",
+        "timeFrame": "36min",
+        "strategy": "moving"
+    },
+    {
+        "mode": "stats",
+        "nameExchange": "binance",
+        "symbol": "SOL",
+        "type": "futures",
+        "timeFrame": "36min",
+        "strategy": "channel"
+    },
+    {
+        "mode": "stats",
+        "nameExchange": "binance",
+        "symbol": "SOL",
+        "type": "futures",
+        "timeFrame": "36min",
+        "strategy": "forecast"
+    },
+    {
+        "mode": "stats",
+        "nameExchange": "binance",
+        "symbol": "SOL",
+        "type": "futures",
+        "timeFrame": "36min",
+        "strategy": "modeling"
+    },
+    {
+        "mode": "stats",
+        "nameExchange": "binance",
+        "symbol": "ADA",
+        "type": "futures",
+        "timeFrame": "36min",
+        "strategy": "moving"
+    },
+    {
+        "mode": "stats",
+        "nameExchange": "binance",
+        "symbol": "ADA",
+        "type": "futures",
+        "timeFrame": "36min",
+        "strategy": "channel"
+    },
+    {
+        "mode": "stats",
+        "nameExchange": "binance",
+        "symbol": "ADA",
+        "type": "futures",
+        "timeFrame": "36min",
+        "strategy": "forecast"
+    },
+    {
+        "mode": "stats",
+        "nameExchange": "binance",
+        "symbol": "ADA",
+        "type": "futures",
+        "timeFrame": "36min",
+        "strategy": "modeling"
+    },
+    {
+        "mode": "stats",
+        "nameExchange": "binance",
+        "symbol": "ETH",
+        "type": "futures",
+        "timeFrame": "48min",
+        "strategy": "moving"
+    },
+    {
+        "mode": "stats",
+        "nameExchange": "binance",
+        "symbol": "ETH",
+        "type": "futures",
+        "timeFrame": "48min",
+        "strategy": "channel"
+    },
+    {
+        "mode": "stats",
+        "nameExchange": "binance",
+        "symbol": "ETH",
+        "type": "futures",
+        "timeFrame": "48min",
+        "strategy": "modeling"
+    },
+    {
+        "mode": "stats",
+        "nameExchange": "binance",
+        "symbol": "BNB",
+        "type": "futures",
+        "timeFrame": "48min",
+        "strategy": "moving"
+    },
+    {
+        "mode": "stats",
+        "nameExchange": "binance",
+        "symbol": "BNB",
+        "type": "futures",
+        "timeFrame": "48min",
+        "strategy": "channel"
+    },
+    {
+        "mode": "stats",
+        "nameExchange": "binance",
+        "symbol": "BNB",
+        "type": "futures",
+        "timeFrame": "48min",
+        "strategy": "modeling"
+    },
+    {
+        "mode": "stats",
+        "nameExchange": "binance",
+        "symbol": "SOL",
+        "type": "futures",
+        "timeFrame": "48min",
+        "strategy": "moving"
+    },
+    {
+        "mode": "stats",
+        "nameExchange": "binance",
+        "symbol": "SOL",
+        "type": "futures",
+        "timeFrame": "48min",
+        "strategy": "channel"
+    },
+    {
+        "mode": "stats",
+        "nameExchange": "binance",
+        "symbol": "SOL",
+        "type": "futures",
+        "timeFrame": "48min",
+        "strategy": "modeling"
+    },
+    {
+        "mode": "stats",
+        "nameExchange": "binance",
+        "symbol": "TRX",
+        "type": "futures",
+        "timeFrame": "48min",
+        "strategy": "moving"
+    },
+    {
+        "mode": "stats",
+        "nameExchange": "binance",
+        "symbol": "TRX",
+        "type": "futures",
+        "timeFrame": "48min",
+        "strategy": "modeling"
+    },
+    {
+        "mode": "stats",
+        "nameExchange": "binance",
+        "symbol": "ADA",
+        "type": "futures",
+        "timeFrame": "48min",
+        "strategy": "channel"
+    },
+    {
+        "mode": "stats",
+        "nameExchange": "binance",
+        "symbol": "ADA",
+        "type": "futures",
+        "timeFrame": "48min",
+        "strategy": "modeling"
+    }
+]

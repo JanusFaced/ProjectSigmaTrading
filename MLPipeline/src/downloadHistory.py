@@ -160,8 +160,11 @@ def inTime(
 		nameExchange: str,
 		symbol: str,
 		type: str,
-		nowMuchMoreDays: int = 365
+		nowMuchMoreDays: int
 	) -> None:
+
+	engine = create_engine(DATABASE_URL)
+	inspector = inspect(engine)
 
 	if nameExchange == 'binance':
 		exchange = ccxt.binance()
@@ -192,11 +195,25 @@ def inTime(
 	timeFramePandas = '1min'
 	deltaDatetime = timedelta(minutes=1)
 	limit = 1000
-	initialDatetime = datetime.utcnow() - timedelta(days=nowMuchMoreDays)
-	newDataFrame = True
+	nowMuchMoreMinutes = nowMuchMoreDays*1440
+
+	queryCode: str = f"""
+		SELECT * FROM {nameTable}
+	"""
+
+	newDataFrame: bool = False
+	if nameTable in inspector.get_table_names():
+		zeroDataFrame = pd.read_sql(queryCode, engine)
+		zeroDataFrame = zeroDataFrame[['datetime', 'open', 'high', 'low', 'close', 'volume']]
+		logger.info(f'{nameTable} is exist! Get full table!')
+		initialDatetime = zeroDataFrame['datetime'].iloc[-1]
+	else:
+		logger.info(f'{nameTable} is NOT exist!')
+		initialDatetime = datetime.utcnow() - timedelta(days=nowMuchMoreDays)
+		newDataFrame = True
 
 	logger.info(nameTable)
-	logger.info(f'Start parsing new data! From initialDatetime => {initialDatetime}')
+	logger.info(f'Start parsing {symbol}! From initialDatetime => {initialDatetime}')
 
 	while True:
 		iso_string = initialDatetime.strftime('%Y-%m-%dT%H:%M:%SZ')
@@ -226,7 +243,7 @@ def inTime(
 	max_date = zeroDataFrame.index.max()
 	fullIndexes = pd.date_range(start=min_date, end=max_date, freq=timeFramePandas)
 	zeroDataFrame = zeroDataFrame.reindex(fullIndexes).ffill()
-	
+	zeroDataFrame = zeroDataFrame.tail(nowMuchMoreMinutes)
 	zeroDataFrame.reset_index(inplace=True, names=['datetime'])
 
 	logger.info(f'Start save {nameTable} in dataBase!')

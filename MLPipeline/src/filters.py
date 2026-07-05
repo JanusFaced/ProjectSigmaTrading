@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
+import json
 import os
 import sys
 from pathlib import Path
@@ -10,6 +11,7 @@ from logger_setup import get_logger
 
 logger = get_logger(__name__)
 output_dir = Path(__file__).parent / "output"
+config_dir = Path(__file__).parent / "config"
 
 def sort_cols_and_rows(inputList, name):
 
@@ -171,56 +173,86 @@ def makeStats(listSymbol: dict, listTimeFrame: dict, listStrategy: dict) -> None
 
 			logger.info(f"pivot {nameY}_{nameX}_{metric_name} is save to {fileName}")
 
-def forImitation(listMSGs: dict, target_year_profit: float = 0.0) -> dict:
+def forImitation(listMSGs: dict, target_year_profit: float = 0.0, modeFilter: str = 'new') -> dict:
+	fileName: str = f'{config_dir}/work_strats.json'
 
-	dataBaseSession = Session()
+	if modeFilter == 'new':
+		dataBaseSession = Session()
 
-	try:
-		logger.info("Fetching all backtests from database")
-		backtests = dataBaseSession.query(Backtest).order_by(Backtest.year_profit.desc()).all()
-		
-		tableBacktest = []
-		for backtest in backtests:
-			tableBacktest.append({
-				"id": backtest.id,
-				"strategy": backtest.strategy,
-				"year_profit": backtest.year_profit,
-				"max_drawdown": backtest.max_drawdown,
-				"sharp": backtest.sharp,
-				"datetime": backtest.datetime
-			})
-		
-		logger.info(f"Successfully fetched {len(tableBacktest)} backtests")
-	
-	except Exception as e:
-		logger.error(f"Error fetching backtests: {str(e)}")
-		raise HTTPException(status_code=500, detail=str(e))
-	
-	finally:
-		dataBaseSession.close()
-
-	newListMSGs = []
-	for msg in listMSGs:
-		
-		msg_strategy = msg["strategy"]
-		msg_symbol = msg["symbol"]
-		msg_timeFrame = msg["timeFrame"]
-		msg_type = msg["type"]
-		msg_nameExchange = msg["nameExchange"]
-
-		nameStrategy = f"{msg_strategy}_{msg_symbol}_{msg_timeFrame}_{msg_type}_{msg_nameExchange}"
-
-		for table in tableBacktest:
-			if (nameStrategy == table['strategy']) and (table['year_profit'] > target_year_profit):
-
-				newListMSGs.append({
-					'mode': msg["mode"],
-					'nameExchange': msg["nameExchange"],
-					'symbol': msg["symbol"],
-					'type': msg["type"],
-					'timeFrame': msg["timeFrame"],
-					'strategy': msg["strategy"]
+		try:
+			logger.info("Fetching all backtests from database")
+			backtests = dataBaseSession.query(Backtest).order_by(Backtest.year_profit.desc()).all()
+			
+			tableBacktest = []
+			for backtest in backtests:
+				tableBacktest.append({
+					"id": backtest.id,
+					"strategy": backtest.strategy,
+					"year_profit": backtest.year_profit,
+					"max_drawdown": backtest.max_drawdown,
+					"sharp": backtest.sharp,
+					"datetime": backtest.datetime
 				})
+			
+			logger.info(f"Successfully fetched {len(tableBacktest)} backtests")
+		
+		except Exception as e:
+			logger.error(f"Error fetching backtests: {str(e)}")
+			raise HTTPException(status_code=500, detail=str(e))
+		
+		finally:
+			dataBaseSession.close()
+
+		newListMSGs = []
+		for msg in listMSGs:
+			
+			msg_strategy = msg["strategy"]
+			msg_symbol = msg["symbol"]
+			msg_timeFrame = msg["timeFrame"]
+			msg_type = msg["type"]
+			msg_nameExchange = msg["nameExchange"]
+
+			nameStrategy = f"{msg_strategy}_{msg_symbol}_{msg_timeFrame}_{msg_type}_{msg_nameExchange}"
+
+			for table in tableBacktest:
+				if (nameStrategy == table['strategy']) and (table['year_profit'] > target_year_profit):
+
+					newListMSGs.append({
+						'mode': msg["mode"],
+						'nameExchange': msg["nameExchange"],
+						'symbol': msg["symbol"],
+						'type': msg["type"],
+						'timeFrame': msg["timeFrame"],
+						'strategy': msg["strategy"]
+					})
+
+		with open(fileName, 'w', encoding='utf-8') as f:
+			json.dump(newListMSGs, f, indent=4, ensure_ascii=False)
+		logger.info(f"{fileName} save!")
+
+	elif modeFilter == 'exist':
+		with open(fileName, 'r', encoding='utf-8') as f:
+			saveListMSGs = json.load(f)
+		logger.info(f"📂 Загружено {len(saveListMSGs)} стратегий из файла")
+
+		newListMSGs = []
+		for msg in listMSGs:
+			for save in saveListMSGs:
+				if (
+						(msg["strategy"] == save["strategy"]) and
+						(msg["symbol"] == save["symbol"]) and
+						(msg["timeFrame"] == save["timeFrame"]) and
+						(msg["type"] == save["type"]) and
+						(msg["nameExchange"] == save["nameExchange"])
+					):
+					newListMSGs.append({
+						'mode': msg["mode"],
+						'nameExchange': msg["nameExchange"],
+						'symbol': msg["symbol"],
+						'type': msg["type"],
+						'timeFrame': msg["timeFrame"],
+						'strategy': msg["strategy"]
+					})
 
 	return newListMSGs
 
