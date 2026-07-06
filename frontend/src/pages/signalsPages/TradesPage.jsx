@@ -27,6 +27,8 @@ import {
     ChartContainer
 } from './TradesPage.styles.jsx';
 
+const API_BASE = process.env.REACT_APP_API_URL;
+
 // Регистрируем компоненты Chart.js
 ChartJS.register(
     CategoryScale,
@@ -50,7 +52,7 @@ function TradesPage() {
         const fetchTrades = async () => {
             try {
                 setLoading(true);
-                const response = await axios.get(`http://localhost:8000/getTradesBySignal/${signalId}`);
+                const response = await axios.get(`${API_BASE}/getTradesBySignal/${signalId}`);
                 setData(response.data);
             } catch (err) {
                 setError(err.response?.data?.detail || err.message);
