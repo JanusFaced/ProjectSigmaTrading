@@ -9,8 +9,8 @@ import {
 } from './Navigation.styles.jsx';
 
 function Navigation() {
-    const pstLogo = '/images/pst_logo_cut.png';
-    const pstName = '/images/pst_name_cut.png';
+    const pstLogo = '/images/pst_logo_cut_remove.png';
+    const pstName = '/images/pst_name_cut_remove.png';
     
     return (
         <Nav>
