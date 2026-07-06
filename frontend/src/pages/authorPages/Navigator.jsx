@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useLocation } from 'react-router-dom';
 import {
     Navbar,
     NavContainer,
@@ -16,12 +17,23 @@ function Navigator() {
         setIsOpen(false);
     };
 
+    const location = useLocation();
+    const isHome = location.pathname === '/';
+
     return (
         <>
             <Navbar>
                 <NavContainer>
                     <NavLogo>
-                        <StyledNavLink to="/">🚀 MyPortfolio</StyledNavLink>
+                        <StyledNavLink to="/" className={!isHome ? 'back-link' : ''}>
+                            {isHome ? (
+                                '🚀 MyPortfolio'
+                            ) : (
+                                <>
+                                    <span style={{ fontSize: '0.8rem' }}>←</span> Вернуться на главную
+                                </>
+                            )}
+                        </StyledNavLink>
                     </NavLogo>
 
                     <NavBurger 

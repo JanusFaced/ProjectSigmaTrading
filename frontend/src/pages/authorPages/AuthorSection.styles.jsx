@@ -1,5 +1,6 @@
 // AuthorSection.styles.js
 import styled from 'styled-components';
+import { NavLink } from 'react-router-dom';
 
 // Основная секция об авторе
 export const HeroSection = styled.section`
@@ -107,8 +108,7 @@ export const Description = styled.p`
     }
 `;
 
-// Кнопка призыва к действию
-export const CTAButton = styled.a`
+export const CTAButton = styled(NavLink)`
     display: inline-block;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;

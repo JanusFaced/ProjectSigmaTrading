@@ -172,7 +172,7 @@ function TradesPage() {
     return (
         <PageContainer>
             <Header>
-                <h2>📊 График сделок</h2>
+                <h2>📊 График сделок для {data.strategy}</h2>
                 <BackButton onClick={() => navigate('/signals/analyst')}>← Назад к сигналам</BackButton>
             </Header>
 

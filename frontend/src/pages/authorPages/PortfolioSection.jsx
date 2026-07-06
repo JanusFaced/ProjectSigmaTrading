@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import {
     PortfolioSectionMain,
     Container,
@@ -6,54 +6,58 @@ import {
     ProjectCard,
     ProjectImage,
     ProjectInfo,
-    ProjectLink,
     TechStack,
     TechBadge,
-    ExternalIcon
+    ClickableCard,
+    LogoImage
 } from './PortfolioSection.styles.jsx';
 
 function PortfolioSection() {
+    const pstName = '/images/pst_name_cut.png';
+
+    const navigate = useNavigate();
+
     const projects = [
         { 
-            title: 'Генератор сигналов', 
-            tech: 'CatBoost, SKlearn, FastAPI', 
+            title: 'Торговые роботы', 
+            tech: 'Pandas, NumPy, Numba, SQLAlchemy, FastAPI, CCXT, Celery, Redis, PostgreSQL',
             path: '/signals',
-            description: 'Генерация торговых сигналов на основе ML моделей',
-            techList: ['CatBoost', 'SKlearn', 'FastAPI', 'PostgreSQL']
-        },
-        { 
-            title: 'Предсказатель графика', 
-            tech: 'Darts, CatBoost, FastAPI', 
-            path: '/predict',
-            description: 'Предсказание движения цены криптовалют',
-            techList: ['Darts', 'CatBoost', 'FastAPI', 'PostgreSQL']
-        },
+            description: 'Параллельный запуск различных торговых стратегий и их оценка в реальном времени',
+            techList: ['Pandas', 'NumPy', 'Numba', 'SQLAlchemy', 'FastAPI', 'CCXT', 'Celery', 'Redis', 'PostgreSQL']
+        }
     ];
+
+    const handleCardClick = (path) => {
+        navigate(path);
+    };
 
     return (
         <PortfolioSectionMain>
             <Container>
-                <h2>Мои презентативные проекты</h2>
+                <h2>Мой основной проект</h2>
                 <PortfolioGrid>
                     {projects.map((project, idx) => (
-                        <ProjectCard key={idx}>
-                            <ProjectImage />
+                        <ProjectCard 
+                            key={idx}
+                            onClick={() => handleCardClick(project.path)}
+                        >
+                            <ProjectImage>
+                                <LogoImage src={pstName} alt="PST Logo" />
+                            </ProjectImage>
                             <ProjectInfo>
-                                <ProjectLink 
-                                    as={Link}
-                                    to={project.path}
-                                >
-                                    <h3>
-                                        {project.title}
-                                        <ExternalIcon> → ПЕРЕЙТИ В ПРОЕКТ </ExternalIcon>
-                                    </h3>
-                                </ProjectLink>
+                                <h3>
+                                    {project.title}
+                                    <ClickableCard>🔗</ClickableCard>
+                                </h3>
                                 <p>{project.description || project.tech}</p>
                                 <TechStack>
                                     {project.techList.map((tech, techIdx) => (
                                         <TechBadge key={techIdx}>{tech}</TechBadge>
                                     ))}
                                 </TechStack>
+                                <ClickableCard>
+                                    Нажмите на карточку, чтобы перейти →
+                                </ClickableCard>
                             </ProjectInfo>
                         </ProjectCard>
                     ))}

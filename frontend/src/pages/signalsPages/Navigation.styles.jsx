@@ -28,15 +28,15 @@ export const NavContainer = styled.div`
 
 // Логотип
 export const Logo = styled.div`
-    font-size: 1.5rem;
-    font-weight: bold;
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
     
     a {
+        display: flex;
+        align-items: center;
+        gap: 12px;
         text-decoration: none;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        background-clip: text;
-        -webkit-background-clip: text;
-        color: transparent;
         transition: opacity 0.3s ease;
         
         &:hover {
@@ -45,7 +45,35 @@ export const Logo = styled.div`
     }
     
     @media (max-width: 768px) {
-        font-size: 1.2rem;
+        a {
+            gap: 8px;
+        }
+    }
+`;
+
+// ✅ Логотип-картинка — универсальная
+export const LogoImage = styled.img`
+    display: block;
+    object-fit: contain;
+    
+    // Иконка (лого)
+    &.logo-icon {
+        height: 45px;
+        width: auto;
+        
+        @media (max-width: 768px) {
+            height: 30px;
+        }
+    }
+    
+    // Название (текст)
+    &.logo-name {
+        height: 35px;
+        width: auto;
+        
+        @media (max-width: 768px) {
+            height: 24px;
+        }
     }
 `;
 
@@ -75,12 +103,12 @@ export const NavLink = styled(Link)`
     transition: all 0.3s ease;
     position: relative;
     padding: 0.5rem 0;
+    white-space: nowrap;
     
     &:hover {
         color: #667eea;
     }
     
-    // Анимированное подчеркивание
     &::after {
         content: '';
         position: absolute;
@@ -97,7 +125,7 @@ export const NavLink = styled(Link)`
     }
 `;
 
-// Активная ссылка (если нужно будет добавить активный класс)
+// Активная ссылка
 export const ActiveNavLink = styled(NavLink)`
     color: #667eea;
     

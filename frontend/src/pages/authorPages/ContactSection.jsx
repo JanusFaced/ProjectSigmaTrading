@@ -65,17 +65,16 @@ function ContactSection() {
                     </ContactItem>
                 </ContactLinks>
                 
-                {/* Дополнительные социальные сети */}
                 <SocialGrid>
                     <SocialLink 
-                        href="https://www.linkedin.com/in/alexander-yascov-b22116228"
+                        href="https://www.linkedin.com/in/alexander-yascov"
                         target="_blank"
                         rel="noopener noreferrer"
                     >
                         💼 LinkedIn
                     </SocialLink>
                     <SocialLink 
-                        href="https://t.me/JanusFaced"
+                        href="https://t.me/JanusFacedOfficial"
                         target="_blank"
                         rel="noopener noreferrer"
                     >

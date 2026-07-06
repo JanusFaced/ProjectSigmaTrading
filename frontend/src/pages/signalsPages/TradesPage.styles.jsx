@@ -7,6 +7,7 @@ export const PageContainer = styled.div`
     margin: 0 auto;
     background: #f8f9fa;
     min-height: 100vh;
+    color: #1f2937; // ✅ Добавлен тёмный цвет текста для всего контейнера
 `;
 
 export const Header = styled.div`
@@ -18,6 +19,11 @@ export const Header = styled.div`
     background: white;
     border-radius: 12px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+
+    h2 {
+        color: #1f2937; // ✅ Заголовок тёмный
+        margin: 0;
+    }
 `;
 
 export const BackButton = styled.button`
@@ -64,7 +70,7 @@ export const StatCard = styled.div`
     value {
         font-size: 24px;
         font-weight: 700;
-        color: #1f2937;
+        color: #1f2937; // ✅ Значения тёмные
     }
 `;
 
@@ -77,7 +83,7 @@ export const ChartCard = styled.div`
     
     h3 {
         font-size: 18px;
-        color: #1f2937;
+        color: #1f2937; // ✅ Заголовок тёмный
         margin-bottom: 20px;
         font-weight: 600;
         text-align: center;
@@ -90,7 +96,7 @@ export const LoadingContainer = styled.div`
     align-items: center;
     min-height: 400px;
     font-size: 18px;
-    color: #6b7280;
+    color: #1f2937; // ✅ Тёмный текст для загрузки
 `;
 
 export const ErrorContainer = styled.div`
@@ -99,7 +105,7 @@ export const ErrorContainer = styled.div`
     align-items: center;
     min-height: 400px;
     font-size: 18px;
-    color: #ef4444;
+    color: #dc2626; // ✅ Красный для ошибки, но тёмный вариант
 `;
 
 export const TradesTable = styled.div`
@@ -109,6 +115,7 @@ export const TradesTable = styled.div`
     table {
         width: 100%;
         border-collapse: collapse;
+        color: #1f2937; // ✅ Текст таблицы тёмный
     }
     
     thead {
@@ -120,7 +127,7 @@ export const TradesTable = styled.div`
         text-align: left;
         font-size: 12px;
         font-weight: 600;
-        color: #6b7280;
+        color: #374151; // ✅ Заголовки таблицы тёмно-серые
         text-transform: uppercase;
         letter-spacing: 0.5px;
     }
@@ -128,6 +135,7 @@ export const TradesTable = styled.div`
     td {
         padding: 10px;
         border-bottom: 1px solid #e5e7eb;
+        color: #1f2937; // ✅ Ячейки тёмные
     }
     
     tr:hover td {

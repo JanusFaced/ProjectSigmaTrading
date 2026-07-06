@@ -1,6 +1,4 @@
-// PortfolioSection.styles.jsx
 import styled from 'styled-components';
-import { Link } from 'react-router-dom'; // ← Добавить импорт Link
 
 // Основная секция портфолио
 export const PortfolioSectionMain = styled.section`
@@ -57,35 +55,53 @@ export const PortfolioGrid = styled.div`
     }
 `;
 
-// Карточка проекта
+// Карточка проекта — теперь кликабельная
 export const ProjectCard = styled.div`
     background: white;
     border-radius: 16px;
     overflow: hidden;
     transition: all 0.3s ease;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    cursor: pointer;
     position: relative;
     
     &:hover {
         transform: translateY(-10px);
         box-shadow: 0 20px 30px rgba(0, 0, 0, 0.15);
     }
+    
+    &:active {
+        transform: scale(0.98);
+    }
 `;
 
-// Изображение проекта (добавим для красоты)
+// Изображение проекта — теперь с логотипом
 export const ProjectImage = styled.div`
     height: 200px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: #ffffff;
     position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
+    padding: 20px;
+    box-shadow: inset 0 -4px 10px rgba(0, 0, 0, 0.03); // ← лёгкая тень внутри
     
-    // Декоративный элемент
     &::before {
-        content: '📁';
-        font-size: 4rem;
-        opacity: 0.3;
+        display: none;
+    }
+`;
+
+// ✅ Новый компонент для логотипа
+export const LogoImage = styled.img`
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    filter: drop-shadow(0 4px 20px rgba(0, 0, 0, 0.2));
+    transition: all 0.3s ease;
+    
+    ${ProjectCard}:hover & {
+        transform: scale(1.05);
+        filter: drop-shadow(0 8px 30px rgba(0, 0, 0, 0.3));
     }
 `;
 
@@ -98,6 +114,13 @@ export const ProjectInfo = styled.div`
         margin-bottom: 0.5rem;
         color: #1e3c72;
         transition: color 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        
+        ${ProjectCard}:hover & {
+            color: #667eea;
+        }
     }
     
     p {
@@ -105,36 +128,6 @@ export const ProjectInfo = styled.div`
         line-height: 1.6;
         margin-bottom: 1rem;
         font-size: 0.95rem;
-    }
-`;
-
-// Обновляем ProjectLink для работы с Link из react-router-dom
-export const ProjectLink = styled(Link)`  // ← изменено с styled.a на styled(Link)
-    text-decoration: none;
-    display: inline-block;
-    
-    h3 {
-        position: relative;
-        display: inline-block;
-        
-        &::after {
-            content: '';
-            position: absolute;
-            bottom: -5px;
-            left: 0;
-            width: 0;
-            height: 2px;
-            background: linear-gradient(90deg, #667eea, #764ba2);
-            transition: width 0.3s ease;
-        }
-    }
-    
-    &:hover h3 {
-        color: #667eea;
-        
-        &::after {
-            width: 100%;
-        }
     }
 `;
 
@@ -162,34 +155,18 @@ export const TechBadge = styled.span`
     }
 `;
 
-// Кнопка "Подробнее" (опционально)
-export const DetailsButton = styled.button`
-    background: transparent;
-    border: 2px solid #667eea;
-    color: #667eea;
-    padding: 0.5rem 1rem;
-    border-radius: 25px;
-    cursor: pointer;
-    font-weight: 600;
-    margin-top: 1rem;
-    transition: all 0.3s ease;
-    width: 100%;
+// Подсказка о клике
+export const ClickableCard = styled.span`
+    font-size: 0.75rem;
+    color: #999;
+    display: block;
+    margin-top: 12px;
+    text-align: right;
+    opacity: 0.7;
+    transition: opacity 0.3s ease;
     
-    &:hover {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        border-color: transparent;
-    }
-`;
-
-// Иконка внешней ссылки
-export const ExternalIcon = styled.span`
-    margin-left: 0.5rem;
-    font-size: 0.9rem;
-    display: inline-block;
-    transition: transform 0.3s ease;
-    
-    ${ProjectLink}:hover & {
-        transform: translateX(3px);
+    ${ProjectCard}:hover & {
+        opacity: 1;
+        color: #667eea;
     }
 `;

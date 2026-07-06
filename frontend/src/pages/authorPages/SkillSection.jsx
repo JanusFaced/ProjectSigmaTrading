@@ -14,14 +14,20 @@ function SkillSection() {
         {
             title: 'DS/ML/AI-разработка',
             icon: '🤖',
-            desc: 'Разработка моделей машинного обучения и искусственного интеллекта',
-            tech: ['SKlearn', 'PyTorch', 'CatBoost', 'TensorFlow']
+            desc: 'Разработка моделей машинного обучения, глубокого обучения и систем искусственного интеллекта',
+            tech: ['SKlearn', 'PyTorch', 'CatBoost', 'TensorFlow', 'Keras', 'Darts']
+        },
+        {
+            title: 'DevOps-инженерия',
+            icon: '🚀',
+            desc: 'Настройка CI/CD, контейнеризация, оркестрация и автоматизация инфраструктуры',
+            tech: ['Linux', 'Docker', 'Kubernetes', 'GitHub', 'GitLab', 'Terraform', 'Ansible']
         },
         {
             title: 'FullStack-разработка',
             icon: '💻',
-            desc: 'Создание полноценных веб-приложений с нуля',
-            tech: ['React', 'Flask', 'PostgreSQL', 'Node.js']
+            desc: 'Создание полноценных веб-приложений с нуля: от фронтенда до бэкенда и БД',
+            tech: ['React.js', 'FastAPI', 'PostgreSQL', 'Node.js', 'SQLAlchemy', 'Celery', 'Redis']
         }
     ];
 

@@ -1,5 +1,6 @@
 // AboutPage.styles.js
 import styled from 'styled-components';
+import { NavLink } from 'react-router-dom';
 
 // Основной контейнер страницы
 export const AboutContainer = styled.div`
@@ -191,5 +192,33 @@ export const SectionHeader = styled.div`
     
     h2 {
         margin-bottom: 0;
+    }
+`;
+
+// Кнопка перехода на сайт-визитку
+export const VisitButton = styled(NavLink)`
+    display: inline-block;
+    margin-top: 25px;
+    padding: 12px 30px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 16px;
+    border-radius: 50px;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+    text-align: center;
+    
+    &:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 6px 25px rgba(102, 126, 234, 0.5);
+        color: white;
+    }
+    
+    @media (max-width: 768px) {
+        width: 100%;
+        padding: 14px 20px;
+        font-size: 15px;
     }
 `;

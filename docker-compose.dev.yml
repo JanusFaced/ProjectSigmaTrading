@@ -42,66 +42,66 @@ services:
     restart: unless-stopped
     profiles: ["dev"]
 
-  celery_beat:
-    image: python_app_ml_pipeline_celery_beat
-    build: ./MLPipeline
-    command: sh -c "cd src && celery -A tasks beat --loglevel=info"
-    networks:
-      - app-network
-    depends_on:
-      - redis
-      - dataBase
-      - celery_worker
-    environment:
-      DB_PASSWORD: ${DB_PASSWORD}
-      DB_USER: ${DB_USER}
-      DB_NAME: ${DB_NAME}
-      DB_HOST: dataBase
-      DB_PORT: 5432
-      REDIS_URL: redis://redis:6379/0
-    volumes:
-      - ./MLPipeline/src/logs:/app/src/logs
-    restart: unless-stopped
-    profiles: ["dev"]
+#  celery_beat:
+#    image: python_app_ml_pipeline_celery_beat
+#    build: ./MLPipeline
+#    command: sh -c "cd src && celery -A tasks beat --loglevel=info"
+#    networks:
+#      - app-network
+#    depends_on:
+#      - redis
+#      - dataBase
+#      - celery_worker
+#    environment:
+#      DB_PASSWORD: ${DB_PASSWORD}
+#      DB_USER: ${DB_USER}
+#      DB_NAME: ${DB_NAME}
+#      DB_HOST: dataBase
+#      DB_PORT: 5432
+#      REDIS_URL: redis://redis:6379/0
+#    volumes:
+#      - ./MLPipeline/src/logs:/app/src/logs
+#    restart: unless-stopped
+#    profiles: ["dev"]
 
-  celery_worker:
-    image: python_app_ml_pipeline_celery_worker
-    build: ./MLPipeline
+#  celery_worker:
+#    image: python_app_ml_pipeline_celery_worker
+#    build: ./MLPipeline
 #    command: sh -c "cd src && python pipeline.py"
-    command: >
-      sh -c "cd src && celery -A tasks worker 
-      -Q high_priority,medium_priority,low_priority,default
-      --loglevel=info 
-      --concurrency=1 
-      --max-tasks-per-child=50 
-      --prefetch-multiplier=1"
-    networks:
-      - app-network
-    depends_on:
-      - dataBase
-      - redis
-    environment:
-      DB_PASSWORD: ${DB_PASSWORD}
-      DB_USER: ${DB_USER}
-      DB_NAME: ${DB_NAME}
-      DB_HOST: dataBase
-      DB_PORT: 5432
-      REDIS_URL: redis://redis:6379/0
-    volumes:
-      - ./MLPipeline/src/config:/app/src/config
-      - ./MLPipeline/src/output:/app/src/output
-      - ./MLPipeline/src/logs:/app/src/logs
-    restart: unless-stopped
-    profiles: ["dev"]
+#    command: >
+#      sh -c "cd src && celery -A tasks worker 
+#      -Q high_priority,medium_priority,low_priority,default
+#      --loglevel=info 
+#      --concurrency=1 
+#      --max-tasks-per-child=50 
+#      --prefetch-multiplier=1"
+#    networks:
+#      - app-network
+#    depends_on:
+#      - dataBase
+#      - redis
+#    environment:
+#      DB_PASSWORD: ${DB_PASSWORD}
+#      DB_USER: ${DB_USER}
+#      DB_NAME: ${DB_NAME}
+#      DB_HOST: dataBase
+#      DB_PORT: 5432
+#      REDIS_URL: redis://redis:6379/0
+#    volumes:
+#      - ./MLPipeline/src/config:/app/src/config
+#      - ./MLPipeline/src/output:/app/src/output
+#      - ./MLPipeline/src/logs:/app/src/logs
+#    restart: unless-stopped
+#    profiles: ["dev"]
 
-  redis:
-    image: redis:7-alpine
-    networks:
-      - app-network
-    ports:
-      - "6379:6379"
-    restart: unless-stopped
-    profiles: ["dev"]
+#  redis:
+#    image: redis:7-alpine
+#    networks:
+#      - app-network
+#    ports:
+#      - "6379:6379"
+#    restart: unless-stopped
+#    profiles: ["dev"]
 
   dataBase:
     image: postgres:16.0

@@ -128,6 +128,7 @@ async def get_trades_by_signal(signal_id: int):
 		logger.info(f"Successfully fetched {len(tradesData)} trades for signal {signal_id}")
 		
 		return {
+			"strategy": signal.strategy,
 			"trades": tradesData,
 			"statistics": {
 				"total_trades": total_trades

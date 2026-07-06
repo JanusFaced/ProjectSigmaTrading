@@ -8,7 +8,8 @@ import {
     RequisiteLabel,
     RequisiteValue,
     RequisitesNote,
-    ContactSection
+    ContactSection,
+    VisitButton
 } from './AboutPage.styles.jsx';
 
 function AboutPage() {
@@ -17,18 +18,18 @@ function AboutPage() {
             <h1>О проекте</h1>
             
             <Section>
-                <h2>📖 Описание проекта SIGNALS</h2>
+                <h2>📖 Описание проекта ProjectSigmaTrading</h2>
                 <p>
-                    Это экспериментальный проект для предоставления
-                    простых возможностей машинного обучения на финансовых рынках.
-                    В частности на рынке криптовалют.
+                    ProjectSigmaTrading - проект нацеленный на эксперименты в применении автоматизации торговли на финансовых рынках.
                 </p>
                 <p>
-                    Проект использует модель CatBoost для классификации рыночных фаз.
+                    Проект использует различные популярные идеи, а так же личные идеи для реализации максимальной стабильности и доходности.
                 </p>
                 <p>
-                    На сайте представлена страница где сразу открываются заранее
-                    предопределённые сборки.
+                    На сайте представлена страница где можно наблюдать за статистикой работы различных стратегий.
+                </p>
+                <p>
+                    Каждая стратегия представляет из себя комбинацию алгоритма + актива + таймфрэйма.
                 </p>
             </Section>
 
@@ -37,17 +38,24 @@ function AboutPage() {
                 <AuthorCard>
                     <AuthorDetails>
                         <p><strong>Name:</strong> Alexander</p>
-                        <p><strong>Role:</strong> ML-developer</p>
-                        <p><strong>Stack:</strong> Docker, Python, Sklearn, Flask, React.js</p>
+                        <p><strong>Role:</strong> DS, ML, AI, DevOps и FullStack разработчик</p>
+                        <p><strong>Stack (ML):</strong> SKlearn, PyTorch, CatBoost, TensorFlow, Keras, Darts</p>
+                        <p><strong>Stack (DevOps):</strong> Linux, Docker, Kubernetes, GitHub, GitLab, Terraform, Ansible</p>
+                        <p><strong>Stack (FullStack):</strong> React.js, FastAPI, PostgreSQL, Node.js, SQLAlchemy, Celery, Redis</p>
                     </AuthorDetails>
                 </AuthorCard>
+                
+                <VisitButton to="/">
+                    🌐 Посмотреть сайт-визитку
+                </VisitButton>
             </Section>
 
             <ContactSection>
                 <h2>📞 Контакты</h2>
                 <p>Email: <a href="mailto:Yascov64@gmail.com">Yascov64@gmail.com</a></p>
-                <p>LinkedIn: <a href="https://www.linkedin.com/in/alexander-yascov-b22116228">alexander-yascov-b22116228</a></p>
+                <p>LinkedIn: <a href="https://www.linkedin.com/in/alexander-yascov">alexander-yascov</a></p>
                 <p>GitHub: <a href="https://github.com/JanusFaced">github.com/JanusFaced</a></p>
+                <p>Telegram: <a href="https://t.me/JanusFacedOfficial">@JanusFacedOfficial</a></p>
             </ContactSection>
         </AboutContainer>
     );

@@ -15,37 +15,27 @@ function AuthorSection() {
         <HeroSection>
             <Container>
                 <h1>Александр Яськов</h1>
-                <AuthorTagline>ML и FullStack разработчик</AuthorTagline>
+                <AuthorTagline>DS, ML, AI, DevOps и FullStack разработчик</AuthorTagline>
                 <Description>
-                    Разрабатываю решения задач с применением машинного обучения. 
-                    В частности решения для автоматизации финансовых задач.
+                    Решаю бизнес-задачи на стыке Data Science, разработки и инфраструктуры. Строю системы от идеи до продакшена!
                 </Description>
                 
-                <CTAButton href="mailto:Yascov64@gmail.com">
-                    Связаться по почте
+                <CTAButton to="/contact">
+                    Связаться со мной
                 </CTAButton>
-                
-                {/* Опционально: социальные ссылки */}
-                <SocialLinks>
-                    <SocialIcon href="https://github.com/JanusFaced" target="_blank" rel="noopener noreferrer">
-                        GitHub
-                    </SocialIcon>
-                    <SocialIcon href="https://www.linkedin.com/in/alexander-yascov-b22116228" target="_blank" rel="noopener noreferrer">
-                        LinkedIn
-                    </SocialIcon>
-                </SocialLinks>
+
                 <Stats>
                     <StatItem>
-                        <h3>5+</h3>
-                        <p>лет опыта</p>
+                        <h3>Полный цикл разработки</h3>
+                        <p>От идеи до продакшена</p>
                     </StatItem>
                     <StatItem>
-                        <h3>3+</h3>
-                        <p>комплексных проекта</p>
+                        <h3>Широкий стек</h3>
+                        <p>ML · DevOps · FullStack</p>
                     </StatItem>
                     <StatItem>
-                        <h3>100%</h3>
-                        <p>качество</p>
+                        <h3>100% качество</h3>
+                        <p>Решают задачи любой сложности</p>
                     </StatItem>
                 </Stats>
             </Container>
