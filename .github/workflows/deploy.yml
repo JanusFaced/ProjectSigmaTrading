@@ -29,9 +29,9 @@ jobs:
             git pull origin ${{ github.ref_name }}
             
             echo "🛑 Stop project..."
-            ./stop.sh || echo "⚠️ stop.sh fail"
+            source ./stop.sh || echo "⚠️ stop.sh fail"
             
             echo "▶️ Start project..."
-            ./start_d.sh || echo "⚠️ start_d.sh fail"
+            source ./start_d.sh || echo "⚠️ start_d.sh fail"
             
             echo "✅ Deploy finish succesfully! Branch: ${{ github.ref_name }}"
