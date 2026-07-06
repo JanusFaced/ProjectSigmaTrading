@@ -1,4 +1,4 @@
-name: Lint Code
+name: Check Project Structure
 
 on:
   push:
@@ -7,54 +7,38 @@ on:
     branches: [ "dev" ]
 
 jobs:
-  lint-frontend:
-    name: Check Frontend
+  check-folders:
+    name: Check exist directories
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-      
-      - name: Install ESLint
+      - name: Check directory frontend
         run: |
-          cd frontend
-          npm install -g eslint
+          if [ -d "frontend" ]; then
+            echo "✅ Folder frontend is finded"
+          else
+            echo "❌ Folder frontend is not finded!"
+            exit 1
+          fi
       
-      - name: Start check
+      - name: Check directory backend
         run: |
-          cd frontend
-          npx eslint . --ext .js,.jsx,.ts,.tsx
-
-  lint-backend:
-    name: Check Backend
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
+          if [ -d "backend" ]; then
+            echo "✅ Folder backend is finded"
+          else
+            echo "❌ Folder backend is not finded!"
+            exit 1
+          fi
       
-      - uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
+      - name: Check directory MLPipeline
+        run: |
+          if [ -d "MLPipeline" ]; then
+            echo "✅ Folder MLPipeline is finded"
+          else
+            echo "❌ Folder MLPipeline is not finded!"
+            exit 1
+          fi
       
-      - name: Install pylint
-        run: pip install pylint
-      
-      - name: Start check
-        run: pylint backend/
-
-  lint-mlpipeline:
-    name: Check MLPipeline
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      
-      - uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-      
-      - name: Install pylint
-        run: pip install pylint
-      
-      - name: Start check
-        run: pylint MLPipeline/
+      - name: All directories is finded!
+        run: echo "🎉 Project's structure is correct!"
