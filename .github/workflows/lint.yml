@@ -1,0 +1,60 @@
+name: Lint Code
+
+on:
+  push:
+    branches: [ "dev" ]
+  pull_request:
+    branches: [ "dev" ]
+
+jobs:
+  lint-frontend:
+    name: Check Frontend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      
+      - name: Install ESLint
+        run: |
+          cd frontend
+          npm install -g eslint
+      
+      - name: Start check
+        run: |
+          cd frontend
+          npx eslint . --ext .js,.jsx,.ts,.tsx
+
+  lint-backend:
+    name: Check Backend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      
+      - name: Install pylint
+        run: pip install pylint
+      
+      - name: Start check
+        run: pylint backend/
+
+  lint-mlpipeline:
+    name: Check MLPipeline
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      
+      - name: Install pylint
+        run: pip install pylint
+      
+      - name: Start check
+        run: pylint MLPipeline/
