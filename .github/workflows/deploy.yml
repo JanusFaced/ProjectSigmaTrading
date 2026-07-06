@@ -1,0 +1,37 @@
+name: Deploy to VDS
+
+on:
+  push:
+    branches:
+      - dev
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Deploy to VDS
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy with SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VDS_HOST }}
+          username: ${{ secrets.VDS_USER }}
+          key: ${{ secrets.VDS_SSH_KEY }}
+          script: |
+            echo "🚀 Start deploy..."
+            echo "📌 Branch: ${{ github.ref_name }}"
+            
+            cd /var/www/ProjectSigmaTrading/
+            
+            echo "📦 Fetch from branch ${{ github.ref_name }}..."
+            git fetch origin
+            git checkout ${{ github.ref_name }}
+            git pull origin ${{ github.ref_name }}
+            
+            echo "🛑 Stop project..."
+            ./stop.sh || echo "⚠️ stop.sh fail"
+            
+            echo "▶️ Start project..."
+            ./start_d.sh || echo "⚠️ start_d.sh fail"
+            
+            echo "✅ Deploy finish succesfully! Branch: ${{ github.ref_name }}"
