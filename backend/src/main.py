@@ -25,11 +25,11 @@ app = FastAPI(
 app.add_middleware(
 	CORSMiddleware,
 	allow_origins=[
-#		"https://projectsigmatrading.ru",
-#		"http://projectsigmatrading.ru",
-#		"https://62.113.37.47",
-#		"http://62.113.37.47"
-		"*"
+		"https://projectsigmatrading.ru",
+		"http://projectsigmatrading.ru",
+		"https://62.113.37.47",
+		"http://62.113.37.47"
+#		"*"
 	],
 	allow_credentials=True,
 	allow_methods=["*"],
