@@ -172,6 +172,7 @@ def resampleDataframe(dataframe: pd.DataFrame, timeframe: str) -> pd.DataFrame:
 		'close': 'last',
 		'volume': 'sum'
 	})
+	dataframe = dataframe.iloc[:-1]
 	dataframe.reset_index(inplace=True)
 
 	return dataframe

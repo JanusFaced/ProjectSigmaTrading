@@ -9,6 +9,18 @@ from logger_setup import get_logger
 
 logger = get_logger(__name__)
 
+MODE_WORK = os.getenv('MODE_WORK')
+
+if MODE_WORK == 'localhost':
+	allow_origins = ['*']
+elif MODE_WORK == 'server':
+	allow_origins = [
+		"https://projectsigmatrading.ru",
+		"http://projectsigmatrading.ru",
+		"https://62.113.37.47",
+		"http://62.113.37.47"
+	]
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
 	logger.info("Starting FastAPI application")
@@ -24,13 +36,7 @@ app = FastAPI(
 
 app.add_middleware(
 	CORSMiddleware,
-	allow_origins=[
-		"https://projectsigmatrading.ru",
-		"http://projectsigmatrading.ru",
-		"https://62.113.37.47",
-		"http://62.113.37.47"
-#		"*"
-	],
+	allow_origins=allow_origins,
 	allow_credentials=True,
 	allow_methods=["*"],
 	allow_headers=["*"],
