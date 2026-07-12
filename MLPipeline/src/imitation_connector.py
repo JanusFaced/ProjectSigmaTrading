@@ -71,9 +71,11 @@ def main(inputMessage: dict, dataFrame: pd.DataFrame) -> None:
 		active = 0.0
 		receiveData['status'] = 'work'
 
+	tickerData = exchange.fetch_ticker(ticker)
+	price = tickerData['last']
+
 	fiat, active, deposit, tradingEvent = imitationConnector(
-		exchange=exchange,
-		ticker=ticker,
+		price=price,
 		long_signal=long_signal,
 		short_signal=short_signal,
 		fiat=fiat,
@@ -109,12 +111,13 @@ def main(inputMessage: dict, dataFrame: pd.DataFrame) -> None:
 	logger.info(f' >>> nameStrategy: {nameStrategy} -> deposit: {deposit} $ <<< ')
 
 def imitationConnector(
-		exchange: Any,
-		ticker: str,
+		price: float,
 		long_signal: int,
 		short_signal: int,
 		fiat: float,
-		active: float
+		active: float,
+		fees: float = 0.001,
+		leverage: int = 1
 	) -> tuple[float, float, float, bool]:
 
 	if long_signal == -1:
@@ -124,11 +127,6 @@ def imitationConnector(
 	else:
 		signal = 'CLOSE'
 
-	tickerData = exchange.fetch_ticker(ticker)
-	price = tickerData['last']
-
-	fees = 0.001
-	leverage = 1
 	tradingEvent = False
 
 	if signal == 'LONG':
@@ -161,7 +159,7 @@ def imitationConnector(
 		
 		if active == 0:
 			active = -(fiat*leverage)/price
-			fiat += np.abs(active)*price*leverage*(1-fees)
+			fiat += np.abs(active)*price*(1-fees)
 			tradingEvent = True
 			logger.info(f'SHORT is opened! {fiat} {active}')
 	

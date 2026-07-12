@@ -32,7 +32,7 @@ def main(inputMessage: dict[str, Any]) -> None:
 
 if __name__ == "__main__":
 
-	mode = 'stats'
+	mode = 'imitation'
 	testMode = 'cumul'
 	target_year_profit = 30.0
 
@@ -78,7 +78,11 @@ if __name__ == "__main__":
 	logger.info(f"full lenth combination = {lenthCombi}")
 
 	if mode in ["stats", "imitation"]:
-		listMSGs = filters.forImitation(listMSGs=listMSGs, target_year_profit=target_year_profit)
+		listMSGs = filters.forImitation(
+			listMSGs=listMSGs,
+			target_year_profit=target_year_profit,
+			modeFilter='exist'
+		)
 		lenthCombi = len(listMSGs)
 		logger.info(f"filter for imitation lenth combination = {lenthCombi}")
 	elif mode == "real":

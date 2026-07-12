@@ -5,7 +5,7 @@ import numpy as np
 import os
 import sys
 import ccxt
-from sqlalchemy import create_engine, inspect
+from sqlalchemy import create_engine, inspect, text
 from logger_setup import get_logger
 
 logger = get_logger(__name__)
@@ -185,11 +185,7 @@ def inTime(
 		raise ValueError(f"Неизвестная биржа: {nameExchange}")
 
 	nameTable: str = f"short_{nameExchange}_{symbol}_{type}".lower()
-
-	if type == 'spot':
-		ticker: str = f'{symbol}/USDT'
-	elif type == 'futures':
-		ticker: str = f'{symbol}/USDT:USDT'
+	ticker: str = f'{symbol}/USDT' if type == 'spot' else f'{symbol}/USDT:USDT'
 
 	timeFrame = '1m'
 	timeFramePandas = '1min'
@@ -198,15 +194,17 @@ def inTime(
 	nowMuchMoreMinutes = nowMuchMoreDays*1440
 
 	queryCode: str = f"""
-		SELECT * FROM {nameTable}
+		SELECT datetime 
+		FROM {nameTable}
+		ORDER BY datetime DESC
+		LIMIT 1
 	"""
 
 	newDataFrame: bool = False
 	if nameTable in inspector.get_table_names():
 		zeroDataFrame = pd.read_sql(queryCode, engine)
-		zeroDataFrame = zeroDataFrame[['datetime', 'open', 'high', 'low', 'close', 'volume']]
-		logger.info(f'{nameTable} is exist! Get full table!')
-		initialDatetime = zeroDataFrame['datetime'].iloc[-1]
+		logger.info(f'{nameTable} is exist! Get last line!')
+		initialDatetime = zeroDataFrame['datetime'].iloc[-1] + deltaDatetime
 	else:
 		logger.info(f'{nameTable} is NOT exist!')
 		initialDatetime = datetime.utcnow() - timedelta(days=nowMuchMoreDays)
@@ -215,37 +213,63 @@ def inTime(
 	logger.info(nameTable)
 	logger.info(f'Start parsing {symbol}! From initialDatetime => {initialDatetime}')
 
+	listOfDFs = []
 	while True:
 		iso_string = initialDatetime.strftime('%Y-%m-%dT%H:%M:%SZ')
 		since = exchange.parse8601(iso_string)
 		ohlcv = exchange.fetch_ohlcv(ticker, timeFrame, since, limit)
-
-		dataFrame = pd.DataFrame(ohlcv, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
-		dataFrame['datetime'] = dataFrame['timestamp'].apply(lambda x: datetime.utcfromtimestamp(x / 1000))
-		dataFrame = dataFrame[['datetime', 'open', 'high', 'low', 'close', 'volume']]
-		initialDatetime = dataFrame['datetime'][len(dataFrame)-1]
-		if newDataFrame:
-			zeroDataFrame = dataFrame.copy()
-			newDataFrame = False
+		if ohlcv:
+			dataFrame = pd.DataFrame(ohlcv, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
+			dataFrame['datetime'] = dataFrame['timestamp'].apply(lambda x: datetime.utcfromtimestamp(x / 1000))
+			dataFrame = dataFrame[['datetime', 'open', 'high', 'low', 'close', 'volume']]
+			initialDatetime = dataFrame['datetime'].iloc[-1]
+			listOfDFs.append(dataFrame)
+			nowDatetime = datetime.utcnow()
+			logger.info(f"{nameTable} <=> {initialDatetime}")
+			if initialDatetime >= (nowDatetime - deltaDatetime):
+				break
 		else:
-			zeroDataFrame = pd.concat([zeroDataFrame, dataFrame], ignore_index=True)
-
-		nowDatetime = datetime.utcnow()
-		logger.info(f"{nameTable} <=> {initialDatetime}")
-		if initialDatetime >= (nowDatetime - deltaDatetime):
 			break
 
-	zeroDataFrame['datetime'] = pd.to_datetime(zeroDataFrame['datetime'])
-	zeroDataFrame.set_index('datetime', inplace=True)
-	zeroDataFrame = zeroDataFrame[~zeroDataFrame.index.duplicated(keep='first')]
-	
-	min_date = zeroDataFrame.index.min()
-	max_date = zeroDataFrame.index.max()
-	fullIndexes = pd.date_range(start=min_date, end=max_date, freq=timeFramePandas)
-	zeroDataFrame = zeroDataFrame.reindex(fullIndexes).ffill()
-	zeroDataFrame = zeroDataFrame.tail(nowMuchMoreMinutes)
-	zeroDataFrame.reset_index(inplace=True, names=['datetime'])
+	if listOfDFs:
+		dataFrame = pd.concat(listOfDFs, ignore_index=True)
 
-	logger.info(f'Start save {nameTable} in dataBase!')
-	zeroDataFrame.to_sql(nameTable, con=engine, if_exists='replace', chunksize=5000, method='multi')
-	logger.info(f'{nameTable} is saved to dataBase!')
+		dataFrame['datetime'] = pd.to_datetime(dataFrame['datetime'])
+		dataFrame.set_index('datetime', inplace=True)
+		dataFrame = dataFrame[~dataFrame.index.duplicated(keep='first')]
+
+		min_date = dataFrame.index.min()
+		max_date = dataFrame.index.max()
+		fullIndexes = pd.date_range(start=min_date, end=max_date, freq=timeFramePandas)
+		dataFrame = dataFrame.reindex(fullIndexes).ffill()
+
+		dataFrame.reset_index(inplace=True, names=['datetime'])
+
+		logger.info(f'Start append {len(dataFrame)} new lines to {nameTable}')
+		dataFrame.to_sql(
+			nameTable, 
+			con=engine, 
+			if_exists='append',
+			index=False,
+			chunksize=10000,
+			method='multi'
+		)
+		logger.info(f'End append {len(dataFrame)} new lines to {nameTable}')
+
+		cutoff_date = initialDatetime - timedelta(days=nowMuchMoreDays)
+		cutoff_date_str = cutoff_date.strftime("%Y-%m-%d %H:%M:%S")
+		
+		queryCode = f"""
+			DELETE FROM {nameTable}
+			WHERE datetime < '{cutoff_date_str}'
+		"""
+		
+		with engine.connect() as conn:
+			result = conn.execute(text(queryCode))
+			conn.commit()
+			deleted_rows = result.rowcount
+			logger.info(f'Deleted {deleted_rows} old records (before {cutoff_date})')
+		
+		logger.info(f'{nameTable} updated successfully!')
+
+
