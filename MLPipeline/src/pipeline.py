@@ -4,6 +4,8 @@ from strategies import moving
 from strategies import channel
 from strategies import forecast
 from strategies import modeling
+from strategies import soldiers
+from strategies import fractal
 import trading_simulator
 import imitation_connector
 import filters
@@ -22,6 +24,10 @@ def main(inputMessage: dict[str, Any]) -> None:
 		dataFrame = forecast.main(inputMessage, dataFrame)
 	elif inputMessage["strategy"] == "modeling":
 		dataFrame = modeling.main(inputMessage, dataFrame)
+	elif inputMessage["strategy"] == "soldiers":
+		dataFrame = soldiers.main(inputMessage, dataFrame)
+	elif inputMessage["strategy"] == "fractal":
+		dataFrame = fractal.main(inputMessage, dataFrame)
 
 	if inputMessage['mode'] == 'test':
 		trading_simulator.main(inputMessage, dataFrame)
@@ -32,7 +38,7 @@ def main(inputMessage: dict[str, Any]) -> None:
 
 if __name__ == "__main__":
 
-	mode = 'imitation'
+	mode = 'test'
 	testMode = 'cumul'
 	target_year_profit = 30.0
 
@@ -52,10 +58,12 @@ if __name__ == "__main__":
 		'48min',
 	]
 	listStrategy = [
-		'moving',
-		'channel',
-		'forecast',
-		'modeling'
+		'soldiers',
+		'fractal',
+#		'moving',
+#		'channel',
+#		'forecast',
+#		'modeling'
 	]
 
 	listMSGs = []

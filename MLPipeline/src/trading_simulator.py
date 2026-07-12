@@ -123,10 +123,10 @@ def backTester(inputMessage: dict[str, Any], dataFrame: pd.DataFrame) -> Dict:
 	strategy = inputMessage['strategy']
 
 	start_fiat = 100
-	shift_signal = 0
+	shift_signal = 2
 	leverage = 1
-	fees = 0.001
 	spred = 0.001
+	fees = 0.001 + spred
 	min_lot = 10
 	max_lot = start_fiat
 

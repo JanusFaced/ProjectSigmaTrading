@@ -58,6 +58,7 @@ def backTime(
 	
 	modeMultiple = "identical"
 	standartDeep: int = 5_000_000
+	#standartDeep: int = 5_000
 
 	if modeMultiple == "identical":
 		realAmountLines: int = standartDeep
