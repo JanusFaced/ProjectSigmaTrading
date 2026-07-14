@@ -149,18 +149,32 @@ def main(inputMessage: dict[str, Any], dataFrame: pd.DataFrame) -> pd.DataFrame:
 
 	dataFrame['long_signal'] = np.select(
 		[
-			(dataFrame['pattern'] == -1) & (dataFrame['trend'] > 0),
-			(dataFrame['close'] < dataFrame['downLineOld']) | (dataFrame['trend'] < 0)
+			(dataFrame['pattern'] == -1),
+			(dataFrame['close'] < dataFrame['downLineOld'])
 		],
 		[-1, 1], default=1
 	)
 	
 	dataFrame['short_signal'] = np.select(
 		[
-			(dataFrame['pattern'] == 1) & (dataFrame['trend'] < 0),
-			(dataFrame['close'] > dataFrame['upLineOld']) | (dataFrame['trend'] > 0)
+			(dataFrame['pattern'] == 1),
+			(dataFrame['close'] > dataFrame['upLineOld'])
 		],
 		[1, -1], default=-1
+	)
+
+	dataFrame['long_signal'] = np.select(
+		[
+			(dataFrame['trend'] > 0) & (maxMulti > dataFrame['window']) & (dataFrame['window'] > minMulti)
+		],
+		[dataFrame['long_signal']], default=1
+	)
+
+	dataFrame['short_signal'] = np.select(
+		[
+			(dataFrame['trend'] < 0) & (maxMulti > dataFrame['window']) & (dataFrame['window'] > minMulti)
+		],
+		[dataFrame['short_signal']], default=-1
 	)
 
 	#superName = f"voladaptation_{nameExchange}_{symbol}_{type}_{timeFrame}.png"

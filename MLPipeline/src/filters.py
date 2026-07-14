@@ -69,6 +69,8 @@ def sort_cols_and_rows(inputList, name):
 	return outputList
 
 def makeStats(listSymbol: dict, listTimeFrame: dict, listStrategy: dict) -> None:
+	listStrategy = [item.split(':')[0] for item in listStrategy]
+
 	dataBaseSession = Session()
 
 	try:
@@ -98,7 +100,9 @@ def makeStats(listSymbol: dict, listTimeFrame: dict, listStrategy: dict) -> None
 	newTableBacktest = []
 	for table in tableBacktest:
 		splitStrategy = table["strategy"].rsplit('_', 4)
-		if (splitStrategy[2] in listTimeFrame) and (splitStrategy[1] in listSymbol) and (splitStrategy[0] in listStrategy):
+		realNameStrategy = splitStrategy[0].split(':')[0]
+
+		if (splitStrategy[2] in listTimeFrame) and (splitStrategy[1] in listSymbol) and (realNameStrategy in listStrategy):
 			newTableBacktest.append({
 				"id": table["id"],
 				"strategy": table["strategy"],
@@ -207,6 +211,22 @@ def forImitation(listMSGs: dict, target_year_profit: float = 0.0, modeFilter: st
 		for msg in listMSGs:
 			
 			msg_strategy = msg["strategy"]
+
+			splitNameStrategy = msg_strategy.split(":")
+			firstName = splitNameStrategy[0]
+			lastName = splitNameStrategy[1]
+
+			if lastName == 'I':
+				msg_strategy = firstName
+
+			elif lastName == 'II':
+				msg_strategy = ":".join([
+					firstName,
+					msg['factor'],
+					msg['typeFactor'],
+					msg['factorExchange']
+				])
+
 			msg_symbol = msg["symbol"]
 			msg_timeFrame = msg["timeFrame"]
 			msg_type = msg["type"]
@@ -223,7 +243,10 @@ def forImitation(listMSGs: dict, target_year_profit: float = 0.0, modeFilter: st
 						'symbol': msg["symbol"],
 						'type': msg["type"],
 						'timeFrame': msg["timeFrame"],
-						'strategy': msg["strategy"]
+						'strategy': msg["strategy"],
+						'factor': msg["factor"],
+						'typeFactor': msg["typeFactor"],
+						'factorExchange': msg["factorExchange"]
 					})
 
 		with open(fileName, 'w', encoding='utf-8') as f:
@@ -243,7 +266,10 @@ def forImitation(listMSGs: dict, target_year_profit: float = 0.0, modeFilter: st
 						(msg["symbol"] == save["symbol"]) and
 						(msg["timeFrame"] == save["timeFrame"]) and
 						(msg["type"] == save["type"]) and
-						(msg["nameExchange"] == save["nameExchange"])
+						(msg["nameExchange"] == save["nameExchange"]) and
+						(msg["factor"] == save["factor"]) and
+						(msg["typeFactor"] == save["typeFactor"]) and
+						(msg["factorExchange"] == save["factorExchange"])
 					):
 					newListMSGs.append({
 						'mode': msg["mode"],
@@ -251,7 +277,10 @@ def forImitation(listMSGs: dict, target_year_profit: float = 0.0, modeFilter: st
 						'symbol': msg["symbol"],
 						'type': msg["type"],
 						'timeFrame': msg["timeFrame"],
-						'strategy': msg["strategy"]
+						'strategy': msg["strategy"],
+						'factor': msg["factor"],
+						'typeFactor': msg["typeFactor"],
+						'factorExchange': msg["factorExchange"]
 					})
 
 	return newListMSGs

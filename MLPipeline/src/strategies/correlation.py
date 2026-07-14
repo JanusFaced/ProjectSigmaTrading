@@ -15,6 +15,7 @@ output_dir = Path(__file__).parent.parent / "output"
 
 def main(inputMessage: dict[str, Any], dataFrame: pd.DataFrame) -> pd.DataFrame:
 
+	strategy = inputMessage['strategy']
 	nameExchange = inputMessage['nameExchange']
 	symbol = inputMessage['symbol']
 	type = inputMessage['type']
@@ -35,59 +36,87 @@ def main(inputMessage: dict[str, Any], dataFrame: pd.DataFrame) -> pd.DataFrame:
 	dataFrame['signalWindow'] = (signalWindow*dataFrame['window']).fillna(signalWindow).astype(np.int64).clip(lower=2)
 	dataFrame['trendWindow'] = (trendWindow*dataFrame['window']).fillna(trendWindow).astype(np.int64).clip(lower=2)
 
-	dataFrame['high1'] = dataFrame['high'].shift(1)
-	dataFrame['high2'] = dataFrame['high'].shift(2)
-	dataFrame['high3'] = dataFrame['high'].shift(3)
-	dataFrame['high4'] = dataFrame['high'].shift(4)
+	dataFrame['original'] = dataFrame['close']
+	dataFrame['primary'] = dataFrame['closeFactor']
 
-	dataFrame['low1'] = dataFrame['low'].shift(1)
-	dataFrame['low2'] = dataFrame['low'].shift(2)
-	dataFrame['low3'] = dataFrame['low'].shift(3)
-	dataFrame['low4'] = dataFrame['low'].shift(4)
-
-	dataFrame['pattern'] = np.select(
-		[
-			(dataFrame['low2'] < dataFrame['low']) & (dataFrame['low2'] < dataFrame['low1']) & (dataFrame['low2'] < dataFrame['low3']) & (dataFrame['low2'] < dataFrame['low4']),
-			(dataFrame['high2'] > dataFrame['high']) & (dataFrame['high2'] > dataFrame['high1']) & (dataFrame['high2'] > dataFrame['high3']) & (dataFrame['high2'] > dataFrame['high4']),
-		],
-		[-1, 1], default=0
-	)
-
-	dataFrame['upLine'], dataFrame['meanLine'], dataFrame['downLine'] = adaptivePriceChannel(
-		openVector=dataFrame['open'].values,
-		highVector=dataFrame['high'].values,
-		lowVector=dataFrame['low'].values,
-		closeVector=dataFrame['close'].values,
+	dataFrame['model'] = adaptive_modeling(
+		secondaryVector=dataFrame['original'].values,
+		primaryVector=dataFrame['primary'].values,
 		windowVector=dataFrame['signalWindow'].values
 	)
-	dataFrame['upLineOld'] = dataFrame['upLine'].shift(1)
-	dataFrame['downLineOld'] = dataFrame['downLine'].shift(1)
 	
 	dataFrame['trend'] = adaptiveRoc(closeVector=dataFrame['close'].values, windowVector=dataFrame['trendWindow'].values)
 
-	dataFrame['long_signal'] = np.select(
+	dataFrame['strategy'] = np.select(
 		[
-			(dataFrame['pattern'] == -1) & (dataFrame['trend'] > 0),
-			(dataFrame['close'] < dataFrame['downLineOld']) | (dataFrame['trend'] < 0)
+			(dataFrame['original'] > dataFrame['model']) & (dataFrame['trend'] > 0) & (maxMulti > dataFrame['window']) & (dataFrame['window'] > minMulti),
+			(dataFrame['original'] < dataFrame['model']) & (dataFrame['trend'] < 0) & (maxMulti > dataFrame['window']) & (dataFrame['window'] > minMulti)
 		],
-		[-1, 1], default=1
-	)
-	
-	dataFrame['short_signal'] = np.select(
-		[
-			(dataFrame['pattern'] == 1) & (dataFrame['trend'] < 0),
-			(dataFrame['close'] > dataFrame['upLineOld']) | (dataFrame['trend'] > 0)
-		],
-		[1, -1], default=-1
+		[2, 0], default=1
 	)
 
-	#superName = f"voladaptation_{nameExchange}_{symbol}_{type}_{timeFrame}.png"
-	#plt.plot(dataFrame['datetime'], dataFrame['signalWindow'], color="orange")
-	#plt.plot(dataFrame['datetime'], dataFrame['trendWindow'], color="purple")
+	dataFrame['long_signal'] = np.select([dataFrame['strategy'] == 2], [-1], default=1)
+	dataFrame['short_signal'] = np.select([dataFrame['strategy'] == 0], [1], default=-1)
+
+	#testDF = dataFrame.tail(50)
+	#superName = f"{strategy}_{nameExchange}_{symbol}_{type}_{timeFrame}.png"
+	#plt.plot(testDF['datetime'], testDF['original'], color="black")
+	#plt.plot(testDF['datetime'], testDF['model'], color="purple")
 	#plt.savefig(str(output_dir / superName ))
 	#plt.close()
 
 	return dataFrame[['datetime', 'open', 'high', 'low', 'close', 'volume', 'long_signal', 'short_signal']]
+
+@njit
+def adaptive_modeling(
+		secondaryVector: npt.NDArray[np.float64],
+		primaryVector: npt.NDArray[np.float64],
+		windowVector: npt.NDArray[np.int64],
+		multiple: float = 1.00
+	) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.float64], npt.NDArray[np.float64]]:
+	
+	lenth = len(primaryVector)
+	model = np.empty(lenth)
+	firstIndex = int(np.max(windowVector))
+
+	for i in range(firstIndex, lenth):
+		real_i = i+1
+		window = windowVector[i]
+		сutSecondary = secondaryVector[real_i-window:real_i]
+		cutPrimary = primaryVector[real_i-window:real_i]
+		model[i] = linearRegression(cutPrimary, сutSecondary)
+
+	return model
+
+@njit
+def linearRegression(cutPrimary: npt.NDArray[np.float64], сutSecondary: npt.NDArray[np.float64]) -> np.float64:
+	lenth = len(cutPrimary)
+
+	if lenth < 2:
+		lastValue = сutSecondary[0] if lenth == 1 else 0.0
+
+	else:
+		sum_x = 0.0
+		sum_y = 0.0
+		sum_xy = 0.0
+		sum_x2 = 0.0
+		
+		for i in range(lenth):
+			sum_x += cutPrimary[i]
+			sum_y += сutSecondary[i]
+			sum_xy += cutPrimary[i]*сutSecondary[i]
+			sum_x2 += cutPrimary[i]*cutPrimary[i]
+		
+		denominator = lenth*sum_x2 - sum_x*sum_x
+		if denominator == 0:
+			lastValue = сutSecondary[-1]
+		
+		else:
+			b = (lenth*sum_xy - sum_x*sum_y)/denominator
+			a = (sum_y - b*sum_x)/lenth
+			lastValue = a + b*cutPrimary[-1]
+	
+	return lastValue
 
 @njit
 def adaptivePriceChannel(

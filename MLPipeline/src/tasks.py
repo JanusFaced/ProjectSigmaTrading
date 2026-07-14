@@ -54,10 +54,32 @@ def build_tasks(listTimeFrame: list) -> list:
 	testMode = 'cumul'
 	target_year_profit = 30.0
 
-	listNameExchange = ['binance']
+	listSymbol = [
+		'ETH',
+		'BNB',
+		'SOL',
+		'TRX',
+		'ADA',
+	]
 	listTypeMarket = ['futures']
-	listSymbol = ['ETH', 'BNB', 'SOL', 'TRX', 'ADA']
-	listStrategy = ['moving', 'channel', 'forecast', 'modeling']
+	listNameExchange = ['binance']
+	listTimeFrame = [
+		'8min',
+		'18min',
+		'36min',
+		'48min',
+	]
+	listStrategy = [
+		'moving:I',
+		'channel:I',
+		'forecast:I',
+		'modeling:I',
+		'pattern:I',
+		'correlation:II'
+	]
+	listFactor = ['BTC']
+	listTypeFactor = ['futures']
+	listFactorExchange = ['binance']
 
 	listMSGs = []
 	for nameExchange in listNameExchange:
@@ -65,15 +87,44 @@ def build_tasks(listTimeFrame: list) -> list:
 			for timeFrame in listTimeFrame:
 				for symbol in listSymbol:
 					for strategy in listStrategy:
-						listMSGs.append({
-							'mode': mode,
-							'testMode': testMode,
-							'nameExchange': nameExchange,
-							'symbol': symbol,
-							'type': typeMarket,
-							'timeFrame': timeFrame,
-							'strategy': strategy
-						})
+						splitNameStrategy = strategy.split(":")
+
+						if splitNameStrategy[1] == "I":
+							listMSGs.append({
+									'mode': mode,
+									'testMode': testMode,
+									'nameExchange': nameExchange,
+									'symbol': symbol,
+									'type': typeMarket,
+									'timeFrame': timeFrame,
+									'strategy': strategy,
+									'factor': 'None',
+									'typeFactor': 'None',
+									'factorExchange': 'None'
+								})
+
+						elif splitNameStrategy[1] == "II":
+							for factor in listFactor:
+								for typeFactor in listTypeFactor:
+									for factorExchange in listFactorExchange:
+
+										logicSymbol = True if (symbol == factor) else False
+										logicType = True if (typeMarket == typeFactor) else False
+										logicExchange = True if (nameExchange == factorExchange) else False
+
+										if not(logicSymbol and logicType and logicExchange):
+											listMSGs.append({
+												'mode': mode,
+												'testMode': testMode,
+												'nameExchange': nameExchange,
+												'symbol': symbol,
+												'type': typeMarket,
+												'timeFrame': timeFrame,
+												'strategy': strategy,
+												'factor': factor,
+												'typeFactor': typeFactor,
+												'factorExchange': factorExchange
+											})
 
 	lenthCombi = len(listMSGs)
 	logger.info(f"full lenth combination = {lenthCombi}")

@@ -20,24 +20,73 @@ dataBase_port = os.getenv('DB_PORT')
 DATABASE_URL = f"postgresql://{dataBase_user}:{dataBase_password}@{dataBase_host}:{dataBase_port}/{dataBase_name}"
 engine = create_engine(DATABASE_URL)
 
-def main(inputMessage: dict) -> pd.DataFrame:
+def main(
+		nameExchange: str,
+		symbol: str,
+		type: str,
+		timeFrame: str,
+		mode: str,
+		factor: str,
+		typeFactor: str,
+		factorExchange: str
+	) -> pd.DataFrame:
 
-	if inputMessage['mode'] == 'test':
+	if factor == 'None':
+		dataFrame: pd.DataFrame = switchDownload(
+			nameExchange = nameExchange,
+			symbol = symbol,
+			type = type,
+			timeFrame = timeFrame,
+			mode = mode,
+		)
+		dataFrame = resampleDataframe(dataframe=dataFrame, timeframe=timeFrame, factorMode = False)
+
+	elif factor != 'None':
+		baseDataFrame: pd.DataFrame = switchDownload(
+			nameExchange = nameExchange,
+			symbol = symbol,
+			type = type,
+			timeFrame = timeFrame,
+			mode = mode,
+		)
+
+		factorDataFrame: pd.DataFrame = switchDownload(
+			nameExchange = factorExchange,
+			symbol = factor,
+			type = typeFactor,
+			timeFrame = timeFrame,
+			mode = mode,
+		)
+
+		dataFrame = tableMerger(baseDataFrame, factorDataFrame)
+		dataFrame = resampleDataframe(dataframe=dataFrame, timeframe=timeFrame, factorMode = True)
+
+	return dataFrame
+
+def switchDownload(
+		nameExchange: str,
+		symbol: str,
+		type: str,
+		timeFrame: str,
+		mode: str,
+	):
+
+	if mode == 'test':
 		dataFrame: pd.DataFrame = backTime(
-			nameExchange=inputMessage['nameExchange'],
-			symbol=inputMessage['symbol'],
-			type=inputMessage['type'],
-			timeFrame=inputMessage['timeFrame'],
-			mode=inputMessage['mode']
+			nameExchange=nameExchange,
+			symbol=symbol,
+			type=type,
+			timeFrame=timeFrame,
+			mode=mode
 		)
 	
-	elif inputMessage['mode'] in ['imitation', 'real']:
+	elif mode in ['imitation', 'real']:
 		dataFrame: pd.DataFrame = inTime(
-			symbol=inputMessage['symbol'],
-			nameExchange=inputMessage['nameExchange'],
-			type=inputMessage['type'],
-			timeFrame=inputMessage['timeFrame'],
-			mode=inputMessage['mode']
+			nameExchange=nameExchange,
+			symbol=symbol,
+			type=type,
+			timeFrame=timeFrame,
+			mode=mode
 		)
 
 	return dataFrame
@@ -106,8 +155,6 @@ def backTime(
 		dataFrame = pd.read_sql(queryCode, engine)
 		logger.info(f'{nameTable} fetched last {realAmountLines} rows')
 
-	dataFrame = resampleDataframe(dataframe=dataFrame, timeframe=timeFrame)
-
 	return dataFrame
 
 def inTime(
@@ -159,21 +206,55 @@ def inTime(
 		dataFrame = pd.read_sql(queryCode, engine)
 		logger.info(f'{nameTable} fetched last {realAmountLines} rows')
 
-	dataFrame = resampleDataframe(dataframe=dataFrame, timeframe=timeFrame)
-
 	return dataFrame
 
-def resampleDataframe(dataframe: pd.DataFrame, timeframe: str) -> pd.DataFrame:
+def resampleDataframe(dataframe: pd.DataFrame, timeframe: str, factorMode: bool) -> pd.DataFrame:
+
+	if factorMode:
+		mask = {
+			'open': 'first',
+			'high': 'max',
+			'low': 'min',
+			'close': 'last',
+			'volume': 'sum',
+			'openFactor': 'first',
+			'highFactor': 'max',
+			'lowFactor': 'min',
+			'closeFactor': 'last',
+			'volumeFactor': 'sum',
+		}
+
+	else:
+		mask = {
+			'open': 'first',
+			'high': 'max',
+			'low': 'min',
+			'close': 'last',
+			'volume': 'sum'
+		}
 
 	dataframe.set_index('datetime', inplace=True)
-	dataframe = dataframe.resample(timeframe).agg({
-		'open': 'first',
-		'high': 'max',
-		'low': 'min',
-		'close': 'last',
-		'volume': 'sum'
-	})
+	dataframe = dataframe.resample(timeframe).agg(mask)
 	dataframe = dataframe.iloc[:-1]
 	dataframe.reset_index(inplace=True)
 
 	return dataframe
+
+def tableMerger(baseDataFrame: pd.DataFrame, factorDataFrame: pd.DataFrame) -> pd.DataFrame:
+	columns_to_rename = ['open', 'high', 'low', 'close', 'volume']
+
+	rename_dict = {}
+	for col in columns_to_rename:
+		if col in factorDataFrame.columns:
+			rename_dict[col] = f'{col}Factor'
+	
+	factorDataFrame = factorDataFrame.rename(columns=rename_dict)
+	
+	dataFrame = pd.merge(
+		baseDataFrame,
+		factorDataFrame,
+		on='datetime',
+		how='inner'
+	)
+
+	return dataFrame
