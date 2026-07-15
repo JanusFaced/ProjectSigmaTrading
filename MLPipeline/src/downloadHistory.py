@@ -1,11 +1,8 @@
 from typing import Literal, Any
 from datetime import datetime, timedelta
-import pandas as pd
-import numpy as np
-import os
-import sys
+import duckdb
 import ccxt
-from sqlalchemy import create_engine, inspect, text
+import os
 from logger_setup import get_logger
 
 logger = get_logger(__name__)
@@ -16,260 +13,153 @@ dataBase_name = os.getenv('DB_NAME')
 dataBase_host = os.getenv('DB_HOST')
 dataBase_port = os.getenv('DB_PORT')
 
-DATABASE_URL = f"postgresql://{dataBase_user}:{dataBase_password}@{dataBase_host}:{dataBase_port}/{dataBase_name}"
-engine = create_engine(DATABASE_URL)
-
 def main(
 		nameExchange: str,
 		symbol: str,
 		type: str,
 		mode: str,
-		nowMuchMoreDays: int = 365
-	) -> pd.DataFrame:
-
-	if mode == 'test':
-		dataFrame: pd.DataFrame = backTime(
-			nameExchange=nameExchange,
-			symbol=symbol,
-			type=type
-		)
-	
-	elif mode in ['imitation', 'real']:
-		dataFrame: pd.DataFrame = inTime(
-			nameExchange=nameExchange,
-			symbol=symbol,
-			type=type,
-			nowMuchMoreDays=nowMuchMoreDays
-		)
-
-	return dataFrame
-
-def backTime(
-		nameExchange: str,
-		symbol: str,
-		type: str
-	) -> None:
-
-	engine = create_engine(DATABASE_URL)
-	inspector = inspect(engine)
-
-	if nameExchange == 'binance':
-		exchange = ccxt.binance()
-		if type == 'futures':
-			exchange.options['defaultType'] = 'future'
-	
-	elif nameExchange == 'bybit':
-		exchange = ccxt.bybit()
-		if type == 'futures':
-			exchange.options['defaultType'] = 'linear'
-
-	elif nameExchange == 'kucoin':
-		exchange = ccxt.kucoin()
-		if type == 'futures':
-			exchange.options['defaultType'] = 'future'
-
-	else:
-		raise ValueError(f"Неизвестная биржа: {nameExchange}")
-
-	nameTable: str = f"{nameExchange}_{symbol}_{type}".lower()
-
-	if type == 'spot':
-		ticker: str = f'{symbol}/USDT'
-	elif type == 'futures':
-		ticker: str = f'{symbol}/USDT:USDT'
-
-	timeFrame: str = '1m'
-	timeFramePandas: str = '1min'
-	deltaDatetime = timedelta(minutes=1)
-	stepDatetime = timedelta(days=30)
-	limit: int = 1000
-	
-	queryCode: str = f"""
-		SELECT * FROM {nameTable}
-	"""
-
-	newDataFrame: bool = False
-	if nameTable in inspector.get_table_names():
-		zeroDataFrame = pd.read_sql(queryCode, engine)
-		logger.info(f'{nameTable} is exist! Get full table!')
-		initialDatetime = zeroDataFrame['datetime'].iloc[-1]
-	
-	else:
-		logger.info(f'{nameTable} does NOT exist!')
-		initialDatetime = datetime(2017, 1, 1)
-		newDataFrame = True
-
-
-	logger.info(f' >>> START {nameTable} <<< ')
-
-	while True:
-
-		getData = False
-		while getData == False:
-
-			iso_string = initialDatetime.strftime('%Y-%m-%dT%H:%M:%SZ')
-			since = exchange.parse8601(iso_string)
-			
-			try:
-				ohlcv = exchange.fetch_ohlcv(ticker, timeFrame, since, limit)
-
-				if ohlcv:
-					logger.info('get!')
-					getData = True
-				else:
-					logger.info('fail...')
-					initialDatetime = initialDatetime + stepDatetime
-					logger.info(f'try parsing from new initialDatetime => {initialDatetime}')
-
-			except Exception as e:
-				logger.info(f'Ошибка {e}. Ожидаем 5 секунд...')
-				time.sleep(5)
-
-		dataFrame = pd.DataFrame(ohlcv, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
-		dataFrame['datetime'] = dataFrame['timestamp'].apply(lambda x: datetime.utcfromtimestamp(x / 1000))
-		dataFrame = dataFrame[['datetime', 'open', 'high', 'low', 'close', 'volume']]
-		initialDatetime = dataFrame['datetime'].iloc[-1]
-		
-		if newDataFrame:
-			zeroDataFrame = dataFrame.copy()
-			newDataFrame = False
-		else:
-			zeroDataFrame = pd.concat([zeroDataFrame, dataFrame], ignore_index=True)
-
-		nowDatetime = datetime.utcnow()
-		logger.info(f"{nameTable} <=> {initialDatetime}")
-		if initialDatetime >= (nowDatetime - deltaDatetime):
-			break
-
-	zeroDataFrame['datetime'] = pd.to_datetime(zeroDataFrame['datetime'])
-	zeroDataFrame.set_index('datetime', inplace=True)
-	zeroDataFrame = zeroDataFrame[~zeroDataFrame.index.duplicated(keep='first')]
-	
-	min_date = zeroDataFrame.index.min()
-	max_date = zeroDataFrame.index.max()
-	fullIndexes = pd.date_range(start=min_date, end=max_date, freq=timeFramePandas)
-	zeroDataFrame = zeroDataFrame.reindex(fullIndexes).ffill()
-	
-	zeroDataFrame.reset_index(inplace=True, names=['datetime'])
-
-	logger.info(f'Start save {nameTable} in dataBase!')
-	zeroDataFrame.to_sql(nameTable, con=engine, if_exists='replace', chunksize=5000, method='multi')
-	logger.info(f'{nameTable} is saved to dataBase!')
-
-def inTime(
-		nameExchange: str,
-		symbol: str,
-		type: str,
 		nowMuchMoreDays: int
 	) -> None:
 
-	engine = create_engine(DATABASE_URL)
-	inspector = inspect(engine)
+	db = duckdb.connect()
+	db.execute(f"""
+		INSTALL postgres;
+		LOAD postgres;
+		ATTACH 'host={dataBase_host} port={dataBase_port} 
+				dbname={dataBase_name} user={dataBase_user} 
+				password={dataBase_password}' AS pg (TYPE postgres);
+	""")
 
-	if nameExchange == 'binance':
-		exchange = ccxt.binance()
-		if type == 'futures':
-			exchange.options['defaultType'] = 'future'
-	
-	elif nameExchange == 'bybit':
-		exchange = ccxt.bybit()
-		if type == 'futures':
-			exchange.options['defaultType'] = 'linear'
-
-	elif nameExchange == 'kucoin':
-		exchange = ccxt.kucoin()
-		if type == 'futures':
-			exchange.options['defaultType'] = 'future'
-
+	if mode == 'test':
+		nameTable = f"{nameExchange}_{symbol}_{type}".lower()
+	elif mode in ['imitation', 'real']:
+		nameTable = f"short_{nameExchange}_{symbol}_{type}".lower()
 	else:
-		raise ValueError(f"Неизвестная биржа: {nameExchange}")
+		raise ValueError(f"Неизвестный режим: {mode}")
 
-	nameTable: str = f"short_{nameExchange}_{symbol}_{type}".lower()
-	ticker: str = f'{symbol}/USDT' if type == 'spot' else f'{symbol}/USDT:USDT'
+	exchange = setExchange(nameExchange, type)
+	ticker = f'{symbol}/USDT' if type == 'spot' else f'{symbol}/USDT:USDT'
 
 	timeFrame = '1m'
-	timeFramePandas = '1min'
 	deltaDatetime = timedelta(minutes=1)
 	limit = 1000
-	nowMuchMoreMinutes = nowMuchMoreDays*1440
 
-	queryCode: str = f"""
-		SELECT datetime 
-		FROM {nameTable}
-		ORDER BY datetime DESC
-		LIMIT 1
-	"""
+	try:
+		result = db.execute(f"SELECT MAX(datetime) FROM pg.{nameTable}").fetchone()
+		if result and result[0] is not None:
+			initialDatetime = result[0] + deltaDatetime
+			logger.info(f'{nameTable} exists! Last date: {result[0]}')
+		else:
+			raise Exception("Table is empty or doesn't exist")
+	except Exception:
+		logger.info(f'{nameTable} does NOT exist or is empty!')
+		if mode == 'test':
+			initialDatetime = datetime(2017, 1, 1)
+		elif mode in ['imitation', 'real']:
+			initialDatetime = datetime.utcnow() - timedelta(days=nowMuchMoreDays)
 
-	newDataFrame: bool = False
-	if nameTable in inspector.get_table_names():
-		zeroDataFrame = pd.read_sql(queryCode, engine)
-		logger.info(f'{nameTable} is exist! Get last line!')
-		initialDatetime = zeroDataFrame['datetime'].iloc[-1] + deltaDatetime
-	else:
-		logger.info(f'{nameTable} is NOT exist!')
-		initialDatetime = datetime.utcnow() - timedelta(days=nowMuchMoreDays)
-		newDataFrame = True
-
-	logger.info(nameTable)
-	logger.info(f'Start parsing {symbol}! From initialDatetime => {initialDatetime}')
-
-	listOfDFs = []
+	logger.info(f'{nameTable} | Start parsing {symbol} from {initialDatetime}')
+	collected = []
 	while True:
 		iso_string = initialDatetime.strftime('%Y-%m-%dT%H:%M:%SZ')
 		since = exchange.parse8601(iso_string)
 		ohlcv = exchange.fetch_ohlcv(ticker, timeFrame, since, limit)
-		if ohlcv:
-			dataFrame = pd.DataFrame(ohlcv, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
-			dataFrame['datetime'] = dataFrame['timestamp'].apply(lambda x: datetime.utcfromtimestamp(x / 1000))
-			dataFrame = dataFrame[['datetime', 'open', 'high', 'low', 'close', 'volume']]
-			initialDatetime = dataFrame['datetime'].iloc[-1]
-			listOfDFs.append(dataFrame)
-			nowDatetime = datetime.utcnow()
-			logger.info(f"{nameTable} <=> {initialDatetime}")
-			if initialDatetime >= (nowDatetime - deltaDatetime):
-				break
-		else:
+
+		if not ohlcv:
 			break
 
-	if listOfDFs:
-		dataFrame = pd.concat(listOfDFs, ignore_index=True)
+		for row in ohlcv:
+			dt = datetime.utcfromtimestamp(row[0] / 1000)
+			collected.append((dt, row[1], row[2], row[3], row[4], row[5]))
 
-		dataFrame['datetime'] = pd.to_datetime(dataFrame['datetime'])
-		dataFrame.set_index('datetime', inplace=True)
-		dataFrame = dataFrame[~dataFrame.index.duplicated(keep='first')]
+		last_dt = datetime.utcfromtimestamp(ohlcv[-1][0] / 1000)
+		initialDatetime = last_dt + deltaDatetime
+		nowDatetime = datetime.utcnow()
 
-		min_date = dataFrame.index.min()
-		max_date = dataFrame.index.max()
-		fullIndexes = pd.date_range(start=min_date, end=max_date, freq=timeFramePandas)
-		dataFrame = dataFrame.reindex(fullIndexes).ffill()
+		logger.info(f"{nameTable} <=> {last_dt}")
+		if initialDatetime >= nowDatetime:
+			break
 
-		dataFrame.reset_index(inplace=True, names=['datetime'])
+	if not collected:
+		logger.info("Нет новых данных для загрузки")
+		return
 
-		logger.info(f'Start append {len(dataFrame)} new lines to {nameTable}')
-		dataFrame.to_sql(
-			nameTable, 
-			con=engine, 
-			if_exists='append',
-			index=False,
-			chunksize=10000,
-			method='multi'
+	logger.info(f"Собрано {len(collected)} свечей, начинаем обработку...")
+
+	db.execute("CREATE OR REPLACE TEMP TABLE temp_raw (datetime TIMESTAMP, open DOUBLE, high DOUBLE, low DOUBLE, close DOUBLE, volume DOUBLE)")
+	db.executemany("INSERT INTO temp_raw VALUES (?, ?, ?, ?, ?, ?)", collected)
+
+	db.execute("""
+		CREATE OR REPLACE TEMP TABLE temp_filled AS
+		WITH all_minutes AS (
+			SELECT UNNEST(generate_series(
+				(SELECT MIN(datetime) FROM temp_raw),
+				(SELECT MAX(datetime) FROM temp_raw),
+				INTERVAL 1 MINUTE
+			)) AS datetime
+		),
+		cleaned AS (
+			SELECT DISTINCT ON (datetime) *
+			FROM temp_raw
+			ORDER BY datetime
 		)
-		logger.info(f'End append {len(dataFrame)} new lines to {nameTable}')
+		SELECT 
+			all_minutes.datetime,
+			LAST_VALUE(cleaned.open IGNORE NULLS) OVER (ORDER BY all_minutes.datetime ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS open,
+			LAST_VALUE(cleaned.high IGNORE NULLS) OVER (ORDER BY all_minutes.datetime ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS high,
+			LAST_VALUE(cleaned.low IGNORE NULLS) OVER (ORDER BY all_minutes.datetime ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS low,
+			LAST_VALUE(cleaned.close IGNORE NULLS) OVER (ORDER BY all_minutes.datetime ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS close,
+			LAST_VALUE(cleaned.volume IGNORE NULLS) OVER (ORDER BY all_minutes.datetime ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS volume
+		FROM all_minutes
+		LEFT JOIN cleaned ON all_minutes.datetime = cleaned.datetime
+		ORDER BY all_minutes.datetime
+	""")
 
-		cutoff_date = initialDatetime - timedelta(days=nowMuchMoreDays)
-		cutoff_date_str = cutoff_date.strftime("%Y-%m-%d %H:%M:%S")
-		
-		queryCode = f"""
-			DELETE FROM {nameTable}
-			WHERE datetime < '{cutoff_date_str}'
-		"""
-		
-		with engine.connect() as conn:
-			result = conn.execute(text(queryCode))
-			conn.commit()
-			deleted_rows = result.rowcount
-			logger.info(f'Deleted {deleted_rows} old records (before {cutoff_date})')
-		
-		logger.info(f'{nameTable} updated successfully!')
+	db.execute(f"""
+		CREATE TABLE IF NOT EXISTS pg.{nameTable} (
+			datetime TIMESTAMP PRIMARY KEY,
+			open DOUBLE,
+			high DOUBLE,
+			low DOUBLE,
+			close DOUBLE,
+			volume DOUBLE
+		)
+	""")
 
+	db.execute(f"""
+		INSERT INTO pg.{nameTable} (datetime, open, high, low, close, volume)
+		SELECT datetime, open, high, low, close, volume
+		FROM temp_filled
+		WHERE NOT EXISTS (
+			SELECT 1 FROM pg.{nameTable} 
+			WHERE datetime = temp_filled.datetime
+		)
+	""")
 
+	if mode in ['imitation', 'real']:
+		cutoff_date = datetime.utcnow() - timedelta(days=nowMuchMoreDays)
+		deleted = db.execute(f"""
+			DELETE FROM pg.{nameTable}
+			WHERE datetime < '{cutoff_date}'
+		""")
+		deleted_rows = deleted.fetchone()[0] if deleted else 0
+		logger.info(f'Удалено {deleted_rows} старых записей (до {cutoff_date})')
+
+	logger.info(f'{nameTable} успешно обновлён!')
+
+def setExchange(nameExchange: str, type: str) -> ccxt.Exchange:
+	if nameExchange == 'binance':
+		exchange = ccxt.binance()
+		if type == 'futures':
+			exchange.options['defaultType'] = 'future'
+	elif nameExchange == 'bybit':
+		exchange = ccxt.bybit()
+		if type == 'futures':
+			exchange.options['defaultType'] = 'linear'
+	elif nameExchange == 'kucoin':
+		exchange = ccxt.kucoin()
+		if type == 'futures':
+			exchange.options['defaultType'] = 'future'
+	else:
+		raise ValueError(f"Неизвестная биржа: {nameExchange}")
+	return exchange

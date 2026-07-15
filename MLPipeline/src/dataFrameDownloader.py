@@ -18,7 +18,6 @@ dataBase_host = os.getenv('DB_HOST')
 dataBase_port = os.getenv('DB_PORT')
 
 DATABASE_URL = f"postgresql://{dataBase_user}:{dataBase_password}@{dataBase_host}:{dataBase_port}/{dataBase_name}"
-engine = create_engine(DATABASE_URL)
 
 def main(
 		nameExchange: str,
@@ -32,7 +31,7 @@ def main(
 	) -> pd.DataFrame:
 
 	if factor == 'None':
-		dataFrame: pd.DataFrame = switchDownload(
+		dataFrame: pd.DataFrame = downloadDataFrame(
 			nameExchange = nameExchange,
 			symbol = symbol,
 			type = type,
@@ -42,7 +41,7 @@ def main(
 		dataFrame = resampleDataframe(dataframe=dataFrame, timeframe=timeFrame, factorMode = False)
 
 	elif factor != 'None':
-		baseDataFrame: pd.DataFrame = switchDownload(
+		baseDataFrame: pd.DataFrame = downloadDataFrame(
 			nameExchange = nameExchange,
 			symbol = symbol,
 			type = type,
@@ -50,7 +49,7 @@ def main(
 			mode = mode,
 		)
 
-		factorDataFrame: pd.DataFrame = switchDownload(
+		factorDataFrame: pd.DataFrame = downloadDataFrame(
 			nameExchange = factorExchange,
 			symbol = factor,
 			type = typeFactor,
@@ -63,114 +62,37 @@ def main(
 
 	return dataFrame
 
-def switchDownload(
+def downloadDataFrame(
 		nameExchange: str,
 		symbol: str,
 		type: str,
 		timeFrame: str,
 		mode: str,
-	):
-
-	if mode == 'test':
-		dataFrame: pd.DataFrame = backTime(
-			nameExchange=nameExchange,
-			symbol=symbol,
-			type=type,
-			timeFrame=timeFrame,
-			mode=mode
-		)
-	
-	elif mode in ['imitation', 'real']:
-		dataFrame: pd.DataFrame = inTime(
-			nameExchange=nameExchange,
-			symbol=symbol,
-			type=type,
-			timeFrame=timeFrame,
-			mode=mode
-		)
-
-	return dataFrame
-
-def backTime(
-		nameExchange: str,
-		symbol: str,
-		type: str,
-		timeFrame: str,
-		mode: str,
-		maxDelta: int = 30
 	) -> pd.DataFrame:
-	
+
 	engine = create_engine(DATABASE_URL)
 	inspector = inspect(engine)
 
-	maxDeltaDatetime = timedelta(days=maxDelta)
-	
-	modeMultiple = "identical"
-	standartDeep: int = 5_000_000
-	#standartDeep: int = 5_000
+	if mode == 'test':
+		maxDelta: int = 30
+		maxDeltaDatetime = timedelta(days=maxDelta)
+		modeMultiple = "identical"
+		standartDeep: int = 5_000_000
+		#standartDeep: int = 5_000
 
-	if modeMultiple == "identical":
-		realAmountLines: int = standartDeep
-	elif modeMultiple == "relative":
-		realAmountLines: int = standartDeep*convertorTimeFrame(timeFrame)
-	
-	nameTable: str = f"{nameExchange}_{symbol}_{type}".lower()
+		if modeMultiple == "identical":
+			realAmountLines: int = standartDeep
+		elif modeMultiple == "relative":
+			realAmountLines: int = standartDeep*convertorTimeFrame(timeFrame)
+		
+		nameTable: str = f"{nameExchange}_{symbol}_{type}".lower()
 
-	queryCode: str = f"""
-		SELECT * FROM (
-			SELECT * FROM {nameTable}
-			ORDER BY datetime DESC
-			LIMIT {realAmountLines}
-		) AS last_rows
-		ORDER BY datetime ASC
-	"""
-
-	logger.info(f"{nameTable}")
-
-	downloadData: bool = False
-	if nameTable in inspector.get_table_names():
-		dataFrame = pd.read_sql(queryCode, engine)
-		logger.info(f'{nameTable} is exist! Fetched last {realAmountLines} rows')
-		pastDatetime = dataFrame['datetime'].iloc[-1]
-		nowDatetime = datetime.utcnow()
-		if (nowDatetime - pastDatetime) > maxDeltaDatetime:
-			logger.info(f'{nameTable} is very old!')
-			downloadData = True
-
-		else:
-			logger.info(f'{nameTable} is fresh :-)')
-	
-	else:
-		logger.info(f'{nameTable} does NOT exist!')
-		downloadData = True
-
-	if downloadData:
-		downloadHistory.main(
-			nameExchange=nameExchange,
-			symbol=symbol,
-			type=type,
-			mode=mode,
-			nowMuchMoreDays=None
-		)
-		dataFrame = pd.read_sql(queryCode, engine)
-		logger.info(f'{nameTable} fetched last {realAmountLines} rows')
-
-	return dataFrame
-
-def inTime(
-		nameExchange: str,
-		symbol: str, 
-		type: str,
-		timeFrame: str,
-		mode: str,
-		nowMuchMoreDays: int = 125
-	) -> pd.DataFrame:
-	
-	valueConvertor: int = convertorTimeFrame(timeFrame)
-	maxDeltaDatetime = timedelta(minutes=valueConvertor)
-	standartDeep: int = 3000
-	realAmountLines: int = standartDeep*valueConvertor
-	nameTable: str = f"short_{nameExchange}_{symbol}_{type}".lower()
+	elif mode in ['imitation', 'real']:
+		valueConvertor: int = convertorTimeFrame(timeFrame)
+		maxDeltaDatetime = timedelta(minutes=valueConvertor)
+		standartDeep: int = 3000
+		realAmountLines: int = standartDeep*valueConvertor
+		nameTable: str = f"short_{nameExchange}_{symbol}_{type}".lower()
 
 	queryCode: str = f"""
 		SELECT * FROM (
@@ -190,6 +112,8 @@ def inTime(
 		if (nowDatetime - pastDatetime) > maxDeltaDatetime:
 			logger.info(f'{nameTable} is very old!')
 			downloadData = True
+		else:
+			logger.info(f'{nameTable} is fresh :-)')
 	
 	except Exception as error_body:
 		logger.info(f'{nameTable} does NOT exist!')
@@ -201,7 +125,7 @@ def inTime(
 			symbol=symbol,
 			type=type,
 			mode=mode,
-			nowMuchMoreDays=nowMuchMoreDays
+			nowMuchMoreDays=125
 		)
 		dataFrame = pd.read_sql(queryCode, engine)
 		logger.info(f'{nameTable} fetched last {realAmountLines} rows')
@@ -209,7 +133,6 @@ def inTime(
 	return dataFrame
 
 def resampleDataframe(dataframe: pd.DataFrame, timeframe: str, factorMode: bool) -> pd.DataFrame:
-
 	if factorMode:
 		mask = {
 			'open': 'first',
@@ -223,7 +146,6 @@ def resampleDataframe(dataframe: pd.DataFrame, timeframe: str, factorMode: bool)
 			'closeFactor': 'last',
 			'volumeFactor': 'sum',
 		}
-
 	else:
 		mask = {
 			'open': 'first',
@@ -232,29 +154,23 @@ def resampleDataframe(dataframe: pd.DataFrame, timeframe: str, factorMode: bool)
 			'close': 'last',
 			'volume': 'sum'
 		}
-
 	dataframe.set_index('datetime', inplace=True)
 	dataframe = dataframe.resample(timeframe).agg(mask)
 	dataframe = dataframe.iloc[:-1]
 	dataframe.reset_index(inplace=True)
-
 	return dataframe
 
 def tableMerger(baseDataFrame: pd.DataFrame, factorDataFrame: pd.DataFrame) -> pd.DataFrame:
 	columns_to_rename = ['open', 'high', 'low', 'close', 'volume']
-
 	rename_dict = {}
 	for col in columns_to_rename:
 		if col in factorDataFrame.columns:
 			rename_dict[col] = f'{col}Factor'
-	
 	factorDataFrame = factorDataFrame.rename(columns=rename_dict)
-	
 	dataFrame = pd.merge(
 		baseDataFrame,
 		factorDataFrame,
 		on='datetime',
 		how='inner'
 	)
-
 	return dataFrame

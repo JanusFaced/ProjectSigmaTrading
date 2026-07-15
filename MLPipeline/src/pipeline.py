@@ -9,7 +9,6 @@ from strategies import correlation
 import trading_simulator
 import imitation_connector
 import filters
-import gc
 from logger_setup import get_logger
 
 logger = get_logger(__name__)
@@ -69,29 +68,39 @@ if __name__ == "__main__":
 	target_year_profit = 30.0
 
 	listSymbol = [
-		'ETH',
-		'BNB',
-		'SOL',
-		'TRX',
-		'ADA',
+#		'BTC',
+#		'ETH',
+#		'BNB',
+#		'XRP',
+#		'SOL',
+#		'TRX',
+#		'HYPE',
+#		'ADA',
+#		'LINK',
+		'RE',
+		'BOT',
 	]
 	listTypeMarket = ['futures']
 	listNameExchange = ['binance']
 	listTimeFrame = [
 		'8min',
-		'18min',
-		'36min',
-		'48min',
+#		'18min',
+#		'36min',
+#		'48min',
 	]
 	listStrategy = [
 		'moving:I',
-		'channel:I',
-		'forecast:I',
-		'modeling:I',
-		'pattern:I',
+#		'channel:I',
+#		'forecast:I',
+#		'modeling:I',
+#		'pattern:I',
 		'correlation:II'
 	]
-	listFactor = ['BTC']
+	listFactor = [
+#		'BTC',
+		'RE',
+		'BOT',
+	]
 	listTypeFactor = ['futures']
 	listFactorExchange = ['binance']
 
@@ -144,11 +153,11 @@ if __name__ == "__main__":
 	logger.info(f"full lenth combination = {lenthCombi}")
 
 	if mode in ["stats", "imitation"]:
-		listMSGs = filters.forImitation(
-			listMSGs=listMSGs,
-			target_year_profit=target_year_profit,
-			modeFilter='exist'
-		)
+#		listMSGs = filters.forImitation(
+#			listMSGs=listMSGs,
+#			target_year_profit=target_year_profit,
+#			modeFilter='exist'
+#		)
 		lenthCombi = len(listMSGs)
 		logger.info(f"filter for imitation lenth combination = {lenthCombi}")
 	elif mode == "real":
