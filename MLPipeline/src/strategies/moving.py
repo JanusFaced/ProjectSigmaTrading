@@ -1,10 +1,9 @@
-from typing import Any, TypedDict
+from typing import Any
+import matplotlib.pyplot as plt
 import polars as pl
-import numpy as np
-import numpy.typing as npt
-from numba import njit
 import os
 from convertorTF import convertorTimeFrame
+from custom_ta import adaptive_moving, adaptive_roc
 from pathlib import Path
 from duckDB_setup import get_duckdb
 from logger_setup import get_logger
@@ -14,7 +13,18 @@ output_dir = Path(__file__).parent.parent / "output"
 
 def main(inputMessage: dict[str, Any]) -> None:
 	db = get_duckdb()
-	dataFrame = db.execute("SELECT * FROM temp_analyst ORDER BY datetime").pl()
+	dataFrame = db.execute("""
+		SELECT 
+			datetime,
+			CAST(open AS FLOAT) AS open,
+			CAST(high AS FLOAT) AS high,
+			CAST(low AS FLOAT) AS low,
+			CAST(close AS FLOAT) AS close,
+			CAST(volume AS BIGINT) AS volume
+		FROM temp_analyst 
+		ORDER BY datetime
+	""").pl()
+	db.execute("DROP TABLE IF EXISTS temp_analyst")
 
 	nameExchange = inputMessage['nameExchange']
 	symbol = inputMessage['symbol']
@@ -29,16 +39,16 @@ def main(inputMessage: dict[str, Any]) -> None:
 	baseVolativity1m = 0.0004
 	baseVolativity = baseVolativity1m*convertorTimeFrame(timeFrame)
 
-	dataFrame = dataFrame.with_columns((pl.col('close')/pl.col('close').shift(1) - 1).abs().alias('diff'))
-	dataFrame = dataFrame.with_columns(pl.col('diff').rolling_mean(window_size=volativityWindow).alias('volativity'))
-	dataFrame = dataFrame.with_columns((pl.lit(baseVolativity)/pl.col('volativity')).alias('window'))
+	dataFrame = dataFrame.with_columns((pl.col('close')/pl.col('close').shift(1) - 1).abs().cast(pl.Float32).alias('diff'))
+	dataFrame = dataFrame.with_columns(pl.col('diff').rolling_mean(window_size=volativityWindow).cast(pl.Float32).alias('volativity'))
+	dataFrame = dataFrame.with_columns((pl.lit(baseVolativity)/pl.col('volativity')).cast(pl.Int16).alias('window'))
 
 	dataFrame = dataFrame.with_columns([
-		(pl.col('window')*signalWindow).fill_null(signalWindow).cast(pl.Int64).clip(2, None).alias('signalWindow'),
-		(pl.col('window')*trendWindow).fill_null(trendWindow).cast(pl.Int64).clip(2, None).alias('trendWindow'),
+		(pl.col('window')*signalWindow).fill_null(signalWindow).cast(pl.Int16).clip(2, None).alias('signalWindow'),
+		(pl.col('window')*trendWindow).fill_null(trendWindow).cast(pl.Int16).clip(2, None).alias('trendWindow'),
 	])
 
-	moving = adaptiveMoving(
+	moving = adaptive_moving(
 		closeVector=dataFrame['close'].to_numpy(),
 		windowVector=dataFrame['signalWindow'].to_numpy()
 	)
@@ -59,56 +69,28 @@ def main(inputMessage: dict[str, Any]) -> None:
 			(pl.col('trend') > 0) &
 			(pl.col('window') < maxMulti) &
 			(pl.col('window') > minMulti)
-		).then(pl.lit(2))
+		).then(pl.lit(2, dtype=pl.Int8))
 		.when(
 			(pl.col('close') < pl.col('moving')) &
 			(pl.col('trend') < 0) &
 			(pl.col('window') < maxMulti) &
 			(pl.col('window') > minMulti)
-		).then(pl.lit(0))
-		.otherwise(pl.lit(1))
+		).then(pl.lit(0, dtype=pl.Int8))
+		.otherwise(pl.lit(1, dtype=pl.Int8))
 		.alias('strategy')
 	)
 	
 	dataFrame = dataFrame.with_columns([
-		pl.when(pl.col('strategy') == 2).then(pl.lit(-1)).otherwise(pl.lit(1)).alias('long_signal'),
-		pl.when(pl.col('strategy') == 0).then(pl.lit(1)).otherwise(pl.lit(-1)).alias('short_signal'),
+		pl.when(pl.col('strategy') == 2).then(pl.lit(-1, dtype=pl.Int8)).otherwise(pl.lit(1, dtype=pl.Int8)).alias('long_signal'),
+		pl.when(pl.col('strategy') == 0).then(pl.lit(1, dtype=pl.Int8)).otherwise(pl.lit(-1, dtype=pl.Int8)).alias('short_signal'),
 	])
 
+	#superName = str(output_dir) + f'/moving_{nameExchange}_{symbol}_{type}_{timeFrame}.png'
+	#tempDF = dataFrame.tail(3000)
+	#plt.plot(tempDF['signalWindow'], color='black')
+	#plt.plot(tempDF['trendWindow'], color='red')
+	#plt.savefig(superName)
+	#plt.close()
+
 	dataFrame = dataFrame.select(['datetime', 'open', 'high', 'low', 'close', 'volume', 'long_signal', 'short_signal'])
-
 	db.execute("CREATE OR REPLACE TEMP TABLE temp_trading AS SELECT * FROM dataFrame")
-	logger.info(f"Сохранено в temp_trading!")
-	
-	db.execute("DROP TABLE IF EXISTS temp_analyst")
-	logger.info("temp_analyst удалена!")
-
-@njit
-def adaptiveMoving(closeVector: npt.NDArray[np.float64], windowVector: npt.NDArray[np.int64]) -> npt.NDArray[np.float64]:
-	lenth = len(closeVector)
-
-	movingVector = np.empty(lenth)
-	firstIndex = int(np.max(windowVector))
-
-	for i in range(firstIndex, lenth):
-		real_i = i+1
-		window = windowVector[i]
-		cutClose = closeVector[real_i-window:real_i]
-		movingVector[i] = np.mean(cutClose)
-
-	return movingVector
-
-@njit
-def adaptive_roc(closeVector: npt.NDArray[np.float64], windowVector: npt.NDArray[np.int64]) -> npt.NDArray[np.float64]:
-	lenth = len(closeVector)
-
-	rocVector = np.empty(lenth)
-	firstIndex = int(np.max(windowVector))
-
-	for i in range(firstIndex, lenth):
-		real_i = i+1
-		window = windowVector[i]
-		cutClose = closeVector[real_i-window:real_i]
-		rocVector[i] = cutClose[-1]/cutClose[0] - 1
-
-	return rocVector

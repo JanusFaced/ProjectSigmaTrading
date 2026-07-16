@@ -118,7 +118,6 @@ def backTester(inputMessage: dict[str, Any]) -> Dict:
 			return cash/price
 
 	db = get_duckdb()
-
 	dataFrame = db.execute("""
 		SELECT datetime, open, high, low, close, volume, long_signal, short_signal 
 		FROM temp_trading 

@@ -71,15 +71,15 @@ if __name__ == "__main__":
 	target_year_profit = 30.0
 
 	listSymbol = [
-#		'BTC',
-#		'ETH',
-#		'BNB',
-		'XRP',
+		'BTC',
+		'ETH',
+		'BNB',
+#		'XRP',
 #		'SOL',
 #		'TRX',
-		'HYPE',
+#		'HYPE',
 #		'ADA',
-		'LINK',
+#		'LINK',
 #		'RE',
 #		'BOT',
 	]
@@ -87,9 +87,9 @@ if __name__ == "__main__":
 	listNameExchange = ['binance']
 	listTimeFrame = [
 		'8min',
-#		'18min',
-#		'36min',
-#		'48min',
+		'18min',
+		'36min',
+		'48min',
 	]
 	listStrategy = [
 		'moving:I',
@@ -170,10 +170,10 @@ if __name__ == "__main__":
 
 	if mode != 'stats':
 		for msg in listMSGs:
-			#try:
-			main(msg)
-			#except Exception as e:
-			#	logger.info(f"error: {e}")
+			try:
+				main(msg)
+			except Exception as e:
+				logger.info(f"error: {e}")
 
 	if mode in ['stats', 'test']:
 		filters.makeStats(listSymbol=listSymbol, listTimeFrame=listTimeFrame, listStrategy=listStrategy)

@@ -2,7 +2,8 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
-from dataBaseModels import Session, Backtest, Signal, Trade
+from dataBaseModels import Backtest, Signal, Trade
+from dataBaseModels import get_session, close_session
 import os
 import sys
 from logger_setup import get_logger
@@ -44,7 +45,7 @@ app.add_middleware(
 
 @app.get('/getTableBacktest', response_model=list[dict])
 async def get_table_backtest():
-	dataBaseSession = Session()
+	dataBaseSession = get_session()
 
 	try:
 		logger.info("Fetching all backtests from database")
@@ -69,11 +70,11 @@ async def get_table_backtest():
 		raise HTTPException(status_code=500, detail=str(e))
 	
 	finally:
-		dataBaseSession.close()
+		close_session()
 
 @app.get('/getTableAnalyst', response_model=list[dict])
 async def get_table_analyst():
-	dataBaseSession = Session()
+	dataBaseSession = get_session()
 
 	try:
 		logger.info("Fetching all signals from database")
@@ -102,11 +103,11 @@ async def get_table_analyst():
 		raise HTTPException(status_code=500, detail=str(e))
 	
 	finally:
-		dataBaseSession.close()
+		close_session()
 
 @app.get('/getTradesBySignal/{signal_id}', response_model=dict)
 async def get_trades_by_signal(signal_id: int):
-	dataBaseSession = Session()
+	dataBaseSession = get_session()
 	
 	try:
 		logger.info(f"Fetching trades for signal ID: {signal_id}")
@@ -148,7 +149,7 @@ async def get_trades_by_signal(signal_id: int):
 		raise HTTPException(status_code=500, detail=str(e))
 	
 	finally:
-		dataBaseSession.close()
+		close_session()
 
 @app.get('/health')
 async def health_check():

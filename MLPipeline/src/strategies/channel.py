@@ -1,10 +1,8 @@
-from typing import Any, TypedDict
+from typing import Any
 import polars as pl
-import numpy as np
-import numpy.typing as npt
-from numba import njit
 import os
 from convertorTF import convertorTimeFrame
+from custom_ta import adaptive_lr_channel, adaptive_roc
 from pathlib import Path
 from duckDB_setup import get_duckdb
 from logger_setup import get_logger
@@ -14,7 +12,18 @@ output_dir = Path(__file__).parent.parent / "output"
 
 def main(inputMessage: dict[str, Any]) -> None:
 	db = get_duckdb()
-	dataFrame = db.execute("SELECT * FROM temp_analyst ORDER BY datetime").pl()
+	dataFrame = db.execute("""
+		SELECT 
+			datetime,
+			CAST(open AS FLOAT) AS open,
+			CAST(high AS FLOAT) AS high,
+			CAST(low AS FLOAT) AS low,
+			CAST(close AS FLOAT) AS close,
+			CAST(volume AS BIGINT) AS volume
+		FROM temp_analyst 
+		ORDER BY datetime
+	""").pl()
+	db.execute("DROP TABLE IF EXISTS temp_analyst")
 
 	nameExchange = inputMessage['nameExchange']
 	symbol = inputMessage['symbol']
@@ -29,13 +38,13 @@ def main(inputMessage: dict[str, Any]) -> None:
 	baseVolativity1m = 0.0004
 	baseVolativity = baseVolativity1m*convertorTimeFrame(timeFrame)
 
-	dataFrame = dataFrame.with_columns((pl.col('close')/pl.col('close').shift(1) - 1).abs().alias('diff'))
-	dataFrame = dataFrame.with_columns(pl.col('diff').rolling_mean(window_size=volativityWindow).alias('volativity'))
-	dataFrame = dataFrame.with_columns((pl.lit(baseVolativity)/pl.col('volativity')).alias('window'))
+	dataFrame = dataFrame.with_columns((pl.col('close')/pl.col('close').shift(1) - 1).abs().cast(pl.Float32).alias('diff'))
+	dataFrame = dataFrame.with_columns(pl.col('diff').rolling_mean(window_size=volativityWindow).cast(pl.Float32).alias('volativity'))
+	dataFrame = dataFrame.with_columns((pl.lit(baseVolativity)/pl.col('volativity')).cast(pl.Int16).alias('window'))
 
 	dataFrame = dataFrame.with_columns([
-		(pl.col('window')*signalWindow).fill_null(signalWindow).cast(pl.Int64).clip(2, None).alias('signalWindow'),
-		(pl.col('window')*trendWindow).fill_null(trendWindow).cast(pl.Int64).clip(2, None).alias('trendWindow'),
+		(pl.col('window')*signalWindow).fill_null(signalWindow).cast(pl.Int16).clip(2, None).alias('signalWindow'),
+		(pl.col('window')*trendWindow).fill_null(trendWindow).cast(pl.Int16).clip(2, None).alias('trendWindow'),
 	])
 
 	upLine, baseLine, downLine = adaptive_lr_channel(
@@ -60,95 +69,21 @@ def main(inputMessage: dict[str, Any]) -> None:
 			(pl.col('trend') > 0) &
 			(pl.col('window') < maxMulti) &
 			(pl.col('window') > minMulti)
-		).then(pl.lit(2))
+		).then(pl.lit(2, dtype=pl.Int8))
 		.when(
 			(pl.col('close') < pl.col('upLine')) &
 			(pl.col('trend') < 0) &
 			(pl.col('window') < maxMulti) &
 			(pl.col('window') > minMulti)
-		).then(pl.lit(0))
-		.otherwise(pl.lit(1))
+		).then(pl.lit(0, dtype=pl.Int8))
+		.otherwise(pl.lit(1, dtype=pl.Int8))
 		.alias('strategy')
 	)
 	
 	dataFrame = dataFrame.with_columns([
-		pl.when(pl.col('strategy') == 2).then(pl.lit(-1)).otherwise(pl.lit(1)).alias('long_signal'),
-		pl.when(pl.col('strategy') == 0).then(pl.lit(1)).otherwise(pl.lit(-1)).alias('short_signal'),
+		pl.when(pl.col('strategy') == 2).then(pl.lit(-1, dtype=pl.Int8)).otherwise(pl.lit(1, dtype=pl.Int8)).alias('long_signal'),
+		pl.when(pl.col('strategy') == 0).then(pl.lit(1, dtype=pl.Int8)).otherwise(pl.lit(-1, dtype=pl.Int8)).alias('short_signal'),
 	])
 
 	dataFrame = dataFrame.select(['datetime', 'open', 'high', 'low', 'close', 'volume', 'long_signal', 'short_signal'])
-
 	db.execute("CREATE OR REPLACE TEMP TABLE temp_trading AS SELECT * FROM dataFrame")
-	logger.info(f"Сохранено в temp_trading!")
-	
-	db.execute("DROP TABLE IF EXISTS temp_analyst")
-	logger.info("temp_analyst удалена!")
-
-@njit
-def adaptive_lr_channel(
-		closeVector: npt.NDArray[np.float64],
-		windowVector: npt.NDArray[np.int64],
-		multiple: float = 1.00
-	) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.float64], npt.NDArray[np.float64]]:
-	
-	lenth = len(closeVector)
-	upLineVector = np.empty(lenth)
-	baseLineVector = np.empty(lenth)
-	downLineVector = np.empty(lenth)
-	firstIndex = int(np.max(windowVector))
-
-	for i in range(firstIndex, lenth):
-		real_i = i+1
-		window = windowVector[i]
-		cutClose = closeVector[real_i-window:real_i]
-		baseLineVector[i] = linearRegression(cutClose)
-		diff = np.diff(cutClose)
-		abs_diff = np.abs(diff)
-		average_diff = np.mean(abs_diff)
-		upLineVector[i] = baseLineVector[i] + multiple*average_diff
-		downLineVector[i] = baseLineVector[i] - multiple*average_diff
-
-	return upLineVector, baseLineVector, downLineVector
-
-@njit
-def linearRegression(cutClose: npt.NDArray[np.float64]) -> np.float64:
-	lenth = len(cutClose)
-	if lenth < 2:
-		lastValue = cutClose[0] if lenth == 1 else 0.0
-
-	else:
-		sum_x = lenth*(lenth + 1) / 2
-		sum_x2 = lenth*(lenth + 1) * (2*lenth + 1)/6
-		
-		sum_y = 0.0
-		sum_xy = 0.0
-		for i in range(lenth):
-			xi = i + 1
-			sum_y += cutClose[i]
-			sum_xy += xi*cutClose[i]
-		
-		denominator = lenth*sum_x2 - sum_x*sum_x
-		if denominator == 0:
-			lastValue = cutClose[-1]
-
-		else:
-			parametr_b = (lenth * sum_xy - sum_x * sum_y) / denominator
-			parametr_a = (sum_y - parametr_b * sum_x) / lenth
-			lastValue = parametr_a + parametr_b*lenth
-	
-	return lastValue
-
-@njit
-def adaptive_roc(closeVector: npt.NDArray[np.float64], windowVector: npt.NDArray[np.int64]) -> npt.NDArray[np.float64]:
-	lenth = len(closeVector)
-
-	rocVector = np.empty(lenth)
-	firstIndex = int(np.max(windowVector))
-
-	for i in range(firstIndex, lenth):
-		real_i = i+1
-		window = windowVector[i]
-		cutClose = closeVector[real_i-window:real_i]
-		rocVector[i] = cutClose[-1]/cutClose[0] - 1
-
-	return rocVector

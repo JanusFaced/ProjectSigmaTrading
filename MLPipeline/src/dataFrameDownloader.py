@@ -95,7 +95,6 @@ def _load_data(
 		) AS last_rows
 		ORDER BY datetime ASC
 	""")
-
 	return temp_table
 
 def _resample(
@@ -104,7 +103,6 @@ def _resample(
 		timeframe: str,
 		factor_mode: bool = False
 	) -> str:
-
 	def to_interval(tf: str) -> str:
 	    tf = tf.lower().strip()
 	    int_tf = int(re.search(r'\d+', tf).group())
@@ -116,9 +114,7 @@ def _resample(
 	        return f"INTERVAL '{int_tf}' DAY"
 	    else:
 	        raise ValueError(f"Unsupported timeframe: {tf}")
-
 	output_table = "resampled"
-
 	if factor_mode:
 	    agg_columns = """
 	        FIRST(open) AS open,
@@ -140,9 +136,7 @@ def _resample(
 	        LAST(close) AS close,
 	        SUM(volume) AS volume
 	    """
-
 	interval = to_interval(timeframe)
-
 	db.execute(f"""
 	    CREATE OR REPLACE TEMP TABLE {output_table} AS
 	    SELECT 
@@ -152,17 +146,14 @@ def _resample(
 	    GROUP BY time_bucket({interval}, datetime)
 	    ORDER BY datetime
 	""")
-
 	db.execute(f"""
 	    DELETE FROM {output_table} 
 	    WHERE datetime = (SELECT MAX(datetime) FROM {output_table})
 	""")
-
 	return output_table
 
 def _merge_tables(db, base_table: str, factor_table: str) -> str:
 	output_table = "merged"
-	
 	db.execute(f"""
 		CREATE OR REPLACE TEMP TABLE factor_renamed AS
 		SELECT 
@@ -174,7 +165,6 @@ def _merge_tables(db, base_table: str, factor_table: str) -> str:
 			volume AS volumeFactor
 		FROM {factor_table}
 	""")
-	
 	db.execute(f"""
 		CREATE OR REPLACE TEMP TABLE {output_table} AS
 		SELECT 
@@ -193,7 +183,5 @@ def _merge_tables(db, base_table: str, factor_table: str) -> str:
 		INNER JOIN factor_renamed factor ON base.datetime = factor.datetime
 		ORDER BY base.datetime
 	""")
-	
 	db.execute("DROP TABLE IF EXISTS factor_renamed")
-	logger.info(f'Merged tables, rows: {db.execute(f"SELECT COUNT(*) FROM {output_table}").fetchone()[0]}')
 	return output_table

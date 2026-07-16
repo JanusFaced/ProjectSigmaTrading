@@ -2,7 +2,7 @@ from typing import Any, TypedDict, Dict
 import numpy as np
 import ccxt
 import os
-from saveToDB import receiveSignals, sendSignals, receiveTrads, sendTrads
+from saveToDB import receiveSignals, sendSignals, sendTrads
 from duckDB_setup import get_duckdb
 from logger_setup import get_logger
 
@@ -80,20 +80,10 @@ def main(inputMessage: dict) -> None:
 		"tradingEvent": tradingEvent
 	}
 
-	while True:
-		resultWork = sendSignals(nameStrategy=nameStrategy, signalPuck=sendData)
-		if resultWork:
-			logger.info('sendSignals is good!')
-			break
+	sendSignals(nameStrategy=nameStrategy, signalPuck=sendData)
 
-	checkTrads = receiveTrads(nameStrategy=nameStrategy)
-
-	if sendData['tradingEvent'] or checkTrads:
-		while True:
-			resultWork = sendTrads(nameStrategy=nameStrategy, signalPuck=sendData)
-			if resultWork:
-				logger.info('sendTrads is good!')
-				break
+	if sendData['tradingEvent']:
+		sendTrads(nameStrategy=nameStrategy, signalPuck=sendData)
 
 	logger.info(f' >>> nameStrategy: {nameStrategy} -> deposit: {deposit} $ <<< ')
 

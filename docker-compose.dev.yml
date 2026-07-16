@@ -20,7 +20,7 @@ services:
       resources:
         limits:
           cpus: '1.00'
-          memory: 1024M
+          memory: 768M
     restart: unless-stopped
     profiles: ["dev"]
 
@@ -49,7 +49,7 @@ services:
       resources:
         limits:
           cpus: '1.00'
-          memory: 1024M
+          memory: 768M
     restart: unless-stopped
     profiles: ["dev"]
 
@@ -88,8 +88,8 @@ services:
       sh -c "cd src && celery -A tasks worker 
       -Q high_priority,medium_priority,low_priority,default
       --loglevel=info 
-      --concurrency=1 
-      --max-tasks-per-child=50 
+      --concurrency=3 
+      --max-tasks-per-child=40 
       --prefetch-multiplier=1"
     networks:
       - app-network
@@ -111,7 +111,7 @@ services:
       resources:
         limits:
           cpus: '1.00'
-          memory: 1024M
+          memory: 1512M
     restart: unless-stopped
     profiles: ["dev"]
 
@@ -125,7 +125,7 @@ services:
       resources:
         limits:
           cpus: '0.25'
-          memory: 256M
+          memory: 128M
     restart: unless-stopped
     profiles: ["dev"]
 
@@ -145,7 +145,7 @@ services:
       resources:
         limits:
           cpus: '0.25'
-          memory: 256M
+          memory: 384M
     restart: unless-stopped
     profiles: ["dev"]
 
