@@ -1,19 +1,20 @@
 from typing import Any, TypedDict
-import matplotlib.pyplot as plt
-import pandas as pd
+import polars as pl
 import numpy as np
 import numpy.typing as npt
 from numba import njit
 import os
-import sys
 from convertorTF import convertorTimeFrame
-from logger_setup import get_logger
 from pathlib import Path
+from duckDB_setup import get_duckdb
+from logger_setup import get_logger
 
 logger = get_logger(__name__)
 output_dir = Path(__file__).parent.parent / "output"
 
-def main(inputMessage: dict[str, Any], dataFrame: pd.DataFrame) -> pd.DataFrame:
+def main(inputMessage: dict[str, Any]) -> None:
+	db = get_duckdb()
+	dataFrame = db.execute("SELECT * FROM temp_analyst ORDER BY datetime").pl()
 
 	nameExchange = inputMessage['nameExchange']
 	symbol = inputMessage['symbol']
@@ -29,46 +30,72 @@ def main(inputMessage: dict[str, Any], dataFrame: pd.DataFrame) -> pd.DataFrame:
 	baseVolativity1m = 0.0004
 	baseVolativity = baseVolativity1m*convertorTimeFrame(timeFrame)
 
-	dataFrame['diff'] = np.abs(dataFrame['close']/dataFrame['close'].shift(1) - 1)
-	dataFrame['volativity'] = dataFrame['diff'].rolling(window=volativityWindow).mean()
-	dataFrame['window'] = baseVolativity/dataFrame['volativity']
+	dataFrame = dataFrame.with_columns((pl.col('close')/pl.col('close').shift(1) - 1).abs().alias('diff'))
+	dataFrame = dataFrame.with_columns(pl.col('diff').rolling_mean(window_size=volativityWindow).alias('volativity'))
+	dataFrame = dataFrame.with_columns((pl.lit(baseVolativity)/pl.col('volativity')).alias('window'))
 
-	dataFrame['signalWindow'] = (signalWindow*dataFrame['window']).fillna(signalWindow).astype(np.int64).clip(lower=2)
-	dataFrame['trendWindow'] = (trendWindow*dataFrame['window']).fillna(trendWindow).astype(np.int64).clip(lower=2)
+	dataFrame = dataFrame.with_columns([
+		(pl.col('window')*signalWindow).fill_null(signalWindow).cast(pl.Int64).clip(2, None).alias('signalWindow'),
+		(pl.col('window')*trendWindow).fill_null(trendWindow).cast(pl.Int64).clip(2, None).alias('trendWindow'),
+	])
 
-	dataFrame['signal_diff'] = adaptive_roc(closeVector=dataFrame['close'].values, windowVector=dataFrame['signalWindow'].values)
-	dataFrame['original'] = np.abs(dataFrame['signal_diff'])
-
-	dataFrame['primary'] = adaptive_volume(volumeVector=dataFrame['volume'].values, windowVector=dataFrame['signalWindow'].values)
-
-	dataFrame['model'] = adaptive_modeling(
-		secondaryVector=dataFrame['original'].values,
-		primaryVector=dataFrame['primary'].values,
-		windowVector=dataFrame['signalWindow'].values
+	signal_diff = adaptive_roc(
+		closeVector=dataFrame['close'].to_numpy(),
+		windowVector=dataFrame['signalWindow'].to_numpy()
+	)
+	original = np.abs(signal_diff)
+	primary = adaptive_volume(
+		volumeVector=dataFrame['volume'].to_numpy(),
+		windowVector=dataFrame['signalWindow'].to_numpy()
 	)
 
-	dataFrame['trend'] = adaptive_roc(closeVector=dataFrame['close'].values, windowVector=dataFrame['trendWindow'].values)
-
-	dataFrame['strategy'] = np.select(
-		[
-			(dataFrame['signal_diff'] > -dataFrame['model']) & (dataFrame['trend'] > 0) & (maxMulti > dataFrame['window']) & (dataFrame['window'] > minMulti),
-			(dataFrame['signal_diff'] < dataFrame['model']) & (dataFrame['trend'] < 0) & (maxMulti > dataFrame['window']) & (dataFrame['window'] > minMulti)
-		],
-		[2, 0], default=1
+	model = adaptive_modeling(
+		secondaryVector=original,
+		primaryVector=primary,
+		windowVector=dataFrame['signalWindow'].to_numpy()
 	)
 
-	dataFrame['long_signal'] = np.select([dataFrame['strategy'] == 2], [-1], default=1)
-	dataFrame['short_signal'] = np.select([dataFrame['strategy'] == 0], [1], default=-1)
+	trend = adaptive_roc(
+		closeVector=dataFrame['close'].to_numpy(),
+		windowVector=dataFrame['trendWindow'].to_numpy()
+	)
 
-	#testDF = dataFrame.tail(50)
-	#superName = f"{strategy}_{nameExchange}_{symbol}_{type}_{timeFrame}.png"
-	#plt.plot(testDF['datetime'], testDF['diff'], color="black")
-	#plt.plot(testDF['datetime'], testDF['model'], color="green")
-	#plt.plot(testDF['datetime'], -testDF['model'], color="red")
-	#plt.savefig(str(output_dir / superName ))
-	#plt.close()
+	dataFrame = dataFrame.with_columns([
+		pl.Series('signal_diff', signal_diff),
+		pl.Series('p_model', model),
+		pl.Series('n_model', -1*model),
+		pl.Series('trend', trend),
+	])
 
-	return dataFrame[['datetime', 'open', 'high', 'low', 'close', 'volume', 'long_signal', 'short_signal']]
+	dataFrame = dataFrame.with_columns(
+		pl.when(
+			(pl.col('signal_diff') > pl.col('n_model')) &
+			(pl.col('trend') > 0) &
+			(pl.col('window') < maxMulti) &
+			(pl.col('window') > minMulti)
+		).then(pl.lit(2))
+		.when(
+			(pl.col('signal_diff') < pl.col('p_model')) &
+			(pl.col('trend') < 0) &
+			(pl.col('window') < maxMulti) &
+			(pl.col('window') > minMulti)
+		).then(pl.lit(0))
+		.otherwise(pl.lit(1))
+		.alias('strategy')
+	)
+	
+	dataFrame = dataFrame.with_columns([
+		pl.when(pl.col('strategy') == 2).then(pl.lit(-1)).otherwise(pl.lit(1)).alias('long_signal'),
+		pl.when(pl.col('strategy') == 0).then(pl.lit(1)).otherwise(pl.lit(-1)).alias('short_signal'),
+	])
+
+	dataFrame = dataFrame.select(['datetime', 'open', 'high', 'low', 'close', 'volume', 'long_signal', 'short_signal'])
+
+	db.execute("CREATE OR REPLACE TEMP TABLE temp_trading AS SELECT * FROM dataFrame")
+	logger.info(f"Сохранено в temp_trading!")
+	
+	db.execute("DROP TABLE IF EXISTS temp_analyst")
+	logger.info("temp_analyst удалена!")
 
 @njit
 def adaptive_modeling(

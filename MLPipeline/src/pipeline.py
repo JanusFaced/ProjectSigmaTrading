@@ -9,6 +9,7 @@ from strategies import correlation
 import trading_simulator
 import imitation_connector
 import filters
+from duckDB_setup import close_duckdb
 from logger_setup import get_logger
 
 logger = get_logger(__name__)
@@ -30,7 +31,7 @@ def main(inputMessage: dict[str, Any]) -> None:
 			inputMessage['factorExchange']
 		])
 	
-	dataFrame: pd.DataFrame = dataFrameDownloader.main(
+	dataFrameDownloader.main(
 		nameExchange=inputMessage['nameExchange'],
 		symbol=inputMessage['symbol'],
 		type=inputMessage['type'],
@@ -42,24 +43,26 @@ def main(inputMessage: dict[str, Any]) -> None:
 	)
 
 	if firstName == "moving":
-		dataFrame = moving.main(inputMessage, dataFrame)
+		moving.main(inputMessage)
 	elif firstName == "channel":
-		dataFrame = channel.main(inputMessage, dataFrame)
+		channel.main(inputMessage)
 	elif firstName == "forecast":
-		dataFrame = forecast.main(inputMessage, dataFrame)
+		forecast.main(inputMessage)
 	elif firstName == "modeling":
-		dataFrame = modeling.main(inputMessage, dataFrame)
+		modeling.main(inputMessage)
 	elif firstName == "pattern":
-		dataFrame = pattern.main(inputMessage, dataFrame)
+		pattern.main(inputMessage)
 	elif firstName == "correlation":
-		dataFrame = correlation.main(inputMessage, dataFrame)
+		correlation.main(inputMessage)
 
 	if inputMessage['mode'] == 'test':
-		trading_simulator.main(inputMessage, dataFrame)
+		trading_simulator.main(inputMessage)
 	elif inputMessage['mode'] == 'imitation':
-		imitation_connector.main(inputMessage, dataFrame)
+		imitation_connector.main(inputMessage)
 	elif inputMessage['mode'] == 'real':
 		pass
+
+	close_duckdb()
 
 if __name__ == "__main__":
 
@@ -71,14 +74,14 @@ if __name__ == "__main__":
 #		'BTC',
 #		'ETH',
 #		'BNB',
-#		'XRP',
+		'XRP',
 #		'SOL',
 #		'TRX',
-#		'HYPE',
+		'HYPE',
 #		'ADA',
-#		'LINK',
-		'RE',
-		'BOT',
+		'LINK',
+#		'RE',
+#		'BOT',
 	]
 	listTypeMarket = ['futures']
 	listNameExchange = ['binance']
@@ -90,16 +93,16 @@ if __name__ == "__main__":
 	]
 	listStrategy = [
 		'moving:I',
-#		'channel:I',
-#		'forecast:I',
-#		'modeling:I',
-#		'pattern:I',
+		'channel:I',
+		'forecast:I',
+		'modeling:I',
+		'pattern:I',
 		'correlation:II'
 	]
 	listFactor = [
-#		'BTC',
-		'RE',
-		'BOT',
+		'BTC',
+#		'RE',
+#		'BOT',
 	]
 	listTypeFactor = ['futures']
 	listFactorExchange = ['binance']

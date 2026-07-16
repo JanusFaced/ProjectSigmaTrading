@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 import duckdb
 import ccxt
 import os
+from duckDB_setup import get_duckdb
 from logger_setup import get_logger
 
 logger = get_logger(__name__)
@@ -21,14 +22,7 @@ def main(
 		nowMuchMoreDays: int
 	) -> None:
 
-	db = duckdb.connect()
-	db.execute(f"""
-		INSTALL postgres;
-		LOAD postgres;
-		ATTACH 'host={dataBase_host} port={dataBase_port} 
-				dbname={dataBase_name} user={dataBase_user} 
-				password={dataBase_password}' AS pg (TYPE postgres);
-	""")
+	db = get_duckdb()
 
 	if mode == 'test':
 		nameTable = f"{nameExchange}_{symbol}_{type}".lower()
@@ -146,6 +140,9 @@ def main(
 		logger.info(f'Удалено {deleted_rows} старых записей (до {cutoff_date})')
 
 	logger.info(f'{nameTable} успешно обновлён!')
+	db.execute("DROP TABLE IF EXISTS temp_raw")
+	db.execute("DROP TABLE IF EXISTS temp_filled")
+	logger.info("Временные таблицы temp_raw и temp_filled удалены")
 
 def setExchange(nameExchange: str, type: str) -> ccxt.Exchange:
 	if nameExchange == 'binance':

@@ -1,17 +1,14 @@
 from typing import Any, TypedDict, Dict
-import matplotlib.pyplot as plt
-import pandas as pd
 import numpy as np
 import ccxt
-import sys
 import os
 from saveToDB import receiveSignals, sendSignals, receiveTrads, sendTrads
+from duckDB_setup import get_duckdb
 from logger_setup import get_logger
-from pathlib import Path
 
 logger = get_logger(__name__)
 
-def main(inputMessage: dict, dataFrame: pd.DataFrame) -> None:
+def main(inputMessage: dict) -> None:
 	
 	nameExchange = inputMessage['nameExchange']
 	symbol = inputMessage['symbol']
@@ -44,17 +41,7 @@ def main(inputMessage: dict, dataFrame: pd.DataFrame) -> None:
 	elif type == 'futures':
 		ticker: str = f'{symbol}/USDT:USDT'
 
-	try:
-		long_signal = int(dataFrame['long_signal'].iloc[-1])
-	except Exception as e:
-		logger.info(f'Error long_signal {e}')
-		long_signal = 1
-
-	try:
-		short_signal = int(dataFrame['short_signal'].iloc[-1])
-	except Exception as e:
-		logger.info(f'Error short_signal {e}')
-		short_signal = -1
+	long_signal, short_signal = get_signals()
 
 	receiveData = receiveSignals(nameStrategy=nameStrategy)
 
@@ -143,7 +130,6 @@ def imitationConnector(
 		if active == 0:
 			active = ((fiat*leverage)/price)*(1-fees)
 			fiat -= fiat*leverage
-			tradingEvent = True
 			logger.info(f'LONG is opened! {fiat} {active}')
 	
 	elif signal == 'SHORT':
@@ -160,7 +146,6 @@ def imitationConnector(
 		if active == 0:
 			active = -(fiat*leverage)/price
 			fiat += np.abs(active)*price*(1-fees)
-			tradingEvent = True
 			logger.info(f'SHORT is opened! {fiat} {active}')
 	
 	else:
@@ -185,4 +170,29 @@ def imitationConnector(
 
 	return fiat, active, balance, tradingEvent
 
+def get_signals():
+	db = get_duckdb()
 	
+	try:
+		result = db.execute("""
+			SELECT long_signal, short_signal 
+			FROM temp_trading 
+			ORDER BY datetime DESC 
+			LIMIT 1
+		""").fetchone()
+		
+		if result:
+			long_signal = int(result[0])
+			short_signal = int(result[1])
+			logger.info(f"Сигналы получены: long={long_signal}, short={short_signal}")
+		else:
+			logger.warning("temp_trading пуста, используем сигналы по умолчанию")
+			long_signal = 1
+			short_signal = -1
+			
+	except Exception as e:
+		logger.error(f"Ошибка получения сигналов: {e}")
+		long_signal = 1
+		short_signal = -1
+	
+	return long_signal, short_signal

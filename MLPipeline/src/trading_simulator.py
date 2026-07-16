@@ -7,13 +7,14 @@ import os
 import backtrader as bt
 import saveToDB
 from convertorTF import convertorTimeFrame
+from duckDB_setup import get_duckdb
 from logger_setup import get_logger
 from pathlib import Path
 
 logger = get_logger(__name__)
 output_dir = Path(__file__).parent / "output"
 
-def main(inputMessage: dict[str, Any], dataFrame: pd.DataFrame) -> None:
+def main(inputMessage: dict[str, Any]) -> None:
 	nameExchange = inputMessage['nameExchange']
 	symbol = inputMessage['symbol']
 	type = inputMessage['type']
@@ -23,14 +24,14 @@ def main(inputMessage: dict[str, Any], dataFrame: pd.DataFrame) -> None:
 	nameStrategy = f"{nameExchange}_{symbol}_{type}_{timeFrame}_{strategy}"
 	
 	logger.info(f' > Start backtesting {nameStrategy}')
-	report = backTester(inputMessage, dataFrame)
+	report = backTester(inputMessage)
 	logger.info(' > End backtesting')
 	backTestAnalyst(
 		inputMessage=inputMessage,
 		report=report
 	)
 
-def backTester(inputMessage: dict[str, Any], dataFrame: pd.DataFrame) -> Dict:
+def backTester(inputMessage: dict[str, Any]) -> Dict:
 
 	class MyPandasData(bt.feeds.PandasData):
 		lines = ('long_signal', 'short_signal')
@@ -115,6 +116,14 @@ def backTester(inputMessage: dict[str, Any], dataFrame: pd.DataFrame) -> Dict:
 
 		def getsize(self, price, cash):
 			return cash/price
+
+	db = get_duckdb()
+
+	dataFrame = db.execute("""
+		SELECT datetime, open, high, low, close, volume, long_signal, short_signal 
+		FROM temp_trading 
+		ORDER BY datetime
+	""").df()
 
 	nameExchange = inputMessage['nameExchange']
 	symbol = inputMessage['symbol']
