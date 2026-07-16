@@ -106,7 +106,7 @@ services:
       resources:
         limits:
           cpus: '1.00'
-          memory: 1512M
+          memory: 1768M
     restart: unless-stopped
     profiles: ["dev"]
 
