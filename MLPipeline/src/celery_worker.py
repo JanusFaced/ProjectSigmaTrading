@@ -1,14 +1,21 @@
 from celery_app import app
 import pipeline
-from filters_kit import filter_exist
+from filters_kit import filter_new, filter_exist
+import makeStats
+import os
 from logger_setup import get_logger
 
 logger = get_logger(__name__)
 
-def build_tasks(listTimeFrame: list) -> list:
+global_work_mode = os.getenv('GLOBAL_WORK_MODE')
 
-	mode = 'imitation'
+def build_tasks(
+		listTimeFrame: list = ['8min', '18min', '36min', '48min'],
+		mode: str = 'imitation'
+	) -> list:
+
 	testMode = 'cumul'
+	modeFilter= 'exist'
 	target_year_profit = 30.0
 
 	listSymbol = [
@@ -17,6 +24,8 @@ def build_tasks(listTimeFrame: list) -> list:
 		'SOL',
 		'TRX',
 		'ADA',
+#		'RE',
+#		'BOT',
 	]
 	listTypeMarket = ['futures']
 	listNameExchange = ['binance']
@@ -28,7 +37,11 @@ def build_tasks(listTimeFrame: list) -> list:
 		'pattern:I',
 		'correlation:II'
 	]
-	listFactor = ['BTC']
+	listFactor = [
+		'BTC',
+#		'RE',
+#		'BOT',
+	]
 	listTypeFactor = ['futures']
 	listFactorExchange = ['binance']
 
@@ -80,17 +93,31 @@ def build_tasks(listTimeFrame: list) -> list:
 	lenthCombi = len(listMSGs)
 	logger.info(f"full lenth combination = {lenthCombi}")
 
-	if mode == "imitation":
-		listMSGs = filter_exist.main(
-			listMSGs=listMSGs,
-			target_year_profit=target_year_profit
-		)
+	if mode in ["stats", "imitation"]:
+		if modeFilter == 'new':
+			listMSGs = filter_new.main(
+				listMSGs=listMSGs,
+				target_year_profit=target_year_profit,
+			)
+		elif modeFilter == 'exist':
+			listMSGs = filter_exist.main(
+				listMSGs=listMSGs,
+				target_year_profit=target_year_profit,
+			)
+
 		lenthCombi = len(listMSGs)
 		logger.info(f"filter for imitation lenth combination = {lenthCombi}")
 
 	tasks_to_run: list = []
-	for i in range(len(listMSGs)):
-		tasks_to_run.append({'id': i+1, 'params': listMSGs[i]})
+	if mode != 'stats':
+		for i in range(len(listMSGs)):
+			tasks_to_run.append({'id': i+1, 'params': listMSGs[i]})
+	else:
+		makeStats.main(
+			listSymbol=listSymbol,
+			listTimeFrame=listTimeFrame,
+			listStrategy=listStrategy
+		)
 
 	return tasks_to_run
 
@@ -116,3 +143,20 @@ def run_pipeline(item_id: int, params: dict) -> None:
 	except Exception as e:
 		logger.error(f"❌ Ошибка в задаче {item_id}: {e}")
 		raise
+
+if global_work_mode in ['test', 'stats']:
+	def startBackTests() -> None:
+		logger.info(f"Пользователь создает задачи для бэктеста!")
+		tasks = build_tasks(mode=global_work_mode)
+		for task in tasks:
+			app.send_task(
+				'celery_worker.run_pipeline',
+				args=[task['id'], task['params']],
+				queue='high_priority'
+			)
+		logger.info(f"✅ Пользователь отправил {len(tasks)} задач!")
+
+	startBackTests()
+
+elif global_work_mode == 'imitation':
+	pass

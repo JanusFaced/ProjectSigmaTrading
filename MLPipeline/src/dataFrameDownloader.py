@@ -51,9 +51,9 @@ def _load_data(
 	if mode == 'test':
 		maxDelta = 30
 		maxDeltaDatetime = timedelta(days=maxDelta)
-		modeMultiple = "relative"
-		#standartDeep: int = 5_000_000
-		standartDeep: int = 5_000
+		modeMultiple = "identical"
+		standartDeep: int = 5_000_000
+		#standartDeep: int = 5_000
 		if modeMultiple == "identical":
 			realAmountLines: int = standartDeep
 		elif modeMultiple == "relative":

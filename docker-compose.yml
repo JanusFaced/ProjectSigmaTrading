@@ -68,6 +68,7 @@ services:
       DB_HOST: dataBase
       DB_PORT: 5432
       REDIS_URL: redis://redis:6379/0
+      GLOBAL_WORK_MODE: 'imitation'
     volumes:
       - ./MLPipeline/src/logs:/app/src/logs
     deploy:
@@ -102,6 +103,7 @@ services:
       DB_HOST: dataBase
       DB_PORT: 5432
       REDIS_URL: redis://redis:6379/0
+      GLOBAL_WORK_MODE: 'imitation'
     volumes:
       - ./MLPipeline/src/config:/app/src/config
       - ./MLPipeline/src/output:/app/src/output
