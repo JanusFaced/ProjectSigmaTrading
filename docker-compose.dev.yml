@@ -21,8 +21,9 @@ services:
         limits:
           cpus: '1.00'
           memory: 768M
+    labels:
+      - "logging=promtail"
     restart: unless-stopped
-    profiles: ["dev"]
 
   backend:
     image: python_app_backend
@@ -51,8 +52,9 @@ services:
         limits:
           cpus: '1.00'
           memory: 768M
+    labels:
+      - "logging=promtail"
     restart: unless-stopped
-    profiles: ["dev"]
 
   celery_beat:
     image: python_app_ml_pipeline_celery_beat
@@ -80,8 +82,9 @@ services:
         limits:
           cpus: '0.25'
           memory: 64M
+    labels:
+      - "logging=promtail"
     restart: unless-stopped
-    profiles: ["dev"]
 
   celery_worker:
     image: python_app_ml_pipeline_celery_worker
@@ -117,8 +120,9 @@ services:
         limits:
           cpus: '1.00'
           memory: 1768M
+    labels:
+      - "logging=promtail"
     restart: unless-stopped
-    profiles: ["dev"]
 
   redis:
     image: redis:7-alpine
@@ -131,8 +135,9 @@ services:
         limits:
           cpus: '0.25'
           memory: 64M
+    labels:
+      - "logging=promtail"
     restart: unless-stopped
-    profiles: ["dev"]
 
   dataBase:
     image: postgres:16.0
@@ -151,12 +156,75 @@ services:
         limits:
           cpus: '0.25'
           memory: 384M
+    labels:
+      - "logging=promtail"
     restart: unless-stopped
-    profiles: ["dev"]
+
+  loki:
+    image: grafana/loki:2.8.0
+    container_name: loki
+    command: -config.file=/etc/loki/loki-config.yml
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./monitoring/loki/loki-config.yml:/etc/loki/loki-config.yml
+      - loki_data:/loki
+    networks:
+      - app-network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 128M
+    restart: unless-stopped
+
+  promtail:
+    image: grafana/promtail:2.8.0
+    container_name: promtail
+    command: -config.file=/etc/promtail/promtail-config.yml
+    volumes:
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./monitoring/promtail/promtail-config.yml:/etc/promtail/promtail-config.yml
+    depends_on:
+      - loki
+    networks:
+      - app-network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 128M
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:10.4.0
+    container_name: grafana
+    ports:
+      - "3001:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GF_SECURITY_ADMIN_USER}
+      - GF_SECURITY_ADMIN_PASSWORD=${GF_SECURITY_ADMIN_PASSWORD}
+      - GF_AUTH_ANONYMOUS_ENABLED=${GF_AUTH_ANONYMOUS_ENABLED}
+    depends_on:
+      - loki
+    networks:
+      - app-network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 128M
+    restart: unless-stopped
 
 volumes:
   quantta_db-data:
     external: true
+  loki_data:
+  grafana_data:
 
 networks:
   app-network:
