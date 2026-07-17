@@ -221,6 +221,8 @@ volumes:
   db-data:
     name: projectsigmatrading_db-data
     driver: local
+  loki_data:
+  grafana_data:
 
 networks:
   app-network:
