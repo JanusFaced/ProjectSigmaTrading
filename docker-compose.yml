@@ -206,11 +206,14 @@ services:
       - GF_SECURITY_ADMIN_USER=${GF_SECURITY_ADMIN_USER}
       - GF_SECURITY_ADMIN_PASSWORD=${GF_SECURITY_ADMIN_PASSWORD}
       - GF_AUTH_ANONYMOUS_ENABLED=${GF_AUTH_ANONYMOUS_ENABLED}
+      # 👇 КРИТИЧЕСКИЕ НАСТРОЙКИ
       - GF_SERVER_ROOT_URL=https://projectsigmatrading.ru/grafana
       - GF_SERVER_SERVE_FROM_SUB_PATH=true
       - GF_SERVER_ENFORCE_DOMAIN=false
       - GF_SERVER_PROTOCOL=http
       - GF_SERVER_DOMAIN=projectsigmatrading.ru
+      # 👇 ОТКЛЮЧАЕМ АВТОМАТИЧЕСКИЙ РЕДИРЕКТ НА HTTPS
+      - GF_SERVER_ROUTER_LOGGING=true
     depends_on:
       - loki
     networks:
