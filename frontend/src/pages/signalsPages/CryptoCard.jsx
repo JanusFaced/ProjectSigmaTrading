@@ -32,7 +32,7 @@ function CryptoCard({ data }) {
 
 	return (
 		<CryptoCardContainer>
-			<CardTitle>{data.strategy}</CardTitle>
+			<CardTitle long={data.strategy.length > 40}>{data.strategy}</CardTitle>
 			<CryptoTable>
 				<tbody>
 					<tr>

@@ -19,14 +19,16 @@ export const CryptoCardContainer = styled.div`
 
 // Заголовок карточки - более компактный
 export const CardTitle = styled.h3`
-    font-size: 18px;
+    font-size: ${props => props.long ? '10px' : '18px'};
     color: #333;
     margin-bottom: 12px;
     padding-bottom: 8px;
     border-bottom: 2px solid #f0f0f0;
     text-align: center;
     font-weight: 700;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.3px;
+    word-break: break-word;
+    line-height: 1.4;
 `;
 
 // Таблица с данными - плотная верстка

@@ -24,12 +24,16 @@ import {
     LoadingContainer,
     ErrorContainer,
     TradesTable,
-    ChartContainer
+    ChartContainer,
+    PaginationContainer,
+    PageButton,
+    ControlsContainer,
+    LimitGroup,
+    LimitButton
 } from './TradesPage.styles.jsx';
 
 const API_BASE = process.env.REACT_APP_API_URL;
 
-// Регистрируем компоненты Chart.js
 ChartJS.register(
     CategoryScale,
     LinearScale,
@@ -44,25 +48,97 @@ ChartJS.register(
 function TradesPage() {
     const { signalId } = useParams();
     const navigate = useNavigate();
-    const [data, setData] = useState(null);
+    
+    const [chartData, setChartData] = useState([]);
+    const [tableData, setTableData] = useState([]);
+    const [strategy, setStrategy] = useState('');
+    const [statistics, setStatistics] = useState({ total_trades: 0 });
+    const [pagination, setPagination] = useState({
+        current_page: 1,
+        limit: 50,
+        total: 0,
+        total_pages: 1
+    });
+    
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [chartLimit, setChartLimit] = useState(50);
+    
+    const CHART_LIMITS = [50, 100, 150, 200, -1]; // -1 означает все данные
+
+    const fetchTrades = async (page = 1, limit = 50, chartLimit = 50) => {
+        try {
+            setLoading(true);
+            setError(null);
+            
+            const response = await axios.get(`${API_BASE}/getTradesBySignal/${signalId}`, {
+                params: { 
+                    page, 
+                    limit, 
+                    chart_limit: chartLimit 
+                }
+            });
+            
+            // Проверяем, что данные пришли корректно
+            if (response.data && typeof response.data === 'object') {
+                setChartData(response.data.chart_data || []);
+                setTableData(response.data.table_data || []);
+                setStrategy(response.data.strategy || '');
+                setStatistics(response.data.statistics || { total_trades: 0 });
+                setPagination(response.data.pagination || {
+                    current_page: 1,
+                    limit: 50,
+                    total: 0,
+                    total_pages: 1
+                });
+            } else {
+                throw new Error('Неверный формат данных');
+            }
+        } catch (err) {
+            console.error('Error fetching trades:', err);
+            // Обрабатываем ошибку более детально
+            let errorMessage = 'Ошибка загрузки данных';
+            if (err.response) {
+                // Сервер ответил с ошибкой
+                if (err.response.data && typeof err.response.data === 'object') {
+                    if (err.response.data.detail) {
+                        errorMessage = err.response.data.detail;
+                    } else if (err.response.data.message) {
+                        errorMessage = err.response.data.message;
+                    } else {
+                        errorMessage = JSON.stringify(err.response.data);
+                    }
+                } else {
+                    errorMessage = err.response.data || errorMessage;
+                }
+            } else if (err.request) {
+                // Запрос был сделан, но ответа не получено
+                errorMessage = 'Сервер не отвечает. Проверьте подключение.';
+            } else {
+                // Что-то пошло не так при настройке запроса
+                errorMessage = err.message || errorMessage;
+            }
+            setError(errorMessage);
+            setChartData([]);
+            setTableData([]);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     useEffect(() => {
-        const fetchTrades = async () => {
-            try {
-                setLoading(true);
-                const response = await axios.get(`${API_BASE}/getTradesBySignal/${signalId}`);
-                setData(response.data);
-            } catch (err) {
-                setError(err.response?.data?.detail || err.message);
-            } finally {
-                setLoading(false);
-            }
-        };
+        fetchTrades(1, 50, chartLimit);
+    }, [signalId, chartLimit]);
 
-        fetchTrades();
-    }, [signalId]);
+    const handlePageChange = (newPage) => {
+        if (newPage >= 1 && newPage <= pagination.total_pages) {
+            fetchTrades(newPage, pagination.limit, chartLimit);
+        }
+    };
+
+    const handleChartLimitChange = (newLimit) => {
+        setChartLimit(newLimit);
+    };
 
     if (loading) {
         return (
@@ -75,12 +151,37 @@ function TradesPage() {
     if (error) {
         return (
             <PageContainer>
-                <ErrorContainer>❌ Ошибка: {error}</ErrorContainer>
+                <ErrorContainer>
+                    <div>
+                        <div style={{ fontSize: '48px', marginBottom: '12px' }}>❌</div>
+                        <div style={{ fontSize: '18px', fontWeight: '600', marginBottom: '8px' }}>
+                            Ошибка загрузки
+                        </div>
+                        <div style={{ fontSize: '14px', color: '#6b7280' }}>
+                            {error}
+                        </div>
+                        <button 
+                            onClick={() => fetchTrades(1, 50, chartLimit)}
+                            style={{
+                                marginTop: '16px',
+                                padding: '8px 24px',
+                                background: '#8b5cf6',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '8px',
+                                cursor: 'pointer',
+                                fontSize: '14px'
+                            }}
+                        >
+                            Попробовать снова
+                        </button>
+                    </div>
+                </ErrorContainer>
             </PageContainer>
         );
     }
 
-    if (!data || !data.trades || data.trades.length === 0) {
+    if (!chartData || chartData.length === 0) {
         return (
             <PageContainer>
                 <Header>
@@ -95,14 +196,13 @@ function TradesPage() {
     }
 
     // Подготовка данных для графика
-    const labels = data.trades.map((trade, index) => {
+    const labels = chartData.map((trade, index) => {
         return `#${index + 1}\n${trade.datetime}`;
     });
 
-    const deposits = data.trades.map((trade) => parseFloat(trade.deposit));
+    const deposits = chartData.map((trade) => parseFloat(trade.deposit));
 
-    // Данные для графика
-    const chartData = {
+    const chartConfig = {
         labels: labels,
         datasets: [
             {
@@ -121,7 +221,6 @@ function TradesPage() {
         ]
     };
 
-    // Опции графика
     const chartOptions = {
         responsive: true,
         maintainAspectRatio: false,
@@ -169,17 +268,75 @@ function TradesPage() {
     const maxDeposit = Math.max(...deposits);
     const minDeposit = Math.min(...deposits);
 
+    // Рендер кнопок пагинации
+    const renderPaginationButtons = () => {
+        const { current_page, total_pages } = pagination;
+        const pages = [];
+        const maxVisible = 5;
+        
+        let startPage = Math.max(1, current_page - Math.floor(maxVisible / 2));
+        let endPage = Math.min(total_pages, startPage + maxVisible - 1);
+        
+        if (endPage - startPage < maxVisible - 1) {
+            startPage = Math.max(1, endPage - maxVisible + 1);
+        }
+        
+        for (let i = startPage; i <= endPage; i++) {
+            pages.push(i);
+        }
+        
+        return (
+            <>
+                <PageButton 
+                    onClick={() => handlePageChange(1)}
+                    disabled={current_page === 1}
+                >
+                    ⟪
+                </PageButton>
+                <PageButton 
+                    onClick={() => handlePageChange(current_page - 1)}
+                    disabled={current_page === 1}
+                >
+                    ⟨
+                </PageButton>
+                
+                {pages.map(page => (
+                    <PageButton
+                        key={page}
+                        active={page === current_page}
+                        onClick={() => handlePageChange(page)}
+                    >
+                        {page}
+                    </PageButton>
+                ))}
+                
+                <PageButton 
+                    onClick={() => handlePageChange(current_page + 1)}
+                    disabled={current_page === total_pages}
+                >
+                    ⟩
+                </PageButton>
+                <PageButton 
+                    onClick={() => handlePageChange(total_pages)}
+                    disabled={current_page === total_pages}
+                >
+                    ⟫
+                </PageButton>
+            </>
+        );
+    };
+
     return (
         <PageContainer>
             <Header>
-                <h2>📊 График сделок для {data.strategy}</h2>
+                <h2>📊 График сделок для {strategy}</h2>
                 <BackButton onClick={() => navigate('/signals/analyst')}>← Назад к сигналам</BackButton>
             </Header>
 
             <StatsGrid>
                 <StatCard>
                     <label>Всего сделок</label>
-                    <value>{data.statistics.total_trades}</value>
+                    <value>{statistics.total_trades}</value>
                 </StatCard>
                 <StatCard>
                     <label>Начальный депозит</label>
@@ -206,9 +363,23 @@ function TradesPage() {
             </StatsGrid>
 
             <ChartCard>
-                <h3>Динамика депозита по времени</h3>
+                <ControlsContainer>
+                    <h3>Динамика депозита по времени</h3>
+                    <LimitGroup>
+                        <span>Показать:</span>
+                        {CHART_LIMITS.map(limit => (
+                            <LimitButton
+                                key={limit}
+                                active={chartLimit === limit}
+                                onClick={() => handleChartLimitChange(limit)}
+                            >
+                                {limit === -1 ? 'Всё' : limit}
+                            </LimitButton>
+                        ))}
+                    </LimitGroup>
+                </ControlsContainer>
                 <ChartContainer>
-                    <Line data={chartData} options={chartOptions} />
+                    <Line data={chartConfig} options={chartOptions} />
                 </ChartContainer>
             </ChartCard>
 
@@ -224,16 +395,33 @@ function TradesPage() {
                             </tr>
                         </thead>
                         <tbody>
-                            {data.trades.map((trade, index) => (
-                                <tr key={trade.id}>
-                                    <td>{index + 1}</td>
-                                    <td>${trade.deposit}</td>
-                                    <td>{trade.datetime}</td>
+                            {tableData.length > 0 ? (
+                                tableData.map((trade, index) => (
+                                    <tr key={trade.id}>
+                                        <td>{index + 1 + (pagination.current_page - 1) * pagination.limit}</td>
+                                        <td>${trade.deposit}</td>
+                                        <td>{trade.datetime}</td>
+                                    </tr>
+                                ))
+                            ) : (
+                                <tr>
+                                    <td colSpan="3" style={{ textAlign: 'center', padding: '20px', color: '#6b7280' }}>
+                                        Нет данных для отображения
+                                    </td>
                                 </tr>
-                            ))}
+                            )}
                         </tbody>
                     </table>
                 </TradesTable>
+                
+                {pagination.total_pages > 1 && (
+                    <PaginationContainer>
+                        {renderPaginationButtons()}
+                        <span style={{ marginLeft: '16px', color: '#6b7280', fontSize: '14px' }}>
+                            Всего: {pagination.total} записей
+                        </span>
+                    </PaginationContainer>
+                )}
             </ChartCard>
         </PageContainer>
     );
