@@ -5,7 +5,6 @@ from contextlib import asynccontextmanager
 from dataBaseModels import Backtest, Signal, Trade
 from dataBaseModels import get_session, close_session
 import os
-import sys
 from logger_setup import get_logger
 
 logger = get_logger(__name__)

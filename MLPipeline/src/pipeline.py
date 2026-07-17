@@ -1,14 +1,10 @@
 from typing import Any
 import dataFrameDownloader
-from strategies import moving
-from strategies import channel
-from strategies import forecast
-from strategies import modeling
-from strategies import pattern
-from strategies import correlation
+from strategies import moving, channel, forecast, modeling, pattern, correlation
 import trading_simulator
 import imitation_connector
-import filters
+from filters_kit import filter_new, filter_exist
+import makeStats
 from duckDB_setup import close_duckdb
 from logger_setup import get_logger
 
@@ -68,6 +64,7 @@ if __name__ == "__main__":
 
 	mode = 'imitation'
 	testMode = 'cumul'
+	modeFilter = 'exist'
 	target_year_profit = 30.0
 
 	listSymbol = [
@@ -156,17 +153,19 @@ if __name__ == "__main__":
 	logger.info(f"full lenth combination = {lenthCombi}")
 
 	if mode in ["stats", "imitation"]:
-#		listMSGs = filters.forImitation(
-#			listMSGs=listMSGs,
-#			target_year_profit=target_year_profit,
-#			modeFilter='exist'
-#		)
+		if modeFilter == 'new':
+			listMSGs = filter_new.main(
+				listMSGs=listMSGs,
+				target_year_profit=target_year_profit,
+			)
+		elif modeFilter == 'exist':
+			listMSGs = filter_exist.main(
+				listMSGs=listMSGs,
+				target_year_profit=target_year_profit,
+			)
+
 		lenthCombi = len(listMSGs)
 		logger.info(f"filter for imitation lenth combination = {lenthCombi}")
-	elif mode == "real":
-		listMSGs = filters.forReal(listMSGs=listMSGs, target_year_profit=target_year_profit)
-		lenthCombi = len(listMSGs)
-		logger.info(f"filter for real lenth combination = {lenthCombi}")
 
 	if mode != 'stats':
 		for msg in listMSGs:
@@ -176,4 +175,8 @@ if __name__ == "__main__":
 				logger.info(f"error: {e}")
 
 	if mode in ['stats', 'test']:
-		filters.makeStats(listSymbol=listSymbol, listTimeFrame=listTimeFrame, listStrategy=listStrategy)
+		makeStats(
+			listSymbol=listSymbol,
+			listTimeFrame=listTimeFrame,
+			listStrategy=listStrategy
+		)

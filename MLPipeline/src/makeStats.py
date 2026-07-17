@@ -14,62 +14,7 @@ logger = get_logger(__name__)
 output_dir = Path(__file__).parent / "output"
 config_dir = Path(__file__).parent / "config"
 
-def sort_cols_and_rows(inputList, name):
-
-	if name == 'timeframe':
-		priority: dict = {
-			'1min': 1,
-			'2min': 2,
-			'4min': 4,
-			'5min': 5,
-			'6min': 6,
-			'8min': 8,
-			'9min': 9,
-			'10min': 10,
-			'12min': 12,
-			'15min': 15,
-			'16min': 16,
-			'18min': 18,
-			'20min': 20,
-			'24min': 24,
-			'25min': 25,
-			'30min': 30,
-			'32min': 32,
-			'36min': 36,
-			'40min': 40,
-			'45min': 45,
-			'48min': 48,
-			'50min': 50,
-			'1h': 60,
-			'2h': 120,
-			'4h': 240,
-			'6h': 360,
-			'8h': 480,
-			'12h': 720,
-			'1d': 1440
-		}
-		outputList = sorted(inputList, key=lambda x: priority.get(str(x), 9999))
-	
-	elif name == 'symbol':
-		priority = {
-			'BTC': 1,
-			'ETH': 2,
-			'BNB': 3,
-			'XRP': 4,
-			'SOL': 5,
-			'TRX': 6,
-			'HYPE': 7,
-			'ADA': 8,
-			'LINK': 9,
-		}
-		outputList = sorted(inputList, key=lambda x: priority.get(str(x), 9999))
-	
-	else:
-		outputList = inputList
-
-	return outputList
-
-def makeStats(listSymbol: dict, listTimeFrame: dict, listStrategy: dict) -> None:
+def main(listSymbol: dict, listTimeFrame: dict, listStrategy: dict) -> None:
 	listStrategy = [item.split(':')[0] for item in listStrategy]
 
 	dataBaseSession = get_session()
@@ -177,3 +122,58 @@ def makeStats(listSymbol: dict, listTimeFrame: dict, listStrategy: dict) -> None
 			plt.close()
 
 			logger.info(f"pivot {nameY}_{nameX}_{metric_name} is save to {fileName}")
+
+def sort_cols_and_rows(inputList, name):
+
+	if name == 'timeframe':
+		priority: dict = {
+			'1min': 1,
+			'2min': 2,
+			'4min': 4,
+			'5min': 5,
+			'6min': 6,
+			'8min': 8,
+			'9min': 9,
+			'10min': 10,
+			'12min': 12,
+			'15min': 15,
+			'16min': 16,
+			'18min': 18,
+			'20min': 20,
+			'24min': 24,
+			'25min': 25,
+			'30min': 30,
+			'32min': 32,
+			'36min': 36,
+			'40min': 40,
+			'45min': 45,
+			'48min': 48,
+			'50min': 50,
+			'1h': 60,
+			'2h': 120,
+			'4h': 240,
+			'6h': 360,
+			'8h': 480,
+			'12h': 720,
+			'1d': 1440
+		}
+		outputList = sorted(inputList, key=lambda x: priority.get(str(x), 9999))
+	
+	elif name == 'symbol':
+		priority = {
+			'BTC': 1,
+			'ETH': 2,
+			'BNB': 3,
+			'XRP': 4,
+			'SOL': 5,
+			'TRX': 6,
+			'HYPE': 7,
+			'ADA': 8,
+			'LINK': 9,
+		}
+		outputList = sorted(inputList, key=lambda x: priority.get(str(x), 9999))
+	
+	else:
+		outputList = inputList
+
+	return outputList

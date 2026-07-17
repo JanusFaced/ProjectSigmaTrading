@@ -1,13 +1,6 @@
-mypy==2.1.0
-psutil==6.1.1
-email_validator==2.2.0
 fastapi==0.115.6
 uvicorn[standard]==0.34.0
 SQLAlchemy==2.0.28
 psycopg2-binary==2.9.12
 python-dotenv==1.0.1
 concurrent-log-handler==0.9.25
-pandas==2.2.3
-numpy==1.26.2
-requests==2.31.0
-websockets==13.1

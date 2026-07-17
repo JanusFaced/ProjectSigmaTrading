@@ -51,8 +51,10 @@ services:
 
   celery_beat:
     image: python_app_ml_pipeline_celery_beat
-    build: ./MLPipeline
-    command: sh -c "cd src && celery -A tasks beat --loglevel=info"
+    build:
+      context: ./MLPipeline
+      dockerfile: Dockerfile.beat
+    command: sh -c "cd src && celery -A celery_beat beat --loglevel=info"
     networks:
       - app-network
     depends_on:
@@ -72,15 +74,17 @@ services:
       resources:
         limits:
           cpus: '0.25'
-          memory: 256M
+          memory: 64M
     restart: unless-stopped
     profiles: ["dev"]
 
   celery_worker:
     image: python_app_ml_pipeline_celery_worker
-    build: ./MLPipeline
+    build:
+      context: ./MLPipeline
+      dockerfile: Dockerfile.worker
     command: >
-      sh -c "cd src && celery -A tasks worker 
+      sh -c "cd src && celery -A celery_worker worker 
       -Q high_priority,medium_priority,low_priority,default
       --loglevel=info 
       --concurrency=3 
@@ -118,7 +122,7 @@ services:
       resources:
         limits:
           cpus: '0.25'
-          memory: 128M
+          memory: 64M
     restart: unless-stopped
     profiles: ["dev"]
 
@@ -153,6 +157,11 @@ services:
       - frontend
     networks:
       - app-network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 64M
     restart: unless-stopped
     profiles: ["dev"]
 
