@@ -206,6 +206,8 @@ services:
       - GF_SECURITY_ADMIN_USER=${GF_SECURITY_ADMIN_USER}
       - GF_SECURITY_ADMIN_PASSWORD=${GF_SECURITY_ADMIN_PASSWORD}
       - GF_AUTH_ANONYMOUS_ENABLED=${GF_AUTH_ANONYMOUS_ENABLED}
+      - GF_SERVER_ROOT_URL=https://projectsigmatrading.ru/grafana
+      - GF_SERVER_SERVE_FROM_SUB_PATH=true
     depends_on:
       - loki
     networks:
