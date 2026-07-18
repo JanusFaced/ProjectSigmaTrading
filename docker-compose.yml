@@ -3,22 +3,20 @@ services:
     image: js_app_frontend
     build:
       context: ./frontend
+      dockerfile: Dockerfile
       args:
         - REACT_APP_API_URL=https://projectsigmatrading.ru/api
-    command: npm start
     networks:
       - app-network
     depends_on:
       - backend
-    volumes:
-      - ./frontend/logs:/app/logs
     environment:
       - LOG_PATH=/app/logs
     deploy:
       resources:
         limits:
           cpus: '1.00'
-          memory: 768M
+          memory: 128M
     labels:
       - "logging=promtail"
     restart: unless-stopped
@@ -41,8 +39,6 @@ services:
       - app-network
     depends_on:
       - dataBase
-    volumes:
-      - ./backend/src/logs:/app/src/logs
     deploy:
       resources:
         limits:
@@ -72,8 +68,6 @@ services:
       DB_PORT: 5432
       REDIS_URL: redis://redis:6379/0
       GLOBAL_WORK_MODE: 'imitation'
-    volumes:
-      - ./MLPipeline/src/logs:/app/src/logs
     deploy:
       resources:
         limits:
@@ -111,7 +105,6 @@ services:
     volumes:
       - ./MLPipeline/src/config:/app/src/config
       - ./MLPipeline/src/output:/app/src/output
-      - ./MLPipeline/src/logs:/app/src/logs
     deploy:
       resources:
         limits:
