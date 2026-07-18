@@ -19,6 +19,8 @@ services:
         limits:
           cpus: '1.00'
           memory: 768M
+    labels:
+      - "logging=promtail"
     restart: unless-stopped
 
   backend:
@@ -46,6 +48,8 @@ services:
         limits:
           cpus: '1.00'
           memory: 768M
+    labels:
+      - "logging=promtail"
     restart: unless-stopped
 
   celery_beat:
@@ -75,6 +79,8 @@ services:
         limits:
           cpus: '0.25'
           memory: 64M
+    labels:
+      - "logging=promtail"
     restart: unless-stopped
 
   celery_worker:
@@ -111,6 +117,8 @@ services:
         limits:
           cpus: '1.00'
           memory: 1768M
+    labels:
+      - "logging=promtail"
     restart: unless-stopped
 
   redis:
@@ -139,6 +147,8 @@ services:
         limits:
           cpus: '0.25'
           memory: 384M
+    labels:
+      - "logging=promtail"
     restart: unless-stopped
 
   nginx:
@@ -208,7 +218,6 @@ services:
       - GF_SECURITY_ADMIN_USER=${GF_SECURITY_ADMIN_USER}
       - GF_SECURITY_ADMIN_PASSWORD=${GF_SECURITY_ADMIN_PASSWORD}
       - GF_AUTH_ANONYMOUS_ENABLED=${GF_AUTH_ANONYMOUS_ENABLED}
-      # 👇 МИНИМАЛЬНЫЕ НАСТРОЙКИ
       - GF_SERVER_ROOT_URL=http://62.113.37.47:3001
       - GF_SERVER_ENFORCE_DOMAIN=false
       - GF_SERVER_PROTOCOL=http
