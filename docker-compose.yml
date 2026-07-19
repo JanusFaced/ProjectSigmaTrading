@@ -22,9 +22,9 @@ services:
     restart: unless-stopped
 
   backend:
-    image: python_app_backend
+    image: golang_app_backend
     build:
-      context: ./backend
+      context: ./backend_go
     environment:
       DB_PASSWORD: ${DB_PASSWORD}
       DB_USER: ${DB_USER}
@@ -32,7 +32,7 @@ services:
       DB_HOST: dataBase
       DB_PORT: 5432
       REDIS_URL: redis://redis:6379/0
-      MODE_WORK: server
+      MODE_WORK: localhost
       ADMIN_KEY: ${ADMIN_KEY}
     networks:
       - app-network
@@ -42,7 +42,7 @@ services:
       resources:
         limits:
           cpus: '1.00'
-          memory: 512M
+          memory: 128M
     labels:
       - "logging=promtail"
     restart: unless-stopped
