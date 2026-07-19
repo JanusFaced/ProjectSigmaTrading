@@ -23,6 +23,8 @@ services:
 
   backend:
     image: python_app_backend
+    build:
+      context: ./backend
     environment:
       DB_PASSWORD: ${DB_PASSWORD}
       DB_USER: ${DB_USER}
@@ -32,9 +34,6 @@ services:
       REDIS_URL: redis://redis:6379/0
       MODE_WORK: server
       ADMIN_KEY: ${ADMIN_KEY}
-    build:
-      context: ./backend
-    command: sh -c "cd src && uvicorn main:app --host 0.0.0.0 --port 8000 --workers 4"
     networks:
       - app-network
     depends_on:
@@ -43,7 +42,7 @@ services:
       resources:
         limits:
           cpus: '1.00'
-          memory: 768M
+          memory: 512M
     labels:
       - "logging=promtail"
     restart: unless-stopped
@@ -109,7 +108,7 @@ services:
       resources:
         limits:
           cpus: '1.00'
-          memory: 1768M
+          memory: 2048M
     labels:
       - "logging=promtail"
     restart: unless-stopped
