@@ -74,75 +74,78 @@ def main(
 		if initialDatetime >= nowDatetime:
 			break
 
-	if not collected:
-		logger.info("Нет новых данных для загрузки")
-		return
+	if len(collected) > 1:
+		collected.pop()
+		logger.info("Удалена последняя незавершенная свеча")
 
-	logger.info(f"Собрано {len(collected)} свечей, начинаем обработку...")
+	if len(collected) > 1:
+		logger.info(f"Собрано {len(collected)} свечей, начинаем обработку...")
+		db.execute("CREATE OR REPLACE TEMP TABLE temp_raw (datetime TIMESTAMP, open DOUBLE, high DOUBLE, low DOUBLE, close DOUBLE, volume DOUBLE)")
+		db.executemany("INSERT INTO temp_raw VALUES (?, ?, ?, ?, ?, ?)", collected)
 
-	db.execute("CREATE OR REPLACE TEMP TABLE temp_raw (datetime TIMESTAMP, open DOUBLE, high DOUBLE, low DOUBLE, close DOUBLE, volume DOUBLE)")
-	db.executemany("INSERT INTO temp_raw VALUES (?, ?, ?, ?, ?, ?)", collected)
-
-	db.execute("""
-		CREATE OR REPLACE TEMP TABLE temp_filled AS
-		WITH all_minutes AS (
-			SELECT UNNEST(generate_series(
-				(SELECT MIN(datetime) FROM temp_raw),
-				(SELECT MAX(datetime) FROM temp_raw),
-				INTERVAL 1 MINUTE
-			)) AS datetime
-		),
-		cleaned AS (
-			SELECT DISTINCT ON (datetime) *
-			FROM temp_raw
-			ORDER BY datetime
-		)
-		SELECT 
-			all_minutes.datetime,
-			LAST_VALUE(cleaned.open IGNORE NULLS) OVER (ORDER BY all_minutes.datetime ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS open,
-			LAST_VALUE(cleaned.high IGNORE NULLS) OVER (ORDER BY all_minutes.datetime ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS high,
-			LAST_VALUE(cleaned.low IGNORE NULLS) OVER (ORDER BY all_minutes.datetime ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS low,
-			LAST_VALUE(cleaned.close IGNORE NULLS) OVER (ORDER BY all_minutes.datetime ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS close,
-			LAST_VALUE(cleaned.volume IGNORE NULLS) OVER (ORDER BY all_minutes.datetime ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS volume
-		FROM all_minutes
-		LEFT JOIN cleaned ON all_minutes.datetime = cleaned.datetime
-		ORDER BY all_minutes.datetime
-	""")
-
-	db.execute(f"""
-		CREATE TABLE IF NOT EXISTS pg.{nameTable} (
-			datetime TIMESTAMP PRIMARY KEY,
-			open DOUBLE,
-			high DOUBLE,
-			low DOUBLE,
-			close DOUBLE,
-			volume DOUBLE
-		)
-	""")
-
-	db.execute(f"""
-		INSERT INTO pg.{nameTable} (datetime, open, high, low, close, volume)
-		SELECT datetime, open, high, low, close, volume
-		FROM temp_filled
-		WHERE NOT EXISTS (
-			SELECT 1 FROM pg.{nameTable} 
-			WHERE datetime = temp_filled.datetime
-		)
-	""")
-
-	if mode in ['imitation', 'real']:
-		cutoff_date = datetime.utcnow() - timedelta(days=nowMuchMoreDays)
-		deleted = db.execute(f"""
-			DELETE FROM pg.{nameTable}
-			WHERE datetime < '{cutoff_date}'
+		db.execute("""
+			CREATE OR REPLACE TEMP TABLE temp_filled AS
+			WITH all_minutes AS (
+				SELECT UNNEST(generate_series(
+					(SELECT MIN(datetime) FROM temp_raw),
+					(SELECT MAX(datetime) FROM temp_raw),
+					INTERVAL 1 MINUTE
+				)) AS datetime
+			),
+			cleaned AS (
+				SELECT DISTINCT ON (datetime) *
+				FROM temp_raw
+				ORDER BY datetime
+			)
+			SELECT 
+				all_minutes.datetime,
+				LAST_VALUE(cleaned.open IGNORE NULLS) OVER (ORDER BY all_minutes.datetime ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS open,
+				LAST_VALUE(cleaned.high IGNORE NULLS) OVER (ORDER BY all_minutes.datetime ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS high,
+				LAST_VALUE(cleaned.low IGNORE NULLS) OVER (ORDER BY all_minutes.datetime ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS low,
+				LAST_VALUE(cleaned.close IGNORE NULLS) OVER (ORDER BY all_minutes.datetime ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS close,
+				LAST_VALUE(cleaned.volume IGNORE NULLS) OVER (ORDER BY all_minutes.datetime ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS volume
+			FROM all_minutes
+			LEFT JOIN cleaned ON all_minutes.datetime = cleaned.datetime
+			ORDER BY all_minutes.datetime
 		""")
-		deleted_rows = deleted.fetchone()[0] if deleted else 0
-		logger.info(f'Удалено {deleted_rows} старых записей (до {cutoff_date})')
 
-	logger.info(f'{nameTable} успешно обновлён!')
-	db.execute("DROP TABLE IF EXISTS temp_raw")
-	db.execute("DROP TABLE IF EXISTS temp_filled")
-	logger.info("Временные таблицы temp_raw и temp_filled удалены")
+		db.execute(f"""
+			CREATE TABLE IF NOT EXISTS pg.{nameTable} (
+				datetime TIMESTAMP PRIMARY KEY,
+				open DOUBLE,
+				high DOUBLE,
+				low DOUBLE,
+				close DOUBLE,
+				volume DOUBLE
+			)
+		""")
+
+		db.execute(f"""
+			INSERT INTO pg.{nameTable} (datetime, open, high, low, close, volume)
+			SELECT datetime, open, high, low, close, volume
+			FROM temp_filled
+			WHERE NOT EXISTS (
+				SELECT 1 FROM pg.{nameTable} 
+				WHERE datetime = temp_filled.datetime
+			)
+		""")
+
+		if mode in ['imitation', 'real']:
+			cutoff_date = datetime.utcnow() - timedelta(days=nowMuchMoreDays)
+			deleted = db.execute(f"""
+				DELETE FROM pg.{nameTable}
+				WHERE datetime < '{cutoff_date}'
+			""")
+			deleted_rows = deleted.fetchone()[0] if deleted else 0
+			logger.info(f'Удалено {deleted_rows} старых записей (до {cutoff_date})')
+
+		logger.info(f'{nameTable} успешно обновлён!')
+		db.execute("DROP TABLE IF EXISTS temp_raw")
+		db.execute("DROP TABLE IF EXISTS temp_filled")
+		logger.info("Временные таблицы temp_raw и temp_filled удалены")
+
+	else:
+		logger.info("Нет новых данных для загрузки")
 
 def setExchange(nameExchange: str, type: str) -> ccxt.Exchange:
 	if nameExchange == 'binance':
