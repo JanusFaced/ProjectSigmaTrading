@@ -81,7 +81,7 @@ services:
       sh -c "cd src && celery -A celery_worker worker 
       -Q pipeline_parser
       --loglevel=info 
-      --concurrency=3 
+      --concurrency=1 
       --max-tasks-per-child=40 
       --prefetch-multiplier=1"
     networks:
