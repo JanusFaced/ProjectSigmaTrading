@@ -3,7 +3,6 @@ services:
     image: js_app_frontend
     build:
       context: ./frontend
-      dockerfile: Dockerfile
       args:
         - REACT_APP_API_URL=https://projectsigmatrading.ru/api
     networks:
@@ -50,15 +49,13 @@ services:
   celery_beat:
     image: python_app_ml_pipeline_celery_beat
     build:
-      context: ./MLPipeline
-      dockerfile: Dockerfile.beat
+      context: ./beat
     command: sh -c "cd src && celery -A celery_beat beat --loglevel=info"
     networks:
       - app-network
     depends_on:
       - redis
       - dataBase
-      - celery_worker
     environment:
       DB_PASSWORD: ${DB_PASSWORD}
       DB_USER: ${DB_USER}
@@ -76,14 +73,46 @@ services:
       - "logging=promtail"
     restart: unless-stopped
 
-  celery_worker:
-    image: python_app_ml_pipeline_celery_worker
+  celery_worker_parser:
+    image: python_celery_worker_parser
     build:
-      context: ./MLPipeline
-      dockerfile: Dockerfile.worker
+      context: ./parser
     command: >
       sh -c "cd src && celery -A celery_worker worker 
-      -Q high_priority,medium_priority,low_priority,default
+      -Q pipeline_parser
+      --loglevel=info 
+      --concurrency=3 
+      --max-tasks-per-child=40 
+      --prefetch-multiplier=1"
+    networks:
+      - app-network
+    depends_on:
+      - dataBase
+      - redis
+    environment:
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_USER: ${DB_USER}
+      DB_NAME: ${DB_NAME}
+      DB_HOST: dataBase
+      DB_PORT: 5432
+      REDIS_URL: redis://redis:6379/0
+      GLOBAL_WORK_MODE: 'imitation'
+    deploy:
+      resources:
+        limits:
+          cpus: '1.00'
+          memory: 1024M
+    labels:
+      - "logging=promtail"
+    restart: unless-stopped
+
+  celery_worker_pipeline:
+    image: python_celery_worker_pipeline
+    build:
+      context: ./pipeline
+    command: >
+      sh -c "cd src && celery -A celery_worker worker 
+      -Q pipeline_work
       --loglevel=info 
       --concurrency=3 
       --max-tasks-per-child=40 
@@ -102,8 +131,8 @@ services:
       REDIS_URL: redis://redis:6379/0
       GLOBAL_WORK_MODE: 'imitation'
     volumes:
-      - ./MLPipeline/src/config:/app/src/config
-      - ./MLPipeline/src/output:/app/src/output
+      - ./pipeline/src/config:/app/src/config
+      - ./pipeline/src/output:/app/src/output
     deploy:
       resources:
         limits:
@@ -202,7 +231,7 @@ services:
     image: grafana/grafana:10.4.0
     container_name: grafana
     ports:
-      - "3001:3000"  # 👈 ДОБАВЛЯЕМ ПРОБРОС ПОРТА
+      - "3001:3000"
     volumes:
       - grafana_data:/var/lib/grafana
       - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
