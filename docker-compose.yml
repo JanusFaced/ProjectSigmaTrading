@@ -23,7 +23,7 @@ services:
   backend:
     image: golang_app_backend
     build:
-      context: ./backend_go
+      context: ./backend
     environment:
       DB_PASSWORD: ${DB_PASSWORD}
       DB_USER: ${DB_USER}
