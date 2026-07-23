@@ -14,4 +14,7 @@ nginx/ssl/
 *.crt
 *.pem
 *.cert
+*.png
+*.jpeg
+*.jpg
 .env
