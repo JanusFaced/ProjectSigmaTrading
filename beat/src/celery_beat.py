@@ -6,12 +6,12 @@ global_work_mode = os.getenv('GLOBAL_WORK_MODE')
 
 if global_work_mode == 'imitation':
     app.conf.beat_schedule = {
-        'parser-cycle-1min': {
-            'task': 'celery_worker.run_workflow',
-            'schedule': timedelta(minutes=1),
-            'kwargs': {},
-            'options': {'queue': 'pipeline_parser'},
-        },
+#        'parser-cycle-1min': {
+#            'task': 'celery_worker.run_workflow',
+#            'schedule': timedelta(minutes=1),
+#            'kwargs': {},
+#            'options': {'queue': 'pipeline_parser'},
+#        },
         'work-cycle-8min': {
             'task': 'celery_worker.run_workflow',
             'schedule': timedelta(minutes=8),

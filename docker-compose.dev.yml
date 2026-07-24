@@ -1,59 +1,59 @@
 services:
-#  frontend:
-#    image: js_app_frontend
-#    build:
-#      context: ./frontend
-#      args:
-#        - REACT_APP_API_URL=http://localhost:8000
-#    networks:
-#      - app-network
-#    ports:
-#      - "3000:3000"
-#    depends_on:
-#      - backend
-#    environment:
-#      - LOG_PATH=/app/logs
-#    deploy:
-#      resources:
-#        limits:
-#          cpus: '1.00'
-#          memory: 128M
-#    labels:
-#      - "logging=promtail"
-#    restart: unless-stopped
+  frontend:
+    image: js_app_frontend
+    build:
+      context: ./frontend
+      args:
+        - REACT_APP_API_URL=http://localhost:8000
+    networks:
+      - app-network
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    environment:
+      - LOG_PATH=/app/logs
+    deploy:
+      resources:
+        limits:
+          cpus: '1.00'
+          memory: 128M
+    labels:
+      - "logging=promtail"
+    restart: unless-stopped
 
-#  backend:
-#    image: golang_app_backend
-#    build:
-#      context: ./backend
-#    environment:
-#      DB_PASSWORD: ${DB_PASSWORD}
-#      DB_USER: ${DB_USER}
-#      DB_NAME: ${DB_NAME}
-#      DB_HOST: dataBase
-#      DB_PORT: 5432
-#      REDIS_URL: redis://redis:6379/0
-#      MODE_WORK: localhost
-#      ADMIN_KEY: ${ADMIN_KEY}
-#    networks:
-#      - app-network
-#    ports:
-#      - "8000:8000"
-#    depends_on:
-#      - dataBase
-#    deploy:
-#      resources:
-#        limits:
-#          cpus: '1.00'
-#          memory: 128M
-#    labels:
-#      - "logging=promtail"
-#    restart: unless-stopped
+  backend:
+    image: golang_app_backend
+    build:
+      context: ./backend
+    environment:
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_USER: ${DB_USER}
+      DB_NAME: ${DB_NAME}
+      DB_HOST: dataBase
+      DB_PORT: 5432
+      REDIS_URL: redis://redis:6379/0
+      MODE_WORK: localhost
+      ADMIN_KEY: ${ADMIN_KEY}
+    networks:
+      - app-network
+    ports:
+      - "8000:8000"
+    depends_on:
+      - dataBase
+    deploy:
+      resources:
+        limits:
+          cpus: '1.00'
+          memory: 128M
+    labels:
+      - "logging=promtail"
+    restart: unless-stopped
 
   parser:
     image: rust_parser
     build:
-      context: ./parser_rust
+      context: ./parser
     networks:
       - app-network
     depends_on:
@@ -69,121 +69,88 @@ services:
       resources:
         limits:
           cpus: '1.00'
-          memory: 512M
+          memory: 64M
     labels:
       - "logging=promtail"
     restart: unless-stopped
 
-#  celery_beat:
-#    image: python_app_ml_pipeline_celery_beat
-#    build:
-#      context: ./beat
-#    command: sh -c "cd src && celery -A celery_beat beat --loglevel=info"
-#    networks:
-#      - app-network
-#    depends_on:
-#      - redis
-#      - dataBase
-#    environment:
-#      DB_PASSWORD: ${DB_PASSWORD}
-#      DB_USER: ${DB_USER}
-#      DB_NAME: ${DB_NAME}
-#      DB_HOST: dataBase
-#      DB_PORT: 5432
-#      REDIS_URL: redis://redis:6379/0
-#      GLOBAL_WORK_MODE: 'imitation'
-#    deploy:
-#      resources:
-#        limits:
-#          cpus: '0.25'
-#          memory: 64M
-#    labels:
-#      - "logging=promtail"
-#    restart: unless-stopped
+  celery_beat:
+    image: python_app_ml_pipeline_celery_beat
+    build:
+      context: ./beat
+    command: sh -c "cd src && celery -A celery_beat beat --loglevel=info"
+    networks:
+      - app-network
+    depends_on:
+      - redis
+      - dataBase
+    environment:
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_USER: ${DB_USER}
+      DB_NAME: ${DB_NAME}
+      DB_HOST: dataBase
+      DB_PORT: 5432
+      REDIS_URL: redis://redis:6379/0
+      GLOBAL_WORK_MODE: 'imitation'
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 64M
+    labels:
+      - "logging=promtail"
+    restart: unless-stopped
 
-#  celery_worker_parser:
-#    image: python_celery_worker_parser
-#    build:
-#      context: ./parser
-#    command: >
-#      sh -c "cd src && celery -A celery_worker worker 
-#      -Q pipeline_parser
-#      --loglevel=info 
-#      --concurrency=1 
-#      --max-tasks-per-child=40 
-#      --prefetch-multiplier=1"
-#    networks:
-#      - app-network
-#    depends_on:
-#      - dataBase
-#      - redis
-#    environment:
-#      DB_PASSWORD: ${DB_PASSWORD}
-#      DB_USER: ${DB_USER}
-#      DB_NAME: ${DB_NAME}
-#      DB_HOST: dataBase
-#      DB_PORT: 5432
-#      REDIS_URL: redis://redis:6379/0
-#      GLOBAL_WORK_MODE: 'imitation'
-#    deploy:
-#      resources:
-#        limits:
-#          cpus: '1.00'
-#          memory: 1024M
-#    labels:
-#      - "logging=promtail"
-#    restart: unless-stopped
+  celery_worker_pipeline:
+    image: python_celery_worker_pipeline
+    build:
+      context: ./pipeline
+    command: >
+      sh -c "cd src && celery -A celery_worker worker 
+      -Q pipeline_work
+      --loglevel=info 
+      --concurrency=3 
+      --max-tasks-per-child=40 
+      --prefetch-multiplier=1"
+    networks:
+      - app-network
+    depends_on:
+      - dataBase
+      - redis
+    environment:
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_USER: ${DB_USER}
+      DB_NAME: ${DB_NAME}
+      DB_HOST: dataBase
+      DB_PORT: 5432
+      REDIS_URL: redis://redis:6379/0
+      GLOBAL_WORK_MODE: 'imitation'
+    volumes:
+      - ./pipeline/src/config:/app/src/config
+      - ./pipeline/src/output:/app/src/output
+    deploy:
+      resources:
+        limits:
+          cpus: '1.00'
+          memory: 2048M
+    labels:
+      - "logging=promtail"
+    restart: unless-stopped
 
-#  celery_worker_pipeline:
-#    image: python_celery_worker_pipeline
-#    build:
-#      context: ./pipeline
-#    command: >
-#      sh -c "cd src && celery -A celery_worker worker 
-#      -Q pipeline_work
-#      --loglevel=info 
-#      --concurrency=3 
-#      --max-tasks-per-child=40 
-#      --prefetch-multiplier=1"
-#    networks:
-#      - app-network
-#    depends_on:
-#      - dataBase
-#      - redis
-#    environment:
-#      DB_PASSWORD: ${DB_PASSWORD}
-#      DB_USER: ${DB_USER}
-#      DB_NAME: ${DB_NAME}
-#      DB_HOST: dataBase
-#      DB_PORT: 5432
-#      REDIS_URL: redis://redis:6379/0
-#      GLOBAL_WORK_MODE: 'imitation'
-#    volumes:
-#      - ./pipeline/src/config:/app/src/config
-#      - ./pipeline/src/output:/app/src/output
-#    deploy:
-#      resources:
-#        limits:
-#          cpus: '1.00'
-#          memory: 2048M
-#    labels:
-#      - "logging=promtail"
-#    restart: unless-stopped
-
-#  redis:
-#    image: redis:7-alpine
-#    networks:
-#      - app-network
-#    ports:
-#      - "6379:6379"
-#    deploy:
-#      resources:
-#        limits:
-#          cpus: '0.25'
-#          memory: 64M
-#    labels:
-#      - "logging=promtail"
-#    restart: unless-stopped
+  redis:
+    image: redis:7-alpine
+    networks:
+      - app-network
+    ports:
+      - "6379:6379"
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 64M
+    labels:
+      - "logging=promtail"
+    restart: unless-stopped
 
   dataBase:
     image: postgres:16.0
@@ -201,70 +168,70 @@ services:
       resources:
         limits:
           cpus: '0.25'
-          memory: 384M
+          memory: 256M
     labels:
       - "logging=promtail"
     restart: unless-stopped
 
-#  loki:
-#    image: grafana/loki:2.8.0
-#    container_name: loki
-#    command: -config.file=/etc/loki/loki-config.yml
-#    ports:
-#      - "3100:3100"
-#    volumes:
-#      - ./monitoring/loki/loki-config.yml:/etc/loki/loki-config.yml
-#      - loki_data:/loki
-#    networks:
-#      - app-network
-#    deploy:
-#      resources:
-#        limits:
-#          cpus: '0.25'
-#          memory: 128M
-#    restart: unless-stopped
+  loki:
+    image: grafana/loki:2.8.0
+    container_name: loki
+    command: -config.file=/etc/loki/loki-config.yml
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./monitoring/loki/loki-config.yml:/etc/loki/loki-config.yml
+      - loki_data:/loki
+    networks:
+      - app-network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 128M
+    restart: unless-stopped
 
-#  promtail:
-#    image: grafana/promtail:2.8.0
-#    container_name: promtail
-#    command: -config.file=/etc/promtail/promtail-config.yml
-#    volumes:
-#      - /var/lib/docker/containers:/var/lib/docker/containers:ro
-#      - /var/run/docker.sock:/var/run/docker.sock
-#      - ./monitoring/promtail/promtail-config.yml:/etc/promtail/promtail-config.yml
-#    depends_on:
-#      - loki
-#    networks:
-#      - app-network
-#    deploy:
-#      resources:
-#        limits:
-#          cpus: '0.25'
-#          memory: 128M
-#    restart: unless-stopped
+  promtail:
+    image: grafana/promtail:2.8.0
+    container_name: promtail
+    command: -config.file=/etc/promtail/promtail-config.yml
+    volumes:
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./monitoring/promtail/promtail-config.yml:/etc/promtail/promtail-config.yml
+    depends_on:
+      - loki
+    networks:
+      - app-network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 128M
+    restart: unless-stopped
 
-#  grafana:
-#    image: grafana/grafana:10.4.0
-#    container_name: grafana
-#    ports:
-#      - "3001:3000"
-#    volumes:
-#      - grafana_data:/var/lib/grafana
-#      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
-#    environment:
-#      - GF_SECURITY_ADMIN_USER=${GF_SECURITY_ADMIN_USER}
-#      - GF_SECURITY_ADMIN_PASSWORD=${GF_SECURITY_ADMIN_PASSWORD}
-#      - GF_AUTH_ANONYMOUS_ENABLED=${GF_AUTH_ANONYMOUS_ENABLED}
-#    depends_on:
-#      - loki
-#    networks:
-#      - app-network
-#    deploy:
-#      resources:
-#        limits:
-#          cpus: '0.25'
-#          memory: 128M
-#    restart: unless-stopped
+  grafana:
+    image: grafana/grafana:10.4.0
+    container_name: grafana
+    ports:
+      - "3001:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GF_SECURITY_ADMIN_USER}
+      - GF_SECURITY_ADMIN_PASSWORD=${GF_SECURITY_ADMIN_PASSWORD}
+      - GF_AUTH_ANONYMOUS_ENABLED=${GF_AUTH_ANONYMOUS_ENABLED}
+    depends_on:
+      - loki
+    networks:
+      - app-network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 256M
+    restart: unless-stopped
 
 volumes:
   quantta_db-data:

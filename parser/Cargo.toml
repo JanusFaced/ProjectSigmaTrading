@@ -13,3 +13,5 @@ tokio = { version = "1", features = ["full"] }
 ccxt-rust = { version = "0.1.5", features = ["full"] }
 ccxt-exchanges = "0.1.5"
 ccxt-core = "0.1.5"
+sqlx = { version = "0.7", features = ["runtime-tokio-native-tls", "postgres", "chrono"] }
+dotenv = "0.15"

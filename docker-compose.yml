@@ -46,6 +46,30 @@ services:
       - "logging=promtail"
     restart: unless-stopped
 
+  parser:
+    image: rust_parser
+    build:
+      context: ./parser
+    networks:
+      - app-network
+    depends_on:
+      - dataBase
+    environment:
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_USER: ${DB_USER}
+      DB_NAME: ${DB_NAME}
+      DB_HOST: dataBase
+      DB_PORT: 5432
+      GLOBAL_WORK_MODE: 'imitation'
+    deploy:
+      resources:
+        limits:
+          cpus: '1.00'
+          memory: 64M
+    labels:
+      - "logging=promtail"
+    restart: unless-stopped
+
   celery_beat:
     image: python_app_ml_pipeline_celery_beat
     build:
@@ -69,39 +93,6 @@ services:
         limits:
           cpus: '0.25'
           memory: 64M
-    labels:
-      - "logging=promtail"
-    restart: unless-stopped
-
-  celery_worker_parser:
-    image: python_celery_worker_parser
-    build:
-      context: ./parser
-    command: >
-      sh -c "cd src && celery -A celery_worker worker 
-      -Q pipeline_parser
-      --loglevel=info 
-      --concurrency=1 
-      --max-tasks-per-child=40 
-      --prefetch-multiplier=1"
-    networks:
-      - app-network
-    depends_on:
-      - dataBase
-      - redis
-    environment:
-      DB_PASSWORD: ${DB_PASSWORD}
-      DB_USER: ${DB_USER}
-      DB_NAME: ${DB_NAME}
-      DB_HOST: dataBase
-      DB_PORT: 5432
-      REDIS_URL: redis://redis:6379/0
-      GLOBAL_WORK_MODE: 'imitation'
-    deploy:
-      resources:
-        limits:
-          cpus: '1.00'
-          memory: 1024M
     labels:
       - "logging=promtail"
     restart: unless-stopped
@@ -167,7 +158,7 @@ services:
       resources:
         limits:
           cpus: '0.25'
-          memory: 384M
+          memory: 256M
     labels:
       - "logging=promtail"
     restart: unless-stopped
@@ -251,7 +242,7 @@ services:
       resources:
         limits:
           cpus: '0.25'
-          memory: 128M
+          memory: 256M
     restart: unless-stopped
 
 volumes:
