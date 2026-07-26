@@ -54,7 +54,7 @@ def _load_data(
 		speedOfTest = 'fast'
 		
 		if speedOfTest == 'fast':
-			modeMultiple, standartDeep = "relative", 5_000
+			modeMultiple, standartDeep = "relative", 10_000
 		elif speedOfTest == 'slow':
 			modeMultiple, standartDeep = "identical", 5_000_000
 		

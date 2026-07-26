@@ -62,7 +62,7 @@ def main(inputMessage: dict) -> None:
 	tickerData = exchange.fetch_ticker(ticker)
 	price = tickerData['last']
 
-	fiat, active, deposit, tradingEvent = imitationEngine.imitationMode(
+	fiat, active, deposit, tradingEvent = imitationEngine.coreEngine(
 		price=price,
 		long_signal=long_signal,
 		short_signal=short_signal,

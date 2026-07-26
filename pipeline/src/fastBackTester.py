@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+import time
 import polars as pl
 import numpy as np
 import numpy.typing as npt
@@ -142,7 +143,7 @@ def backtest(
 		longSignal = longSignalVector[i]
 		shortSignal = shortSignalVector[i]
 
-		fiat, active, deposit, tradingEvent = imitationEngine.testWork(
+		fiat, active, deposit, tradingEvent = imitationEngine.coreEngine(
 			price=closeValue,
 			long_signal=longSignal,
 			short_signal=shortSignal,

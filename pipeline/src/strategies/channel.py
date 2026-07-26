@@ -23,9 +23,9 @@ def main(inputMessage: dict[str, Any]) -> None:
 
 	volativityWindow, signalWindow, trendWindow = 200, 20, 200
 	maxMulti, minMulti = 15, 1
-	baseVolativity1m = 0.0004
-	convertA = 30
-	convertB = 0.75
+	baseVolativity1m = 0.000075
+	convertA = 1440
+	convertB = 0.06
 	convertC = convertorTimeFrame(timeFrame)
 	baseVolativity = baseVolativity1m*( convertB*(convertA - convertC) + convertC )
 

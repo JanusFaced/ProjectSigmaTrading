@@ -9,7 +9,7 @@ from logger_setup import get_logger
 logger = get_logger(__name__)
 
 def saveBacktests(inputData: dict) -> None:
-	tryCount, maxTryOnes = 0, 3
+	tryCount, maxTryOnes = 0, 7
 	while True:
 		dataBaseSession = get_session()
 		try:
@@ -37,10 +37,13 @@ def saveBacktests(inputData: dict) -> None:
 			break
 		
 		except Exception as e:
-			dataBaseSession.rollback()
+			try:
+				dataBaseSession.rollback()
+			except Exception as e:
+				logger.info('rollback is fail!')
 			logger.error(f"Error saving signal! Try again! {tryCount}")
 			tryCount += 1
-			time.sleep(1)
+			time.sleep(tryCount)
 			if tryCount > maxTryOnes:
 				raise e
 		
@@ -49,7 +52,7 @@ def saveBacktests(inputData: dict) -> None:
 			logger.info('Сессия с базой данных закрыта!')
 
 def receiveSignals(nameStrategy: str) -> dict:
-	tryCount, maxTryOnes = 0, 3
+	tryCount, maxTryOnes = 0, 7
 	while True:
 		dataBaseSession = get_session()
 		try:
@@ -71,10 +74,13 @@ def receiveSignals(nameStrategy: str) -> dict:
 			break
 
 		except Exception as e:
-			dataBaseSession.rollback()
+			try:
+				dataBaseSession.rollback()
+			except Exception as e:
+				logger.info('rollback is fail!')
 			logger.error(f"Error receiving signal! Try again! {tryCount}")
 			tryCount += 1
-			time.sleep(1)
+			time.sleep(tryCount)
 			if tryCount > maxTryOnes:
 				raise e
 		
@@ -85,7 +91,7 @@ def receiveSignals(nameStrategy: str) -> dict:
 	return receiveList
 
 def sendSignals(nameStrategy: str, signalPuck: dict) -> None:
-	tryCount, maxTryOnes = 0, 3
+	tryCount, maxTryOnes = 0, 7
 	while True:
 		dataBaseSession = get_session()
 		try:
@@ -122,10 +128,13 @@ def sendSignals(nameStrategy: str, signalPuck: dict) -> None:
 			break
 
 		except Exception as e:
-			dataBaseSession.rollback()
+			try:
+				dataBaseSession.rollback()
+			except Exception as e:
+				logger.info('rollback is fail!')
 			logger.error(f"Error saving signal! Try again! {tryCount}")
 			tryCount += 1
-			time.sleep(1)
+			time.sleep(tryCount)
 			if tryCount > maxTryOnes:
 				raise e
 		
@@ -134,7 +143,7 @@ def sendSignals(nameStrategy: str, signalPuck: dict) -> None:
 			logger.info('Сессия с базой данных закрыта!')
 
 def sendTrads(nameStrategy: str, signalPuck: dict) -> int:
-	tryCount, maxTryOnes = 0, 3
+	tryCount, maxTryOnes = 0, 7
 	while True:
 		dataBaseSession = get_session()
 
@@ -158,10 +167,13 @@ def sendTrads(nameStrategy: str, signalPuck: dict) -> int:
 			break
 
 		except Exception as e:
-			dataBaseSession.rollback()
+			try:
+				dataBaseSession.rollback()
+			except Exception as e:
+				logger.info('rollback is fail!')
 			logger.error(f"Error saving trads! Try again! {tryCount}")
 			tryCount += 1
-			time.sleep(1)
+			time.sleep(tryCount)
 			if tryCount > maxTryOnes:
 				raise e
 		
