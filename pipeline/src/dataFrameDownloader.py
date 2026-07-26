@@ -51,7 +51,7 @@ def _load_data(
 		nowMuchMoreDays: int = 9999
 		maxDelta = 30
 		maxDeltaDatetime = timedelta(days=maxDelta)
-		speedOfTest = 'slow'
+		speedOfTest = 'fast'
 		
 		if speedOfTest == 'fast':
 			modeMultiple, standartDeep = "relative", 5_000

@@ -18,12 +18,28 @@ def build_tasks(
 	modeFilter= 'exist'
 	target_year_profit = 30.0
 
+	listTimeFrame = [
+		'15min',
+		'30min',
+		'1h',
+		'2h',
+		'4h',
+		'6h',
+		'8h',
+		'12h',
+		'1d'
+	]
+
 	listSymbol = [
+		'BTC',
 		'ETH',
 		'BNB',
+		'XRP',
 		'SOL',
 		'TRX',
 		'ADA',
+		'LINK',
+		'HYPE',
 #		'RE',
 #		'BOT',
 	]

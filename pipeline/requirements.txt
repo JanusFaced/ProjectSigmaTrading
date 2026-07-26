@@ -7,7 +7,6 @@ SQLAlchemy==2.0.28
 celery==5.3.4
 redis==5.0.1
 psycopg2-binary==2.9.12
-backtrader==1.9.78.123
 numpy==1.26.2
 numba==0.61.0
 pandas==2.2.3

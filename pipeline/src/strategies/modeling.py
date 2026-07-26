@@ -24,7 +24,10 @@ def main(inputMessage: dict[str, Any]) -> None:
 	volativityWindow, signalWindow, trendWindow = 200, 20, 200
 	maxMulti, minMulti = 15, 1
 	baseVolativity1m = 0.0004
-	baseVolativity = baseVolativity1m*convertorTimeFrame(timeFrame)
+	convertA = 30
+	convertB = 0.75
+	convertC = convertorTimeFrame(timeFrame)
+	baseVolativity = baseVolativity1m*( convertB*(convertA - convertC) + convertC )
 
 	dataFrame = dataFrame.with_columns((pl.col('close')/pl.col('close').shift(1) - 1).abs().alias('diff'))
 	dataFrame = dataFrame.with_columns(pl.col('diff').rolling_mean(window_size=volativityWindow).alias('volativity'))

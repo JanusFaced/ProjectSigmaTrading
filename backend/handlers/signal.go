@@ -19,13 +19,13 @@ func GetTableAnalyst(c *gin.Context) {
 
     result := make([]gin.H, len(signals))
     for i, s := range signals {
-        longSignal := "long_open"
+        longSignal := "long_close"
         if s.LongSignal == "-1" {
-            longSignal = "long_close"
+            longSignal = "long_open"
         }
-        shortSignal := "short_open"
+        shortSignal := "short_close"
         if s.ShortSignal == "1" {
-            shortSignal = "short_close"
+            shortSignal = "short_open"
         }
 
         result[i] = gin.H{

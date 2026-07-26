@@ -2,6 +2,7 @@ from typing import Any, TypedDict, Dict
 import numpy as np
 import ccxt
 import os
+import imitationEngine
 from saveToDB import receiveSignals, sendSignals, sendTrads
 from duckDB_setup import get_duckdb
 from logger_setup import get_logger
@@ -61,7 +62,7 @@ def main(inputMessage: dict) -> None:
 	tickerData = exchange.fetch_ticker(ticker)
 	price = tickerData['last']
 
-	fiat, active, deposit, tradingEvent = imitationConnector(
+	fiat, active, deposit, tradingEvent = imitationEngine.imitationMode(
 		price=price,
 		long_signal=long_signal,
 		short_signal=short_signal,
@@ -86,79 +87,6 @@ def main(inputMessage: dict) -> None:
 		sendTrads(nameStrategy=nameStrategy, signalPuck=sendData)
 
 	logger.info(f' >>> nameStrategy: {nameStrategy} -> deposit: {deposit} $ <<< ')
-
-def imitationConnector(
-		price: float,
-		long_signal: int,
-		short_signal: int,
-		fiat: float,
-		active: float,
-		fees: float = 0.001,
-		leverage: int = 1
-	) -> tuple[float, float, float, bool]:
-
-	if long_signal == -1:
-		signal = 'LONG'
-	elif short_signal == 1:
-		signal = 'SHORT'
-	else:
-		signal = 'CLOSE'
-
-	tradingEvent = False
-
-	if signal == 'LONG':
-		logger.info('Signal is BUY')
-		if active > 0:
-			logger.info(f'[We in LONG] {fiat} {active}')
-		elif active < 0:
-			logger.info(f'We in SHORT!!! {fiat} {active}')
-			fiat += active*price*(1+fees)
-			active = 0
-			tradingEvent = True
-			logger.info(f'SHORT is closed! {fiat} {active}')
-		
-		if active == 0:
-			active = ((fiat*leverage)/price)*(1-fees)
-			fiat -= fiat*leverage
-			logger.info(f'LONG is opened! {fiat} {active}')
-	
-	elif signal == 'SHORT':
-		logger.info('Signal is SELL')
-		if active < 0:
-			logger.info(f'[We in SHORT] {fiat} {active}')
-		elif active > 0:
-			logger.info(f'We in LONG!!! {fiat} {active}')
-			fiat += active*price*(1-fees)
-			active = 0
-			tradingEvent = True
-			logger.info(f'LONG is closed! {fiat} {active}')
-		
-		if active == 0:
-			active = -(fiat*leverage)/price
-			fiat += np.abs(active)*price*(1-fees)
-			logger.info(f'SHORT is opened! {fiat} {active}')
-	
-	else:
-		logger.info('Signal is CLOSE')
-		if active > 0:
-			logger.info(f'We in LONG!!! {fiat} {active}')
-			fiat += active*price*(1-fees)
-			active = 0
-			tradingEvent = True
-			logger.info(f'LONG is closed! {fiat} {active}')
-		elif active < 0:
-			logger.info(f'We in SHORT!!! {fiat} {active}')
-			fiat += active*price*(1+fees)
-			active = 0
-			tradingEvent = True
-			logger.info(f'SHORT is closed! {fiat} {active}')
-
-		if active == 0:
-			logger.info('We are not in position!')
-
-	balance = fiat + active*price
-
-	return fiat, active, balance, tradingEvent
 
 def get_signals():
 	db = get_duckdb()
