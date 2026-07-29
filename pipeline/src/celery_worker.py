@@ -19,27 +19,31 @@ def build_tasks(
 	target_year_profit = 30.0
 
 	listTimeFrame = [
-#		'8min',
-#		'12min',
-#		'15min',
-#		'24min',
-#		'30min',
-#		'36min',
-#		'45min',
-#		'48min',
+		'8min',
+		'10min',
+		'12min',
+		'15min',
+		'18min',
+		'20min',
+		'24min',
+		'30min',
+		'36min',
+		'40min',
+		'45min',
+		'48min',
 		'1h',
 	]
 
 	listSymbol = [
-		'BTC',
-		'ETH',
-		'BNB',
-		'XRP',
-		'SOL',
-		'TRX',
+#		'BTC',
+#		'ETH',
+#		'BNB',
+#		'XRP',
+#		'SOL',
+#		'TRX',
 		'ADA',
-		'LINK',
-		'HYPE',
+#		'LINK',
+#		'HYPE',
 #		'RE',
 #		'BOT',
 	]
@@ -47,15 +51,17 @@ def build_tasks(
 	listNameExchange = ['binance']
 	listStrategy = [
 		'moving:I',
-		'trend:I',
-		'channel:I',
-		'forecast:I',
-		'modeling:I',
-		'pattern:I',
-		'correlation:II',
+#		'trend:I',
+#		'channel:I',
+#		'forecast:I',
+#		'modeling:I',
+#		'pattern:I',
+#		'correlation:II',
 	]
 	listFactor = [
 		'BTC',
+#		'ETH',
+#		'BNB'
 #		'RE',
 #		'BOT',
 	]
@@ -110,7 +116,7 @@ def build_tasks(
 	lenthCombi = len(listMSGs)
 	logger.info(f"full lenth combination = {lenthCombi}")
 
-	if mode in ["stats", "imitation"]:
+	if mode in ["imitation"]:
 		if modeFilter == 'new':
 			listMSGs = filter_new.main(
 				listMSGs=listMSGs,
@@ -131,9 +137,10 @@ def build_tasks(
 			tasks_to_run.append({'id': i+1, 'params': listMSGs[i]})
 	else:
 		makeStats.main(
-			listSymbol=listSymbol,
 			listTimeFrame=listTimeFrame,
-			listStrategy=listStrategy
+			listStrategy=listStrategy,
+			listSymbol=listSymbol,
+			listFactor=listFactor,
 		)
 
 	return tasks_to_run

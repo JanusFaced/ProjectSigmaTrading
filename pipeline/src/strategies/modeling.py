@@ -64,9 +64,9 @@ def main(inputMessage: dict[str, Any]) -> None:
 	])
 
 	dataFrame = dataFrame.with_columns([
-		(pl.col('pModel')/pl.col('pModel').shift(1) - 1).abs().alias('pModelDiff'),
-		(pl.col('nModel')/pl.col('nModel').shift(1) - 1).abs().alias('nModelDiff'),
-		(pl.col('trendMoving')/pl.col('trendMoving').shift(1) - 1).abs().alias('trendMovingDiff'),
+		(pl.col('pModel')/pl.col('pModel').shift(1) - 1).alias('pModelDiff'),
+		(pl.col('nModel')/pl.col('nModel').shift(1) - 1).alias('nModelDiff'),
+		(pl.col('trendMoving')/pl.col('trendMoving').shift(1) - 1).alias('trendMovingDiff'),
 	])
 
 	dataFrame = dataFrame.with_columns(

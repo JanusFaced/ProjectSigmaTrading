@@ -55,8 +55,8 @@ def main(inputMessage: dict[str, Any]) -> None:
 	])
 
 	dataFrame = dataFrame.with_columns([
-		(pl.col('signalCurve')/pl.col('signalCurve').shift(1) - 1).abs().alias('signalCurveDiff'),
-		(pl.col('trendMoving')/pl.col('trendMoving').shift(1) - 1).abs().alias('trendMovingDiff'),
+		(pl.col('signalCurve')/pl.col('signalCurve').shift(1) - 1).alias('signalCurveDiff'),
+		(pl.col('trendMoving')/pl.col('trendMoving').shift(1) - 1).alias('trendMovingDiff'),
 	])
 
 	dataFrame = dataFrame.with_columns(

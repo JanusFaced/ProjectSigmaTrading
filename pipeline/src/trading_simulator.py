@@ -59,29 +59,30 @@ def backTestAnalyst(
 	) -> None:
 
 	testMode = inputMessage['testMode']
-
 	nameExchange = inputMessage['nameExchange']
 	symbol = inputMessage['symbol']
 	type = inputMessage['type']
 	timeFrame = inputMessage['timeFrame']
 	strategy = inputMessage['strategy']
+	nameStrategy = f"{strategy}_{symbol}_{timeFrame}_{type}_{nameExchange}"
 
-	winrate = report['winrate']
 	balanceBody = report['balanceBody']
 	balanceCold = report['balanceCold']
-	freqTrads = report['freqTrads']
-	averageLengthTrade = report['averageLengthTrade']
-	averageProfitSize = report['averageProfitSize']
-	maxProfitSize = report['maxProfitSize']
-	averageLossSize = report['averageLossSize']
-	maxLossSize = report['maxLossSize']
-	trads = report['trads']
-	maxLengthTrade = report['maxLengthTrade']
-	minLenthTrade = report['minLenthTrade']
-	amountStopLoss = report['amountStopLoss']
-	amountTakeProfit = report['amountTakeProfit']
-	amountLossSignal = report['amountLossSignal']
-	amountProfitSignal = report['amountProfitSignal']
+	
+	winrate = [report['general']['winrate'], report['long']['winrate'], report['short']['winrate']]
+	freqTrads = [report['general']['freqTrads'], report['long']['freqTrads'], report['short']['freqTrads']]
+	averageLengthTrade = [report['general']['averageLengthTrade'], report['long']['averageLengthTrade'], report['short']['averageLengthTrade']]
+	averageProfitSize = [report['general']['averageProfitSize'], report['long']['averageProfitSize'], report['short']['averageProfitSize']]
+	maxProfitSize = [report['general']['maxProfitSize'], report['long']['maxProfitSize'], report['short']['maxProfitSize']]
+	averageLossSize = [report['general']['averageLossSize'], report['long']['averageLossSize'], report['short']['averageLossSize']]
+	maxLossSize = [report['general']['maxLossSize'], report['long']['maxLossSize'], report['short']['maxLossSize']]
+	trads = [report['general']['trads'], report['long']['trads'], report['short']['trads']]
+	maxLengthTrade = [report['general']['maxLengthTrade'], report['long']['maxLengthTrade'], report['short']['maxLengthTrade']]
+	minLenthTrade = [report['general']['minLenthTrade'], report['long']['minLenthTrade'], report['short']['minLenthTrade']]
+	amountStopLoss = [report['general']['amountStopLoss'], report['long']['amountStopLoss'], report['short']['amountStopLoss']]
+	amountTakeProfit = [report['general']['amountTakeProfit'], report['long']['amountTakeProfit'], report['short']['amountTakeProfit']]
+	amountLossSignal = [report['general']['amountLossSignal'], report['long']['amountLossSignal'], report['short']['amountLossSignal']]
+	amountProfitSignal = [report['general']['amountProfitSignal'], report['long']['amountProfitSignal'], report['short']['amountProfitSignal']]
 
 	integerTimeFrame = convertorTimeFrame(timeFrame)
 	multipleTimeFrame = 1440//integerTimeFrame
@@ -181,9 +182,17 @@ def backTestAnalyst(
 	stable_index: float = float(round(stable_index, 2))
 	calmar: float = float(round(calmar, 2))
 
-	logger.info(f'winrate {winrate} %')
-	logger.info(f'trads {trads}')
-	logger.info(f'max_time_reborn {max_time_reborn}')
+	logger.info(f'========== ANALYST for {nameStrategy} ==========')
+	logger.info(f'winrate {winrate[0]} (L:{winrate[1]}|S:{winrate[2]}) %')
+	logger.info(f'freqTrads {freqTrads[0]} (L:{freqTrads[1]}|S:{freqTrads[2]}) trads/candle')
+	logger.info(f'trads {trads[0]} (L:{trads[1]}|S:{trads[2]})')
+	logger.info(f'maxProfitSize {maxProfitSize[0]} (L:{maxProfitSize[1]}|S:{maxProfitSize[2]}) %')
+	logger.info(f'averageProfitSize {averageProfitSize[0]} (L:{averageProfitSize[1]}|S:{averageProfitSize[2]}) %')
+	logger.info(f'averageLossSize {averageLossSize[0]} (L:{averageLossSize[1]}|S:{averageLossSize[2]}) %')
+	logger.info(f'maxLossSize {maxLossSize[0]} (L:{maxLossSize[1]}|S:{maxLossSize[2]}) %')
+	logger.info(f'max_time_reborn {max_time_reborn} candles')
+	logger.info(f'maxLengthTrade {maxLengthTrade[0]} (L:{maxLengthTrade[1]}|S:{maxLengthTrade[2]}) candles')
+	logger.info(f'minLenthTrade {minLenthTrade[0]} (L:{minLenthTrade[1]}|S:{minLenthTrade[2]}) candles')
 	logger.info(f'geom_mean_profit {geom_mean_profit} %')
 	logger.info(f'max_drawdawn {max_drawdawn} %')
 	logger.info(f'sharp_classic {sharp_classic}')
@@ -197,7 +206,6 @@ def backTestAnalyst(
 	plt.savefig(fileName)
 	plt.close()
 
-	nameStrategy = f"{strategy}_{symbol}_{timeFrame}_{type}_{nameExchange}"
 	inputData = {
 		"strategy": nameStrategy,
 		"year_profit": geom_mean_profit,

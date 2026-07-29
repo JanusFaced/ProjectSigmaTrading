@@ -14,7 +14,12 @@ logger = get_logger(__name__)
 output_dir = Path(__file__).parent / "output"
 config_dir = Path(__file__).parent / "config"
 
-def main(listSymbol: dict, listTimeFrame: dict, listStrategy: dict) -> None:
+def main(
+		listTimeFrame: dict,
+		listStrategy: dict,
+		listSymbol: dict,
+		listFactor: dict,
+	) -> None:
 	listStrategy = [item.split(':')[0] for item in listStrategy]
 
 	dataBaseSession = get_session()
@@ -48,7 +53,20 @@ def main(listSymbol: dict, listTimeFrame: dict, listStrategy: dict) -> None:
 		splitStrategy = table["strategy"].rsplit('_', 4)
 		realNameStrategy = splitStrategy[0].split(':')[0]
 
-		if (splitStrategy[2] in listTimeFrame) and (splitStrategy[1] in listSymbol) and (realNameStrategy in listStrategy):
+		try:
+			splitFactor = splitStrategy[0].split(':')[1]
+		except Exception as e:
+			splitFactor = 'Fail'
+
+		if (
+				(splitStrategy[2] in listTimeFrame) and
+				(splitStrategy[1] in listSymbol) and
+				(realNameStrategy in listStrategy) and
+				(
+					splitFactor == 'Fail' or
+					(splitFactor in listFactor)
+				)
+			):
 			newTableBacktest.append({
 				"id": table["id"],
 				"strategy": table["strategy"],

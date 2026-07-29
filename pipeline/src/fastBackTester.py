@@ -9,25 +9,17 @@ from logger_setup import get_logger
 
 logger = get_logger(__name__)
 
-def main(dataFrame: pl.DataFrame, testMode: str) -> dict:
-	testMode = 1 if testMode == 'cumul' else 0
+def preAnalyst(
+		lenthDF: int,
+		delta_trads: npt.NDArray[np.float64],
+		len_trads: npt.NDArray[np.float64],
+	) -> dict:
 
-	cash_balance_body, cash_balance_cold, delta_trads, len_trads = backtest(
-		openVector = dataFrame['open'].to_numpy(),
-		highVector = dataFrame['high'].to_numpy(),
-		lowVector = dataFrame['low'].to_numpy(),
-		closeVector = dataFrame['close'].to_numpy(),
-		volumeVector = dataFrame['volume'].to_numpy(),
-		longSignalVector = dataFrame['long_signal'].to_numpy(),
-		shortSignalVector = dataFrame['short_signal'].to_numpy(),
-		testMode = testMode,
-	)
+	if len(delta_trads) > 0:
+		#trads and freq_trads
+		trads = len(delta_trads)
+		freq_trads = int(lenthDF/trads)
 
-	#trads and freq_trads
-	trads = len(delta_trads)
-	freq_trads = trads/len(cash_balance_body)
-
-	if trads > 0:
 		#win_loss
 		posDeltaTrads = delta_trads[delta_trads > 0]
 		negDeltaTrads = delta_trads[delta_trads < 0]
@@ -37,8 +29,8 @@ def main(dataFrame: pl.DataFrame, testMode: str) -> dict:
 
 		#average_profit_size and max_profit_size
 		if winCount > 0:
-			average_profit_size = np.mean(posDeltaTrads)
-			max_profit_size = np.max(posDeltaTrads)
+			average_profit_size = round(np.mean(posDeltaTrads), 2)
+			max_profit_size = round(np.max(posDeltaTrads), 2)
 
 		else:
 			average_profit_size = 0
@@ -46,8 +38,8 @@ def main(dataFrame: pl.DataFrame, testMode: str) -> dict:
 
 		#average_loss_size and max_loss_size
 		if lossCount > 0:
-			average_loss_size =  np.mean(negDeltaTrads)
-			max_loss_size = np.max(negDeltaTrads)
+			average_loss_size =  round(np.mean(negDeltaTrads), 2)
+			max_loss_size = round(np.min(negDeltaTrads), 2)
 
 		else:
 			average_loss_size = 0
@@ -69,6 +61,8 @@ def main(dataFrame: pl.DataFrame, testMode: str) -> dict:
 		amount_loss_signal = lossCount
 
 	else:
+		trads = 0
+		freq_trads = lenthDF
 		posDeltaTrads = []
 		negDeltaTrads = []
 		winCount = 0
@@ -87,8 +81,6 @@ def main(dataFrame: pl.DataFrame, testMode: str) -> dict:
 	send_list = {
 		'trads': trads,
 		'freqTrads': freq_trads,
-		'balanceBody': cash_balance_body,
-		'balanceCold': cash_balance_cold,
 		'winrate': win_loss,
 		'averageProfitSize': average_profit_size,
 		'maxProfitSize': max_profit_size,
@@ -105,6 +97,38 @@ def main(dataFrame: pl.DataFrame, testMode: str) -> dict:
 
 	return send_list
 
+def main(dataFrame: pl.DataFrame, testMode: str) -> dict:
+	testMode = 1 if testMode == 'cumul' else 0
+
+	cash_balance_body, cash_balance_cold, longDeltaTrads, longLenTrads, shortDeltaTrads, shortLenTrads = backtest(
+		openVector = dataFrame['open'].to_numpy(),
+		highVector = dataFrame['high'].to_numpy(),
+		lowVector = dataFrame['low'].to_numpy(),
+		closeVector = dataFrame['close'].to_numpy(),
+		volumeVector = dataFrame['volume'].to_numpy(),
+		longSignalVector = dataFrame['long_signal'].to_numpy(),
+		shortSignalVector = dataFrame['short_signal'].to_numpy(),
+		testMode = testMode,
+	)
+
+	delta_trads = np.concatenate([longDeltaTrads, shortDeltaTrads])
+	len_trads = np.concatenate([longLenTrads, shortLenTrads])
+
+	lenthDF = len(cash_balance_body)
+	general_list = preAnalyst(lenthDF, delta_trads, len_trads)
+	long_list = preAnalyst(lenthDF, longDeltaTrads, longLenTrads)
+	short_list = preAnalyst(lenthDF, shortDeltaTrads, shortLenTrads)
+
+	send_list = {
+		'balanceBody': cash_balance_body,
+		'balanceCold': cash_balance_cold,
+		'general': general_list,
+		'long': long_list,
+		'short': short_list,
+	}
+
+	return send_list
+
 @njit(cache=True)
 def backtest(
 		openVector: npt.NDArray[np.float64],
@@ -115,7 +139,7 @@ def backtest(
 		longSignalVector: npt.NDArray[np.int64],
 		shortSignalVector: npt.NDArray[np.int64],
 		testMode: int,
-	) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.float64], npt.NDArray[np.float64], npt.NDArray[np.int64]]:
+	) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.float64], npt.NDArray[np.float64], npt.NDArray[np.int64], npt.NDArray[np.int64], npt.NDArray[np.int64]]:
 
 	start_fiat: float = 100.0
 	leverage: int = 1
@@ -129,8 +153,12 @@ def backtest(
 	fiat: float = start_fiat
 	active: float = 0.0
 
-	delta_trads: npt.NDArray[np.float64] = np.empty(0, dtype=np.float64)
-	len_trads: npt.NDArray[np.float64] = np.empty(0, dtype=np.float64)
+	longDeltaTrads: npt.NDArray[np.float64] = np.empty(0, dtype=np.float64)
+	longLenTrads: npt.NDArray[np.float64] = np.empty(0, dtype=np.float64)
+	
+	shortDeltaTrads: npt.NDArray[np.float64] = np.empty(0, dtype=np.float64)
+	shortLenTrads: npt.NDArray[np.float64] = np.empty(0, dtype=np.float64)
+	
 	oldDeposite: float = start_fiat
 	oldTimePoint: int = 0
 
@@ -155,9 +183,13 @@ def backtest(
 		)
 
 		if True in [tradEvent['close_long'], tradEvent['open_long'], tradEvent['close_short'], tradEvent['open_short']]:
-			if tradEvent['close_long'] or tradEvent['close_short']:
-				delta_trads = np.append(delta_trads, 100*(deposit - oldDeposite)/oldDeposite)
-				len_trads = np.append(len_trads, i - oldTimePoint)
+			if tradEvent['close_long']:
+				longDeltaTrads = np.append(longDeltaTrads, 100*(deposit - oldDeposite)/oldDeposite)
+				longLenTrads = np.append(longLenTrads, i - oldTimePoint)
+
+			elif tradEvent['close_short']:
+				shortDeltaTrads = np.append(shortDeltaTrads, 100*(deposit - oldDeposite)/oldDeposite)
+				shortLenTrads = np.append(shortLenTrads, i - oldTimePoint)
 
 			if tradEvent['open_long'] or tradEvent['open_short']:
 				oldDeposite = deposit
@@ -166,9 +198,9 @@ def backtest(
 			#logger.info(f"==================================================================")
 			#logger.info(f"{tradEvent}")
 			#logger.info(f"{fiat} {active} {deposit} {cold_fiat} {longSignal} {shortSignal}")
-			#time.sleep(1)
+			#time.sleep(3)
 
 		cash_balance_body = np.append(cash_balance_body, deposit)
 		cash_balance_cold = np.append(cash_balance_cold, cold_fiat)
 
-	return cash_balance_body, cash_balance_cold, delta_trads, len_trads
+	return cash_balance_body, cash_balance_cold, longDeltaTrads, longLenTrads, shortDeltaTrads, shortLenTrads

@@ -54,8 +54,8 @@ def main(inputMessage: dict[str, Any]) -> None:
 	])
 
 	dataFrame = dataFrame.with_columns([
-		(pl.col('model')/pl.col('model').shift(1) - 1).abs().alias('modelDiff'),
-		(pl.col('trendMoving')/pl.col('trendMoving').shift(1) - 1).abs().alias('trendMovingDiff'),
+		(pl.col('model')/pl.col('model').shift(1) - 1).alias('modelDiff'),
+		(pl.col('trendMoving')/pl.col('trendMoving').shift(1) - 1).alias('trendMovingDiff'),
 	])
 
 	dataFrame = dataFrame.with_columns(
