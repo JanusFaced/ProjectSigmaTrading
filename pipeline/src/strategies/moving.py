@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import polars as pl
 import os
 from convertorTF import convertorTimeFrame
-from custom_ta import adaptive_moving, adaptive_roc
+from custom_ta import adaptive_moving
 from pathlib import Path
 from duckDB_setup import get_duckdb
 from logger_setup import get_logger
@@ -21,102 +21,58 @@ def main(inputMessage: dict[str, Any]) -> None:
 	type = inputMessage['type']
 	timeFrame = inputMessage['timeFrame']
 
-	volativityWindow, directionWindow, signalWindow, trendWindow = 200, 200, 20, 200
-	maxVolMulti, minVolMulti = 15, 1
-	maxDirMulti = 15
+	convertTimeFrame = convertorTimeFrame(timeFrame)
+
+	signalWindow, filterWindow = 20, 200 #20, 200
 	
-	base1m = 0.000075
-	convertA = 1440
-	convertB = 0.06
-	convertC = convertorTimeFrame(timeFrame)
-	baseValue = base1m*( convertB*(convertA - convertC) + convertC )
+	baseVolativity = 0.000075 #0.000075
+	convertAngle = 0.06 #0.06
+	baseValueVolativity = baseVolativity*( convertAngle*(1440 - convertTimeFrame) + convertTimeFrame )
 
-	if convertC == 1440:
-		dataFrame = dataFrame.with_columns([
-			(pl.lit(signalWindow).alias('signalWindow')),
-			(pl.lit(trendWindow).alias('trendWindow')),
-		])
-
-	else:
-		dataFrame = dataFrame.with_columns((pl.col('close')/pl.col('close').shift(1) - 1).abs().alias('diff_abs'))
-		dataFrame = dataFrame.with_columns(pl.col('diff_abs').rolling_mean(window_size=volativityWindow).alias('volativity'))
-		dataFrame = dataFrame.with_columns((pl.lit(baseValue)/pl.col('volativity')).alias('volMulti'))
-		dataFrame = dataFrame.with_columns([
-			(pl.col('volMulti')*signalWindow).fill_null(signalWindow).cast(pl.Int64).clip(2, None).alias('signalWindow'),
-			(pl.col('volMulti')*trendWindow).fill_null(trendWindow).cast(pl.Int64).clip(2, None).alias('trendWindow'),
-		])
-
-		if convertC <= 60:
-			dataFrame = dataFrame.with_columns((pl.col('close')/pl.col('close').shift(1) - 1).alias('diff'))
-			dataFrame = dataFrame.with_columns(pl.col('diff').rolling_mean(window_size=directionWindow).abs().alias('direction'))
-			dataFrame = dataFrame.with_columns((pl.lit(baseValue)/pl.col('direction')).alias('dirMulti'))
+	dataFrame = dataFrame.with_columns((pl.col('close')/pl.col('close').shift(1) - 1).abs().alias('diff_abs'))
+	dataFrame = dataFrame.with_columns(pl.col('diff_abs').rolling_mean(window_size=filterWindow).alias('volativity'))
+	dataFrame = dataFrame.with_columns((pl.lit(baseValueVolativity)/pl.col('volativity')).alias('volMulti'))
+	dataFrame = dataFrame.with_columns([
+		(pl.col('volMulti')*signalWindow).fill_null(signalWindow).cast(pl.Int64).clip(2, None).alias('signalWindow'),
+		(pl.col('volMulti')*filterWindow).fill_null(filterWindow).cast(pl.Int64).clip(2, None).alias('filterWindow'),
+	])
 
 	moving = adaptive_moving(
 		closeVector=dataFrame['close'].to_numpy(),
 		windowVector=dataFrame['signalWindow'].to_numpy()
 	)
 
-	trend = adaptive_roc(
+	trendMoving = adaptive_moving(
 		closeVector=dataFrame['close'].to_numpy(),
-		windowVector=dataFrame['trendWindow'].to_numpy()
+		windowVector=dataFrame['filterWindow'].to_numpy()
 	)
 
 	dataFrame = dataFrame.with_columns([
 		pl.Series('moving', moving),
-		pl.Series('trend', trend),
+		pl.Series('trendMoving', trendMoving),
 	])
 
-	if convertC == 1440:
-		dataFrame = dataFrame.with_columns(
-			pl.when(
-				(pl.col('close') > pl.col('moving')) &
-				(pl.col('trend') > 0)
-			).then(pl.lit(2))
-			.when(
-				(pl.col('close') < pl.col('moving')) &
-				(pl.col('trend') < 0)
-			).then(pl.lit(0))
-			.otherwise(pl.lit(1))
-			.alias('strategy')
-		)
+	dataFrame = dataFrame.with_columns([
+		(pl.col('moving')/pl.col('moving').shift(1) - 1).abs().alias('movingDiff'),
+		(pl.col('trendMoving')/pl.col('trendMoving').shift(1) - 1).abs().alias('trendMovingDiff'),
+	])
 
-	elif 60 < convertC < 1440:
-		dataFrame = dataFrame.with_columns(
-			pl.when(
-				(pl.col('close') > pl.col('moving')) &
-				(pl.col('trend') > 0) &
-				(pl.col('volMulti') < maxVolMulti) &
-				(pl.col('volMulti') > minVolMulti)
-			).then(pl.lit(2))
-			.when(
-				(pl.col('close') < pl.col('moving')) &
-				(pl.col('trend') < 0) &
-				(pl.col('volMulti') < maxVolMulti) &
-				(pl.col('volMulti') > minVolMulti)
-			).then(pl.lit(0))
-			.otherwise(pl.lit(1))
-			.alias('strategy')
-		)
-
-	else:
-		dataFrame = dataFrame.with_columns(
-			pl.when(
-				(pl.col('close') > pl.col('moving')) &
-				(pl.col('trend') > 0) &
-				(pl.col('volMulti') < maxVolMulti) &
-				(pl.col('volMulti') > minVolMulti) &
-				(pl.col('dirMulti') < maxDirMulti)
-			).then(pl.lit(2))
-			.when(
-				(pl.col('close') < pl.col('moving')) &
-				(pl.col('trend') < 0) &
-				(pl.col('volMulti') < maxVolMulti) &
-				(pl.col('volMulti') > minVolMulti) &
-				(pl.col('dirMulti') < maxDirMulti)
-			).then(pl.lit(0))
-			.otherwise(pl.lit(1))
-			.alias('strategy')
-		)
+	dataFrame = dataFrame.with_columns(
+		pl.when(
+			(pl.col('close') > pl.col('moving')) & (pl.col('movingDiff') > 0) &
+			(pl.col('close') > pl.col('trendMoving')) & (pl.col('trendMovingDiff') > 0) &
+			(pl.col('volMulti') < 15) &
+			(pl.col('volMulti') > 1)
+		).then(pl.lit(2))
+		.when(
+			(pl.col('close') < pl.col('moving')) & (pl.col('movingDiff') < 0) &
+			(pl.col('close') < pl.col('trendMoving')) & (pl.col('trendMovingDiff') < 0) &
+			(pl.col('volMulti') < 15) &
+			(pl.col('volMulti') > 1)
+		).then(pl.lit(0))
+		.otherwise(pl.lit(1))
+		.alias('strategy')
+	)
 	
 	dataFrame = dataFrame.with_columns([
 		pl.when(pl.col('strategy') == 2).then(pl.lit(-1)).otherwise(pl.lit(1)).alias('long_signal'),
@@ -125,18 +81,9 @@ def main(inputMessage: dict[str, Any]) -> None:
 
 	#superName = str(output_dir) + f'/moving_{nameExchange}_{symbol}_{type}_{timeFrame}.png'
 	#tempDF = dataFrame.tail(1440)
-	#tempDF = tempDF.with_columns(
-	#	pl.when( (pl.col('dirMulti') > pl.lit(maxDirMulti)) ).then( pl.lit(maxDirMulti) )
-	#	.otherwise(pl.col('dirMulti'))
-	#	.alias('dirMulti')
-	#)
-	#tempDF = tempDF.with_columns([pl.lit(maxDirMulti).alias('maxDirMulti')])
 	#plt.plot(tempDF['close'], color='black')
 	#plt.plot(tempDF['moving'], color='red')
-	#plt.plot(tempDF['volMulti'], color='orange')
-	#plt.plot(tempDF['maxDirMulti'], color='red')
-	#plt.plot(tempDF['dirMulti'], color='purple')
-	#plt.plot(tempDF['volativity'], color='black')
+	#plt.plot(tempDF['trendMoving'], color='orange')
 	#plt.savefig(superName)
 	#plt.close()
 

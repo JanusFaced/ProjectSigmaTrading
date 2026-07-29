@@ -1,9 +1,11 @@
 from typing import Any
 import matplotlib.pyplot as plt
 import polars as pl
+import numpy
+import math
 import os
 from convertorTF import convertorTimeFrame
-from custom_ta import adaptive_lr_channel, adaptive_moving
+from custom_ta import adaptive_adx, adaptive_moving
 from pathlib import Path
 from duckDB_setup import get_duckdb
 from logger_setup import get_logger
@@ -37,7 +39,10 @@ def main(inputMessage: dict[str, Any]) -> None:
 		(pl.col('volMulti')*filterWindow).fill_null(filterWindow).cast(pl.Int64).clip(2, None).alias('filterWindow'),
 	])
 
-	signalUp, signalCurve, signalDown = adaptive_lr_channel(
+	pDMI, nDMI, ADX = adaptive_adx(
+		openVector=dataFrame['open'].to_numpy(),
+		highVector=dataFrame['high'].to_numpy(),
+		lowVector=dataFrame['low'].to_numpy(),
 		closeVector=dataFrame['close'].to_numpy(),
 		windowVector=dataFrame['signalWindow'].to_numpy()
 	)
@@ -48,26 +53,25 @@ def main(inputMessage: dict[str, Any]) -> None:
 	)
 
 	dataFrame = dataFrame.with_columns([
-		pl.Series('signalUp', signalUp),
-		pl.Series('signalCurve', signalCurve),
-		pl.Series('signalDown', signalDown),
+		pl.Series('pDMI', pDMI),
+		pl.Series('nDMI', nDMI),
+		pl.Series('ADX', ADX),
 		pl.Series('trendMoving', trendMoving),
 	])
 
 	dataFrame = dataFrame.with_columns([
-		(pl.col('signalCurve')/pl.col('signalCurve').shift(1) - 1).abs().alias('signalCurveDiff'),
 		(pl.col('trendMoving')/pl.col('trendMoving').shift(1) - 1).abs().alias('trendMovingDiff'),
 	])
 
 	dataFrame = dataFrame.with_columns(
 		pl.when(
-			(pl.col('close') > pl.col('signalDown')) & (pl.col('signalCurveDiff') > 0) &
+			(pl.col('pDMI') > pl.col('nDMI')) &
 			(pl.col('close') > pl.col('trendMoving')) & (pl.col('trendMovingDiff') > 0) &
 			(pl.col('volMulti') < 15) &
 			(pl.col('volMulti') > 1)
 		).then(pl.lit(2))
 		.when(
-			(pl.col('close') < pl.col('signalUp')) & (pl.col('signalCurveDiff') < 0) &
+			(pl.col('pDMI') < pl.col('nDMI')) &
 			(pl.col('close') < pl.col('trendMoving')) & (pl.col('trendMovingDiff') < 0) &
 			(pl.col('volMulti') < 15) &
 			(pl.col('volMulti') > 1)
@@ -81,12 +85,11 @@ def main(inputMessage: dict[str, Any]) -> None:
 		pl.when(pl.col('strategy') == 0).then(pl.lit(1)).otherwise(pl.lit(-1)).alias('short_signal'),
 	])
 
-	#superName = str(output_dir) + f'/channel_{nameExchange}_{symbol}_{type}_{timeFrame}.png'
+	#superName = str(output_dir) + f'/trend_{nameExchange}_{symbol}_{type}_{timeFrame}.png'
 	#tempDF = dataFrame.tail(1440)
-	#plt.plot(tempDF['close'], color='black')
-	#plt.plot(tempDF['signalUp'], color='green')
-	#plt.plot(tempDF['signalCurve'], color='orange')
-	#plt.plot(tempDF['signalDown'], color='red')
+	#plt.plot(tempDF['pDMI'], color='green')
+	#plt.plot(tempDF['nDMI'], color='red')
+	#plt.plot(tempDF['ADX'], color='blue')
 	#plt.savefig(superName)
 	#plt.close()
 

@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import polars as pl
 import os
 from convertorTF import convertorTimeFrame
-from custom_ta import adaptive_modeling_correlation, adaptive_roc
+from custom_ta import adaptive_modeling_correlation, adaptive_moving
 from pathlib import Path
 from duckDB_setup import get_duckdb
 from logger_setup import get_logger
@@ -21,21 +21,20 @@ def main(inputMessage: dict[str, Any]) -> None:
 	type = inputMessage['type']
 	timeFrame = inputMessage['timeFrame']
 
-	volativityWindow, signalWindow, trendWindow = 200, 20, 200
-	maxMulti, minMulti = 15, 1
-	baseVolativity1m = 0.000075
-	convertA = 1440
-	convertB = 0.06
-	convertC = convertorTimeFrame(timeFrame)
-	baseVolativity = baseVolativity1m*( convertB*(convertA - convertC) + convertC )
+	convertTimeFrame = convertorTimeFrame(timeFrame)
 
-	dataFrame = dataFrame.with_columns((pl.col('close')/pl.col('close').shift(1) - 1).abs().alias('diff'))
-	dataFrame = dataFrame.with_columns(pl.col('diff').rolling_mean(window_size=volativityWindow).alias('volativity'))
-	dataFrame = dataFrame.with_columns((pl.lit(baseVolativity)/pl.col('volativity')).alias('window'))
+	signalWindow, filterWindow = 20, 200 #20, 200
+	
+	baseVolativity = 0.000075 #0.000075
+	convertAngle = 0.06 #0.06
+	baseValueVolativity = baseVolativity*( convertAngle*(1440 - convertTimeFrame) + convertTimeFrame )
 
+	dataFrame = dataFrame.with_columns((pl.col('close')/pl.col('close').shift(1) - 1).abs().alias('diff_abs'))
+	dataFrame = dataFrame.with_columns(pl.col('diff_abs').rolling_mean(window_size=filterWindow).alias('volativity'))
+	dataFrame = dataFrame.with_columns((pl.lit(baseValueVolativity)/pl.col('volativity')).alias('volMulti'))
 	dataFrame = dataFrame.with_columns([
-		(pl.col('window')*signalWindow).fill_null(signalWindow).cast(pl.Int64).clip(2, None).alias('signalWindow'),
-		(pl.col('window')*trendWindow).fill_null(trendWindow).cast(pl.Int64).clip(2, None).alias('trendWindow'),
+		(pl.col('volMulti')*signalWindow).fill_null(signalWindow).cast(pl.Int64).clip(2, None).alias('signalWindow'),
+		(pl.col('volMulti')*filterWindow).fill_null(filterWindow).cast(pl.Int64).clip(2, None).alias('filterWindow'),
 	])
 
 	model = adaptive_modeling_correlation(
@@ -43,29 +42,34 @@ def main(inputMessage: dict[str, Any]) -> None:
 		primaryVector=dataFrame['closeFactor'].to_numpy(),
 		windowVector=dataFrame['signalWindow'].to_numpy()
 	)
-	
-	trend = adaptive_roc(
+
+	trendMoving = adaptive_moving(
 		closeVector=dataFrame['close'].to_numpy(),
-		windowVector=dataFrame['trendWindow'].to_numpy()
+		windowVector=dataFrame['filterWindow'].to_numpy()
 	)
 
 	dataFrame = dataFrame.with_columns([
 		pl.Series('model', model),
-		pl.Series('trend', trend),
+		pl.Series('trendMoving', trendMoving),
+	])
+
+	dataFrame = dataFrame.with_columns([
+		(pl.col('model')/pl.col('model').shift(1) - 1).abs().alias('modelDiff'),
+		(pl.col('trendMoving')/pl.col('trendMoving').shift(1) - 1).abs().alias('trendMovingDiff'),
 	])
 
 	dataFrame = dataFrame.with_columns(
 		pl.when(
-			(pl.col('close') > pl.col('model')) &
-			(pl.col('trend') > 0) &
-			(pl.col('window') < maxMulti) &
-			(pl.col('window') > minMulti)
+			(pl.col('close') > pl.col('model')) & (pl.col('modelDiff') > 0) &
+			(pl.col('close') > pl.col('trendMoving')) & (pl.col('trendMovingDiff') > 0) &
+			(pl.col('volMulti') < 15) &
+			(pl.col('volMulti') > 1)
 		).then(pl.lit(2))
 		.when(
-			(pl.col('close') < pl.col('model')) &
-			(pl.col('trend') < 0) &
-			(pl.col('window') < maxMulti) &
-			(pl.col('window') > minMulti)
+			(pl.col('close') < pl.col('model')) & (pl.col('modelDiff') < 0) &
+			(pl.col('close') < pl.col('trendMoving')) & (pl.col('trendMovingDiff') < 0) &
+			(pl.col('volMulti') < 15) &
+			(pl.col('volMulti') > 1)
 		).then(pl.lit(0))
 		.otherwise(pl.lit(1))
 		.alias('strategy')

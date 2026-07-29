@@ -119,7 +119,7 @@ def backtest(
 
 	start_fiat: float = 100.0
 	leverage: int = 1
-	max_lot: float = start_fiat
+	max_lot: float = start_fiat if testMode == 1 else False
 
 	lenthDataFrame: int = len(closeVector)
 	cash_balance_body: npt.NDArray[np.float64] = np.empty(0, dtype=np.float64)
@@ -143,31 +143,30 @@ def backtest(
 		longSignal = longSignalVector[i]
 		shortSignal = shortSignalVector[i]
 
-		fiat, active, deposit, tradingEvent = imitationEngine.coreEngine(
+		fiat, active, deposit, tradEvent, cold_fiat = imitationEngine.coreEngine(
 			price=closeValue,
 			long_signal=longSignal,
 			short_signal=shortSignal,
 			fiat=fiat,
 			active=active,
-			leverage = leverage
+			cold_fiat=cold_fiat,
+			max_lot=max_lot,
+			leverage=leverage,
 		)
 
-		if tradingEvent:
-			if longSignal == -1 or shortSignal == 1:
+		if True in [tradEvent['close_long'], tradEvent['open_long'], tradEvent['close_short'], tradEvent['open_short']]:
+			if tradEvent['close_long'] or tradEvent['close_short']:
+				delta_trads = np.append(delta_trads, 100*(deposit - oldDeposite)/oldDeposite)
+				len_trads = np.append(len_trads, i - oldTimePoint)
+
+			if tradEvent['open_long'] or tradEvent['open_short']:
 				oldDeposite = deposit
 				oldTimePoint = i
 
-			elif longSignal == 1 or shortSignal == -1:
-				delta_dep = 100*(deposit - oldDeposite)/oldDeposite
-				delta_time = i - oldTimePoint
-
-				delta_trads = np.append(delta_trads, delta_dep)
-				len_trads = np.append(len_trads, delta_time)
-
-				if testMode == 1:
-					if fiat > max_lot:
-						cold_fiat += fiat - max_lot
-						fiat = max_lot
+			#logger.info(f"==================================================================")
+			#logger.info(f"{tradEvent}")
+			#logger.info(f"{fiat} {active} {deposit} {cold_fiat} {longSignal} {shortSignal}")
+			#time.sleep(1)
 
 		cash_balance_body = np.append(cash_balance_body, deposit)
 		cash_balance_cold = np.append(cash_balance_cold, cold_fiat)

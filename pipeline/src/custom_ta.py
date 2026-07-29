@@ -19,6 +19,64 @@ def adaptive_moving(
 	return movingVector
 
 @njit(cache=True)
+def adaptive_adx(
+		openVector: npt.NDArray[np.float64],
+		highVector: npt.NDArray[np.float64],
+		lowVector: npt.NDArray[np.float64],
+		closeVector: npt.NDArray[np.float64],
+		windowVector: npt.NDArray[np.int64]
+	) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.float64], npt.NDArray[np.float64]]:
+	lenth = len(closeVector)
+	posDmiVector = np.empty(lenth, dtype=np.float64)
+	negDmiVector = np.empty(lenth, dtype=np.float64)
+	adxVector = np.empty(lenth, dtype=np.float64)
+	firstIndex = int(np.max(windowVector))
+	for i in range(firstIndex, lenth):
+		real_i = i+1
+		window = windowVector[i]
+		cutOpen = openVector[real_i-window:real_i]
+		cutHigh = highVector[real_i-window:real_i]
+		cutLow = lowVector[real_i-window:real_i]
+		cutClose = closeVector[real_i-window:real_i]
+		cutTrueRange = (cutHigh - cutLow)[1:]
+		cutPosM = cutHigh[1:] - cutHigh[:-1]
+		cutNegM = cutLow[:-1] - cutLow[1:]
+		cutPosDM = np.where((cutPosM > cutNegM) & (cutPosM > 0), cutPosM, 0.0)
+		cutNegDM = np.where((cutNegM > cutPosM) & (cutNegM > 0), cutNegM, 0.0)
+		posDmiVector[i] = np.mean(cutPosDM)/np.mean(cutTrueRange)
+		negDmiVector[i] = np.mean(cutNegDM)/np.mean(cutTrueRange)
+
+	for i in range(firstIndex, lenth):
+		real_i = i+1
+		window = windowVector[i]
+		cutPosDI = posDmiVector[real_i-window:real_i]
+		cutNegDI = negDmiVector[real_i-window:real_i]
+		cutDXI = 100*np.abs(cutPosDI - cutNegDI)/(cutPosDI + cutNegDI)
+		adxVector[i] = np.mean(cutDXI)
+	
+	return posDmiVector, negDmiVector, adxVector
+
+@njit(cache=True)
+def adaptive_bollinger(
+		closeVector: npt.NDArray[np.float64],
+		windowVector: npt.NDArray[np.int64]
+	) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.float64], npt.NDArray[np.float64]]:
+	lenth = len(closeVector)
+	upLineVector = np.empty(lenth, dtype=np.float64)
+	movingVector = np.empty(lenth, dtype=np.float64)
+	downLineVector = np.empty(lenth, dtype=np.float64)
+	firstIndex = int(np.max(windowVector))
+	for i in range(firstIndex, lenth):
+		real_i = i+1
+		window = windowVector[i]
+		cutClose = closeVector[real_i-window:real_i]
+		movingVector[i] = np.mean(cutClose)
+		sigma = np.std(cutClose)
+		upLineVector[i] = movingVector[i] + sigma
+		downLineVector[i] = movingVector[i] - sigma
+	return upLineVector, movingVector, downLineVector
+
+@njit(cache=True)
 def adaptive_roc(
 		closeVector: npt.NDArray[np.float64],
 		windowVector: npt.NDArray[np.int64]
