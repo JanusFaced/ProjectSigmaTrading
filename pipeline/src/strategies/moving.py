@@ -2,7 +2,7 @@ from typing import Any
 import matplotlib.pyplot as plt
 import polars as pl
 import os
-from custom_ta import adaptive_moving
+from custom_ta import adaptive_moving, adaptive_adx
 from pathlib import Path
 from duckDB_setup import get_duckdb
 from logger_setup import get_logger
@@ -20,7 +20,7 @@ def main(inputMessage: dict[str, Any]) -> None:
 	type = inputMessage['type']
 	timeFrame = inputMessage['timeFrame']
 
-	signalWindow, filterWindow = 20, 200 #20, 200
+	signalWindow, directWindow, filterWindow = 20, 100, 200 #20, 200
 	baseVolativity = 1.000 #1.000
 
 	dataFrame = dataFrame.with_columns((100*(pl.col('high')/pl.col('low') - 1)).alias('trueRange'))
@@ -28,12 +28,21 @@ def main(inputMessage: dict[str, Any]) -> None:
 	dataFrame = dataFrame.with_columns((pl.lit(baseVolativity)/pl.col('volativity')).alias('volMulti'))
 	dataFrame = dataFrame.with_columns([
 		(pl.col('volMulti')*signalWindow).fill_null(signalWindow).cast(pl.Int64).clip(2, None).alias('signalWindow'),
+		(pl.col('volMulti')*directWindow).fill_null(directWindow).cast(pl.Int64).clip(2, None).alias('directWindow'),
 		(pl.col('volMulti')*filterWindow).fill_null(filterWindow).cast(pl.Int64).clip(2, None).alias('filterWindow'),
 	])
 
 	moving = adaptive_moving(
 		closeVector=dataFrame['close'].to_numpy(),
 		windowVector=dataFrame['signalWindow'].to_numpy()
+	)
+
+	pDMI, nDMI, direct = adaptive_adx(
+		openVector=dataFrame['open'].to_numpy(),
+		highVector=dataFrame['high'].to_numpy(),
+		lowVector=dataFrame['low'].to_numpy(),
+		closeVector=dataFrame['close'].to_numpy(),
+		windowVector=dataFrame['directWindow'].to_numpy()
 	)
 
 	trendMoving = adaptive_moving(
@@ -43,24 +52,27 @@ def main(inputMessage: dict[str, Any]) -> None:
 
 	dataFrame = dataFrame.with_columns([
 		pl.Series('moving', moving),
+		pl.Series('direct', direct),
 		pl.Series('trendMoving', trendMoving),
 	])
 
 	dataFrame = dataFrame.with_columns([
-		(pl.col('moving')/pl.col('moving').shift(1) - 1).alias('movingDiff'),
+		(pl.col('direct')/pl.col('direct').shift(1) - 1).alias('directDiff'),
 		(pl.col('trendMoving')/pl.col('trendMoving').shift(1) - 1).alias('trendMovingDiff'),
 	])
 
 	dataFrame = dataFrame.with_columns(
 		pl.when(
-			(pl.col('close') > pl.col('moving')) & (pl.col('movingDiff') > 0) &
+			(pl.col('close') > pl.col('moving')) &
 			(pl.col('close') > pl.col('trendMoving')) & (pl.col('trendMovingDiff') > 0) &
+			(pl.col('directDiff') > 0) &
 			(pl.col('volMulti') < 15) &
 			(pl.col('volMulti') > 1)
 		).then(pl.lit(2))
 		.when(
-			(pl.col('close') < pl.col('moving')) & (pl.col('movingDiff') < 0) &
+			(pl.col('close') < pl.col('moving')) &
 			(pl.col('close') < pl.col('trendMoving')) & (pl.col('trendMovingDiff') < 0) &
+			(pl.col('directDiff') > 0) &
 			(pl.col('volMulti') < 15) &
 			(pl.col('volMulti') > 1)
 		).then(pl.lit(0))
@@ -73,17 +85,17 @@ def main(inputMessage: dict[str, Any]) -> None:
 		pl.when(pl.col('strategy') == 0).then(pl.lit(1)).otherwise(pl.lit(-1)).alias('short_signal'),
 	])
 
-	superName = str(output_dir) + f'/moving_{nameExchange}_{symbol}_{type}_{timeFrame}.png'
-	tempDF = dataFrame
-	tempDF = tempDF.with_columns([
-		(pl.lit(15)).alias('maxBoard'),
-		(pl.lit(1)).alias('minBoard'),
-	])
-	plt.plot(tempDF['maxBoard'], color='red')
-	plt.plot(tempDF['volMulti'], color='black')
-	plt.plot(tempDF['minBoard'], color='red')
-	plt.savefig(superName)
-	plt.close()
+	#superName = str(output_dir) + f'/moving_{nameExchange}_{symbol}_{type}_{timeFrame}.png'
+	#tempDF = dataFrame
+	#tempDF = tempDF.with_columns([
+	#	(pl.lit(15)).alias('maxBoard'),
+	#	(pl.lit(1)).alias('minBoard'),
+	#])
+	#plt.plot(tempDF['maxBoard'], color='red')
+	#plt.plot(tempDF['volMulti'], color='black')
+	#plt.plot(tempDF['minBoard'], color='red')
+	#plt.savefig(superName)
+	#plt.close()
 
 	dataFrame = dataFrame.select(['datetime', 'open', 'high', 'low', 'close', 'volume', 'long_signal', 'short_signal'])
 	db.execute("CREATE OR REPLACE TEMP TABLE temp_trading AS SELECT * FROM dataFrame")

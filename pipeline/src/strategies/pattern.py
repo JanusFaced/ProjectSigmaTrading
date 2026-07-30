@@ -2,8 +2,7 @@ from typing import Any
 import matplotlib.pyplot as plt
 import polars as pl
 import os
-from convertorTF import convertorTimeFrame
-from custom_ta import adaptive_price_channel, adaptive_roc, adaptive_moving
+from custom_ta import adaptive_price_channel, adaptive_roc, adaptive_moving, adaptive_adx
 from pathlib import Path
 from duckDB_setup import get_duckdb
 from logger_setup import get_logger
@@ -21,19 +20,15 @@ def main(inputMessage: dict[str, Any]) -> None:
 	type = inputMessage['type']
 	timeFrame = inputMessage['timeFrame']
 
-	convertTimeFrame = convertorTimeFrame(timeFrame)
+	signalWindow, directWindow, filterWindow = 20, 100, 200 #20, 200
+	baseVolativity = 1.000 #1.000
 
-	signalWindow, filterWindow = 20, 200 #20, 200
-	
-	baseVolativity = 0.000075 #0.000075
-	convertAngle = 0.06 #0.06
-	baseValueVolativity = baseVolativity*( convertAngle*(1440 - convertTimeFrame) + convertTimeFrame )
-
-	dataFrame = dataFrame.with_columns((pl.col('close')/pl.col('close').shift(1) - 1).abs().alias('diff_abs'))
-	dataFrame = dataFrame.with_columns(pl.col('diff_abs').rolling_mean(window_size=filterWindow).alias('volativity'))
-	dataFrame = dataFrame.with_columns((pl.lit(baseValueVolativity)/pl.col('volativity')).alias('volMulti'))
+	dataFrame = dataFrame.with_columns((100*(pl.col('high')/pl.col('low') - 1)).alias('trueRange'))
+	dataFrame = dataFrame.with_columns(pl.col('trueRange').rolling_mean(window_size=filterWindow).alias('volativity'))
+	dataFrame = dataFrame.with_columns((pl.lit(baseVolativity)/pl.col('volativity')).alias('volMulti'))
 	dataFrame = dataFrame.with_columns([
 		(pl.col('volMulti')*signalWindow).fill_null(signalWindow).cast(pl.Int64).clip(2, None).alias('signalWindow'),
+		(pl.col('volMulti')*directWindow).fill_null(directWindow).cast(pl.Int64).clip(2, None).alias('directWindow'),
 		(pl.col('volMulti')*filterWindow).fill_null(filterWindow).cast(pl.Int64).clip(2, None).alias('filterWindow'),
 	])
 
@@ -187,6 +182,14 @@ def main(inputMessage: dict[str, Any]) -> None:
 		closeVector=dataFrame['close'].to_numpy(),
 		windowVector=dataFrame['signalWindow'].to_numpy()
 	)
+
+	pDMI, nDMI, direct = adaptive_adx(
+		openVector=dataFrame['open'].to_numpy(),
+		highVector=dataFrame['high'].to_numpy(),
+		lowVector=dataFrame['low'].to_numpy(),
+		closeVector=dataFrame['close'].to_numpy(),
+		windowVector=dataFrame['directWindow'].to_numpy()
+	)
 	
 	trendMoving = adaptive_moving(
 		closeVector=dataFrame['close'].to_numpy(),
@@ -198,13 +201,15 @@ def main(inputMessage: dict[str, Any]) -> None:
 		pl.Series('upLine', upLine),
 		pl.Series('meanLine', meanLine),
 		pl.Series('downLine', downLine),
+		pl.Series('direct', direct),
 		pl.Series('trendMoving', trendMoving),
 	])
 
 	dataFrame = dataFrame.with_columns([
-		(pl.col('trendMoving')/pl.col('trendMoving').shift(1) - 1).alias('trendMovingDiff'),
 		pl.col('upLine').shift(1).alias('upLineOld'),
 		pl.col('downLine').shift(1).alias('downLineOld'),
+		(pl.col('direct')/pl.col('direct').shift(1) - 1).alias('directDiff'),
+		(pl.col('trendMoving')/pl.col('trendMoving').shift(1) - 1).alias('trendMovingDiff'),
 	])
 
 	dataFrame = dataFrame.with_columns([
@@ -225,6 +230,7 @@ def main(inputMessage: dict[str, Any]) -> None:
 	dataFrame = dataFrame.with_columns([
 		pl.when(
 			(pl.col('close') > pl.col('trendMoving')) & (pl.col('trendMovingDiff') > 0) &
+			(pl.col('directDiff') > 0) &
 			(pl.col('volMulti') < 15) &
 			(pl.col('volMulti') > 1)
 		).then(pl.col('long_signal_temp'))
@@ -232,6 +238,7 @@ def main(inputMessage: dict[str, Any]) -> None:
 		.alias('long_signal'),
 		pl.when(
 			(pl.col('close') < pl.col('trendMoving')) & (pl.col('trendMovingDiff') < 0) &
+			(pl.col('directDiff') > 0) &
 			(pl.col('volMulti') < 15) &
 			(pl.col('volMulti') > 1)
 		).then(pl.col('short_signal_temp'))
