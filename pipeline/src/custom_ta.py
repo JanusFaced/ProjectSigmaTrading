@@ -2,21 +2,134 @@ from typing import Any, TypedDict
 import numpy as np
 import numpy.typing as npt
 from numba import njit
+import time
+
+@njit(cache=True)
+def hotResampler(
+		baseVector: npt.NDArray[np.float64],
+		relativeTimeFrame: int,
+		resamplMode: str
+	) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.float64], npt.NDArray[np.float64], npt.NDArray[np.float64]]:
+	
+	lenth = len(baseVector)
+
+	finalVector = np.empty(lenth, dtype=np.float64)
+
+	tempStart = 0
+	tempMax = 0
+	tempMin = 0
+	tempEnd = 0
+	tempSum = 0
+	counter = 0
+	for i in range(len(baseVector)):
+
+		startIndex = 0
+		endIndex = relativeTimeFrame-1
+		pastIndex = len(baseVector)-1
+		timeToEnd = pastIndex - i
+
+		if resamplMode == 'start':
+			if counter == startIndex:
+				preTempStart = baseVector[i]
+			elif counter == endIndex:
+				tempStart = preTempStart if (timeToEnd >= relativeTimeFrame) else tempStart
+			finalVector[i] = tempStart
+ 
+		elif resamplMode == 'max':
+			if counter == startIndex:
+				preTempMax = baseVector[i]
+			elif endIndex >= counter > startIndex:
+				preTempMax = preTempMax if preTempMax > baseVector[i] else baseVector[i]
+			if counter == endIndex:
+				tempMax = preTempMax if (timeToEnd >= relativeTimeFrame) else tempMax
+			finalVector[i] = tempMax
+
+		elif resamplMode == 'min':
+			if counter == startIndex:
+				preTempMin = baseVector[i]
+			elif endIndex >= counter > startIndex:
+				preTempMin = preTempMin if preTempMin < baseVector[i] else baseVector[i]
+			if counter == endIndex:
+				tempMin = preTempMin if (timeToEnd >= relativeTimeFrame) else tempMin
+			finalVector[i] = tempMin
+
+		elif resamplMode == 'end':
+			if counter == endIndex:
+				tempEnd = baseVector[i] if (timeToEnd >= relativeTimeFrame) else tempEnd
+			finalVector[i] = tempEnd
+
+		elif resamplMode == 'sum':
+			if counter == startIndex:
+				preTempSum = baseVector[i]
+			elif endIndex >= counter > startIndex:
+				preTempSum += baseVector[i]
+			if counter == endIndex:
+				tempSum = preTempSum if (timeToEnd >= relativeTimeFrame) else tempSum
+			finalVector[i] = tempSum
+
+		counter += 1
+		if counter == relativeTimeFrame:
+			counter = 0
+	
+	return finalVector
+
+@njit(cache=True)
+def concentrator(
+		preCutWindow: npt.NDArray[np.float64],
+		numberMissing: int
+	) -> npt.NDArray[np.float64]:
+	cutWindow = np.empty(0, dtype=np.float64)
+	counter = 0
+	for i in range(len(preCutWindow)):
+		if counter == numberMissing:
+			cutWindow = np.append(cutWindow, preCutWindow[i])
+		counter += 1
+		if counter == numberMissing+1:
+			counter = 0
+	return cutWindow
 
 @njit(cache=True)
 def adaptive_moving(
 		closeVector: npt.NDArray[np.float64],
-		windowVector: npt.NDArray[np.int64]
-	) -> npt.NDArray[np.float64]:
+		volMulti: npt.NDArray[np.float64],
+		baseWindow: int,
+		depth: int
+	) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]]:
+
 	lenth = len(closeVector)
 	movingVector = np.empty(lenth, dtype=np.float64)
-	firstIndex = int(np.max(windowVector))
+	movingDiffVector = np.empty(lenth, dtype=np.float64)
+	firstIndex = baseWindow*int(np.max(volMulti))
+
+	matrix = [closeVector]
+	for i in range(depth):
+		relativeTimeFrame = 2**(depth+1)
+		resamplVector = hotResampler(
+			baseVector=closeVector,
+			relativeTimeFrame=relativeTimeFrame,
+			resamplMode='end'
+		)
+		matrix.append(resamplVector)
+
 	for i in range(firstIndex, lenth):
 		real_i = i+1
-		window = windowVector[i]
-		cutClose = closeVector[real_i-window:real_i]
-		movingVector[i] = np.mean(cutClose)
-	return movingVector
+		multi = volMulti[i] if volMulti[i] > 1.0 else 1.0
+		window = int(baseWindow*multi)
+		address = int(np.log2(multi)) if (multi < 2**depth) else int(np.log2(2**depth))
+
+		preCutWindow = matrix[address][real_i-window:real_i]
+		
+		cutWindow = concentrator(preCutWindow=preCutWindow, numberMissing=address)
+		currentMoving = np.mean(cutWindow) if len(cutWindow) > 2 else 0
+
+		preCutWindow = matrix[address][i-window:i]
+		cutWindow = concentrator(preCutWindow=preCutWindow, numberMissing=address)
+		pastMoving = np.mean(cutWindow) if len(cutWindow) > 2 else 0
+
+		movingVector[i] = currentMoving
+		movingDiffVector[i] = currentMoving - pastMoving
+
+	return movingVector, movingDiffVector
 
 @njit(cache=True)
 def adaptive_adx(
