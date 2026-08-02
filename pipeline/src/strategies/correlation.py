@@ -2,7 +2,7 @@ from typing import Any
 import matplotlib.pyplot as plt
 import polars as pl
 import os
-from custom_ta import adaptive_modeling_correlation, adaptive_moving, adaptive_adx
+from custom_ta import adaptive_correlation, adaptive_moving, adaptive_adx
 from pathlib import Path
 from duckDB_setup import get_duckdb
 from logger_setup import get_logger
@@ -20,46 +20,51 @@ def main(inputMessage: dict[str, Any]) -> None:
 	type = inputMessage['type']
 	timeFrame = inputMessage['timeFrame']
 
-	signalWindow, directWindow, filterWindow = 20, 100, 200 #20, 200
-	baseVolativity = 1.000 #1.000
+	signalWindow, directWindow, filterWindow = 20, 100, 200 #20, 100, 200
+	baseVolativity = 1.0 #1.0
+	depthSwitch = 4 #4
 
 	dataFrame = dataFrame.with_columns((100*(pl.col('high')/pl.col('low') - 1)).alias('trueRange'))
 	dataFrame = dataFrame.with_columns(pl.col('trueRange').rolling_mean(window_size=filterWindow).alias('volativity'))
-	dataFrame = dataFrame.with_columns((pl.lit(baseVolativity)/pl.col('volativity')).alias('volMulti'))
-	dataFrame = dataFrame.with_columns([
-		(pl.col('volMulti')*signalWindow).fill_null(signalWindow).cast(pl.Int64).clip(2, None).alias('signalWindow'),
-		(pl.col('volMulti')*directWindow).fill_null(directWindow).cast(pl.Int64).clip(2, None).alias('directWindow'),
-		(pl.col('volMulti')*filterWindow).fill_null(filterWindow).cast(pl.Int64).clip(2, None).alias('filterWindow'),
-	])
+	dataFrame = dataFrame.with_columns((pl.lit(baseVolativity)/pl.col('volativity')).fill_null(1.0).alias('volMulti'))
 
-	model = adaptive_modeling_correlation(
+	model = adaptive_correlation(
 		secondaryVector=dataFrame['close'].to_numpy(),
 		primaryVector=dataFrame['closeFactor'].to_numpy(),
-		windowVector=dataFrame['signalWindow'].to_numpy()
+		volMulti=dataFrame['volMulti'].to_numpy(),
+		baseWindow=signalWindow,
+		depth=depthSwitch
 	)
 
-	pDMI, nDMI, direct = adaptive_adx(
+	pDMI, nDMI, direct, directDiff = adaptive_adx(
 		openVector=dataFrame['open'].to_numpy(),
 		highVector=dataFrame['high'].to_numpy(),
 		lowVector=dataFrame['low'].to_numpy(),
 		closeVector=dataFrame['close'].to_numpy(),
-		windowVector=dataFrame['directWindow'].to_numpy()
+		volMulti=dataFrame['volMulti'].to_numpy(),
+		baseWindow=directWindow,
+		depth=depthSwitch
 	)
 
-	trendMoving = adaptive_moving(
+	trendUpLineMoving, trendMoving, trendDownLineMoving, trendMovingDiff = adaptive_moving(
 		closeVector=dataFrame['close'].to_numpy(),
-		windowVector=dataFrame['filterWindow'].to_numpy()
+		volMulti=dataFrame['volMulti'].to_numpy(),
+		baseWindow=filterWindow,
+		multiple=1.0,
+		baseLineMode="MA",
+		depth=depthSwitch
 	)
 
 	dataFrame = dataFrame.with_columns([
 		pl.Series('model', model),
+		pl.Series('pDMI', pDMI),
+		pl.Series('nDMI', nDMI),
 		pl.Series('direct', direct),
+		pl.Series('directDiff', directDiff),
+		pl.Series('trendUpLineMoving', trendUpLineMoving),
 		pl.Series('trendMoving', trendMoving),
-	])
-
-	dataFrame = dataFrame.with_columns([
-		(pl.col('direct')/pl.col('direct').shift(1) - 1).alias('directDiff'),
-		(pl.col('trendMoving')/pl.col('trendMoving').shift(1) - 1).alias('trendMovingDiff'),
+		pl.Series('trendDownLineMoving', trendDownLineMoving),
+		pl.Series('trendMovingDiff', trendMovingDiff),
 	])
 
 	dataFrame = dataFrame.with_columns(

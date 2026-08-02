@@ -4,6 +4,7 @@ import numpy.typing as npt
 from numba import njit
 import time
 
+#start technical functions
 @njit(cache=True)
 def hotResampler(
 		baseVector: npt.NDArray[np.float64],
@@ -89,160 +90,6 @@ def concentrator(
 	return cutWindow
 
 @njit(cache=True)
-def adaptive_moving(
-		closeVector: npt.NDArray[np.float64],
-		volMulti: npt.NDArray[np.float64],
-		baseWindow: int,
-		depth: int
-	) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]]:
-
-	lenth = len(closeVector)
-	movingVector = np.empty(lenth, dtype=np.float64)
-	movingDiffVector = np.empty(lenth, dtype=np.float64)
-	firstIndex = baseWindow*int(np.max(volMulti))
-
-	matrix = [closeVector]
-	for i in range(depth):
-		relativeTimeFrame = 2**(depth+1)
-		resamplVector = hotResampler(
-			baseVector=closeVector,
-			relativeTimeFrame=relativeTimeFrame,
-			resamplMode='end'
-		)
-		matrix.append(resamplVector)
-
-	for i in range(firstIndex, lenth):
-		real_i = i+1
-		multi = volMulti[i] if volMulti[i] > 1.0 else 1.0
-		window = int(baseWindow*multi)
-		address = int(np.log2(multi)) if (multi < 2**depth) else int(np.log2(2**depth))
-
-		preCutWindow = matrix[address][real_i-window:real_i]
-		
-		cutWindow = concentrator(preCutWindow=preCutWindow, numberMissing=address)
-		currentMoving = np.mean(cutWindow) if len(cutWindow) > 2 else 0
-
-		preCutWindow = matrix[address][i-window:i]
-		cutWindow = concentrator(preCutWindow=preCutWindow, numberMissing=address)
-		pastMoving = np.mean(cutWindow) if len(cutWindow) > 2 else 0
-
-		movingVector[i] = currentMoving
-		movingDiffVector[i] = currentMoving - pastMoving
-
-	return movingVector, movingDiffVector
-
-@njit(cache=True)
-def adaptive_adx(
-		openVector: npt.NDArray[np.float64],
-		highVector: npt.NDArray[np.float64],
-		lowVector: npt.NDArray[np.float64],
-		closeVector: npt.NDArray[np.float64],
-		windowVector: npt.NDArray[np.int64]
-	) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.float64], npt.NDArray[np.float64]]:
-	lenth = len(closeVector)
-	posDmiVector = np.empty(lenth, dtype=np.float64)
-	negDmiVector = np.empty(lenth, dtype=np.float64)
-	adxVector = np.empty(lenth, dtype=np.float64)
-	firstIndex = int(np.max(windowVector))
-	for i in range(firstIndex, lenth):
-		real_i = i+1
-		window = windowVector[i]
-		cutOpen = openVector[real_i-window:real_i]
-		cutHigh = highVector[real_i-window:real_i]
-		cutLow = lowVector[real_i-window:real_i]
-		cutClose = closeVector[real_i-window:real_i]
-		cutTrueRange = (cutHigh - cutLow)[1:]
-		cutPosM = cutHigh[1:] - cutHigh[:-1]
-		cutNegM = cutLow[:-1] - cutLow[1:]
-		cutPosDM = np.where((cutPosM > cutNegM) & (cutPosM > 0), cutPosM, 0.0)
-		cutNegDM = np.where((cutNegM > cutPosM) & (cutNegM > 0), cutNegM, 0.0)
-		posDmiVector[i] = np.mean(cutPosDM)/np.mean(cutTrueRange)
-		negDmiVector[i] = np.mean(cutNegDM)/np.mean(cutTrueRange)
-
-	for i in range(firstIndex, lenth):
-		real_i = i+1
-		window = windowVector[i]
-		cutPosDI = posDmiVector[real_i-window:real_i]
-		cutNegDI = negDmiVector[real_i-window:real_i]
-		cutDXI = 100*np.abs(cutPosDI - cutNegDI)/(cutPosDI + cutNegDI)
-		adxVector[i] = np.mean(cutDXI)
-	
-	return posDmiVector, negDmiVector, adxVector
-
-@njit(cache=True)
-def adaptive_bollinger(
-		closeVector: npt.NDArray[np.float64],
-		windowVector: npt.NDArray[np.int64]
-	) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.float64], npt.NDArray[np.float64]]:
-	lenth = len(closeVector)
-	upLineVector = np.empty(lenth, dtype=np.float64)
-	movingVector = np.empty(lenth, dtype=np.float64)
-	downLineVector = np.empty(lenth, dtype=np.float64)
-	firstIndex = int(np.max(windowVector))
-	for i in range(firstIndex, lenth):
-		real_i = i+1
-		window = windowVector[i]
-		cutClose = closeVector[real_i-window:real_i]
-		movingVector[i] = np.mean(cutClose)
-		sigma = np.std(cutClose)
-		upLineVector[i] = movingVector[i] + sigma
-		downLineVector[i] = movingVector[i] - sigma
-	return upLineVector, movingVector, downLineVector
-
-@njit(cache=True)
-def adaptive_roc(
-		closeVector: npt.NDArray[np.float64],
-		windowVector: npt.NDArray[np.int64]
-	) -> npt.NDArray[np.float64]:
-	lenth = len(closeVector)
-	rocVector = np.empty(lenth, dtype=np.float64)
-	firstIndex = int(np.max(windowVector))
-	for i in range(firstIndex, lenth):
-		real_i = i+1
-		window = windowVector[i]
-		cutClose = closeVector[real_i-window:real_i]
-		rocVector[i] = cutClose[-1]/cutClose[0] - 1
-	return rocVector
-
-@njit(cache=True)
-def adaptive_lr_channel(
-		closeVector: npt.NDArray[np.float64],
-		windowVector: npt.NDArray[np.int64],
-		multiple: float = 1.00
-	) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.float64], npt.NDArray[np.float64]]:
-	lenth = len(closeVector)
-	upLineVector = np.empty(lenth, dtype=np.float64)
-	baseLineVector = np.empty(lenth, dtype=np.float64)
-	downLineVector = np.empty(lenth, dtype=np.float64)
-	firstIndex = int(np.max(windowVector))
-	for i in range(firstIndex, lenth):
-		real_i = i+1
-		window = windowVector[i]
-		cutClose = closeVector[real_i-window:real_i]
-		baseLineVector[i] = linearRegression(cutClose)
-		diff = np.diff(cutClose)
-		abs_diff = np.abs(diff)
-		average_diff = np.mean(abs_diff)
-		upLineVector[i] = baseLineVector[i] + multiple*average_diff
-		downLineVector[i] = baseLineVector[i] - multiple*average_diff
-	return upLineVector, baseLineVector, downLineVector
-
-@njit(cache=True)
-def adaptive_lr_forecast(
-		diffVector: npt.NDArray[np.float64],
-		windowVector: npt.NDArray[np.int64]
-	) -> npt.NDArray[np.float64]:
-	lenth = len(diffVector)
-	modelLineVector = np.empty(lenth, dtype=np.float64)
-	firstIndex = int(np.max(windowVector))
-	for i in range(firstIndex, lenth):
-		real_i = i
-		window = windowVector[i]
-		cutWindow = diffVector[real_i-window:real_i]
-		modelLineVector[i] = linearRegression(cutWindow)
-	return modelLineVector
-
-@njit(cache=True)
 def linearRegression(cutClose: npt.NDArray[np.float64]) -> np.float64:
 	lenth = len(cutClose)
 	if lenth < 2:
@@ -266,71 +113,7 @@ def linearRegression(cutClose: npt.NDArray[np.float64]) -> np.float64:
 	return lastValue
 
 @njit(cache=True)
-def adaptive_modeling_volume(
-		secondaryVector: npt.NDArray[np.float64],
-		primaryVector: npt.NDArray[np.int64],
-		windowVector: npt.NDArray[np.int64],
-		multiple: float = 1.00
-	) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]]:
-	lenth = len(primaryVector)
-	p_model = np.empty(lenth, dtype=np.float64)
-	firstIndex = int(np.max(windowVector))
-	for i in range(firstIndex, lenth):
-		real_i = i+1
-		window = windowVector[i]
-		сutSecondary = secondaryVector[real_i-window:real_i]
-		cutPrimary = primaryVector[real_i-window:real_i]
-		p_model[i] = lr_modeling_volume(cutPrimary, сutSecondary)
-	n_model = -1*p_model
-	return p_model, n_model
-
-@njit(cache=True)
-def lr_modeling_volume(
-		cutPrimary: npt.NDArray[np.int64],
-		сutSecondary: npt.NDArray[np.float64]
-	) -> np.float64:
-	lenth = len(cutPrimary)
-	if lenth < 2:
-		lastValue = сutSecondary[0] if lenth == 1 else 0.0
-	else:
-		sum_x = 0.0
-		sum_y = 0.0
-		sum_xy = 0.0
-		sum_x2 = 0.0
-		for i in range(lenth):
-			sum_x += cutPrimary[i]
-			sum_y += сutSecondary[i]
-			sum_xy += cutPrimary[i]*сutSecondary[i]
-			sum_x2 += cutPrimary[i]*cutPrimary[i]
-		denominator = lenth*sum_x2 - sum_x*sum_x
-		if denominator == 0:
-			lastValue = сutSecondary[-1]
-		else:
-			b = (lenth*sum_xy - sum_x*sum_y)/denominator
-			a = (sum_y - b*sum_x)/lenth
-			lastValue = a + b*cutPrimary[-1]
-	return lastValue
-
-@njit(cache=True)
-def adaptive_modeling_correlation(
-		secondaryVector: npt.NDArray[np.float64],
-		primaryVector: npt.NDArray[np.float64],
-		windowVector: npt.NDArray[np.int64],
-		multiple: float = 1.00
-	) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.float64], npt.NDArray[np.float64]]:
-	lenth = len(primaryVector)
-	model = np.empty(lenth, dtype=np.float64)
-	firstIndex = int(np.max(windowVector))
-	for i in range(firstIndex, lenth):
-		real_i = i+1
-		window = windowVector[i]
-		сutSecondary = secondaryVector[real_i-window:real_i]
-		cutPrimary = primaryVector[real_i-window:real_i]
-		model[i] = lr_modeling_correlation(cutPrimary, сutSecondary)
-	return model
-
-@njit(cache=True)
-def lr_modeling_correlation(
+def lr_correlation(
 		cutPrimary: npt.NDArray[np.float64],
 		сutSecondary: npt.NDArray[np.float64]
 	) -> np.float64:
@@ -356,42 +139,316 @@ def lr_modeling_correlation(
 			lastValue = a + b*cutPrimary[-1]
 	return lastValue
 
+#end technical functions
+
+#start indicators
 @njit(cache=True)
-def adaptive_volume(
-		volumeVector: npt.NDArray[np.int64],
-		windowVector: npt.NDArray[np.int64]
-	) -> npt.NDArray[np.int64]:
-	lenth = len(volumeVector)
-	sumVector = np.empty(lenth, dtype=np.int64)
-	firstIndex = int(np.max(windowVector))
+def adaptive_moving(
+		closeVector: npt.NDArray[np.float64],
+		volMulti: npt.NDArray[np.float64],
+		baseWindow: int = 20,
+		multiple: float = 1.00,
+		baseLineMode: str = "MA",
+		depth: int = 0
+	) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.float64], npt.NDArray[np.float64], npt.NDArray[np.float64]]:
+
+	lenth = len(closeVector)
+	upLineVector = np.empty(lenth, dtype=np.float64)
+	movingVector = np.empty(lenth, dtype=np.float64)
+	downLineVector = np.empty(lenth, dtype=np.float64)
+	movingDiffVector = np.empty(lenth, dtype=np.float64)
+	firstIndex = baseWindow*int(np.max(volMulti))
+
+	matrix = [closeVector]
+	for i in range(depth):
+		relativeTimeFrame = 2**(depth+1)
+		resamplVector = hotResampler(
+			baseVector=closeVector,
+			relativeTimeFrame=relativeTimeFrame,
+			resamplMode='end'
+		)
+		matrix.append(resamplVector)
+
 	for i in range(firstIndex, lenth):
 		real_i = i+1
-		window = windowVector[i]
-		cutClose = volumeVector[real_i-window:real_i]
-		sumVector[i] = np.sum(cutClose)
-	return sumVector
+		multi = volMulti[i] if volMulti[i] > 1.0 else 1.0
+		window = int(baseWindow*multi)
+		address = int(np.log2(multi)) if (multi < 2**depth) else int(np.log2(2**depth))
+
+		currentPreCutWindow = matrix[address][real_i-window:real_i]
+		pastPreCutWindow = matrix[address][i-window:i]
+		
+		currentCutWindow = concentrator(preCutWindow=currentPreCutWindow, numberMissing=address)
+		pastCutWindow = concentrator(preCutWindow=pastPreCutWindow, numberMissing=address)
+
+		if baseLineMode == "MA":
+			currentLine = np.mean(currentCutWindow) if len(currentCutWindow) > 2 else 0
+			pastLine = np.mean(pastCutWindow) if len(pastCutWindow) > 2 else 0
+
+		elif baseLineMode == "LR":
+			currentLine = linearRegression(currentCutWindow) if len(currentCutWindow) > 2 else 0
+			pastLine = linearRegression(pastCutWindow) if len(pastCutWindow) > 2 else 0
+
+		movingVector[i] = currentLine
+		movingDiffVector[i] = currentLine - pastLine
+
+		sigma = np.std(currentCutWindow) if len(currentCutWindow) > 2 else 0
+		upLineVector[i] = currentLine + multiple*sigma
+		downLineVector[i] = currentLine - multiple*sigma
+
+	return upLineVector, movingVector, downLineVector, movingDiffVector
 
 @njit(cache=True)
-def adaptive_price_channel(
+def adaptive_adx(
 		openVector: npt.NDArray[np.float64],
 		highVector: npt.NDArray[np.float64],
 		lowVector: npt.NDArray[np.float64],
 		closeVector: npt.NDArray[np.float64],
-		windowVector: npt.NDArray[np.int64]
-	) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.float64], npt.NDArray[np.float64]]:
+		volMulti: npt.NDArray[np.float64],
+		baseWindow: int = 20,
+		depth: int = 0
+	) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.float64], npt.NDArray[np.float64], npt.NDArray[np.float64]]:
+	
 	lenth = len(closeVector)
-	upLineVector = np.empty(lenth, dtype=np.float64)
-	meanLineVector = np.empty(lenth, dtype=np.float64)
-	downLineVector = np.empty(lenth, dtype=np.float64)
-	firstIndex = int(np.max(windowVector))
+	posDmiVector = np.empty(lenth, dtype=np.float64)
+	negDmiVector = np.empty(lenth, dtype=np.float64)
+	adxVector = np.empty(lenth, dtype=np.float64)
+	adxDiffVector = np.empty(lenth, dtype=np.float64)
+	firstIndex = baseWindow*int(np.max(volMulti))
+
+	openMatrix = [openVector]
+	for i in range(depth):
+		relativeTimeFrame = 2**(depth+1)
+		resamplVector = hotResampler(
+			baseVector=openVector,
+			relativeTimeFrame=relativeTimeFrame,
+			resamplMode='start'
+		)
+		openMatrix.append(resamplVector)
+
+	highMatrix = [highVector]
+	for i in range(depth):
+		relativeTimeFrame = 2**(depth+1)
+		resamplVector = hotResampler(
+			baseVector=highVector,
+			relativeTimeFrame=relativeTimeFrame,
+			resamplMode='max'
+		)
+		highMatrix.append(resamplVector)
+
+	lowMatrix = [lowVector]
+	for i in range(depth):
+		relativeTimeFrame = 2**(depth+1)
+		resamplVector = hotResampler(
+			baseVector=lowVector,
+			relativeTimeFrame=relativeTimeFrame,
+			resamplMode='min'
+		)
+		lowMatrix.append(resamplVector)
+
+	closeMatrix = [closeVector]
+	for i in range(depth):
+		relativeTimeFrame = 2**(depth+1)
+		resamplVector = hotResampler(
+			baseVector=closeVector,
+			relativeTimeFrame=relativeTimeFrame,
+			resamplMode='end'
+		)
+		closeMatrix.append(resamplVector)
+
+	for i in range(firstIndex, lenth):
+
+		real_i = i+1
+		multi = volMulti[i] if volMulti[i] > 1.0 else 1.0
+		window = int(baseWindow*multi)
+		address = int(np.log2(multi)) if (multi < 2**depth) else int(np.log2(2**depth))
+
+		preCutOpen = openMatrix[address][real_i-window:real_i]
+		preCutHigh = highMatrix[address][real_i-window:real_i]
+		preCutLow = lowMatrix[address][real_i-window:real_i]
+		preCutClose = closeMatrix[address][real_i-window:real_i]
+
+		cutOpen = concentrator(preCutWindow=preCutOpen, numberMissing=address)
+		cutHigh = concentrator(preCutWindow=preCutHigh, numberMissing=address)
+		cutLow = concentrator(preCutWindow=preCutLow, numberMissing=address)
+		cutClose = concentrator(preCutWindow=preCutClose, numberMissing=address)
+
+		cutTrueRange = (cutHigh - cutLow)[1:]
+		cutPosM = cutHigh[1:] - cutHigh[:-1]
+		cutNegM = cutLow[:-1] - cutLow[1:]
+		cutPosDM = np.where((cutPosM > cutNegM) & (cutPosM > 0), cutPosM, 0.0)
+		cutNegDM = np.where((cutNegM > cutPosM) & (cutNegM > 0), cutNegM, 0.0)
+		posDmiVector[i] = np.mean(cutPosDM)/np.mean(cutTrueRange)
+		negDmiVector[i] = np.mean(cutNegDM)/np.mean(cutTrueRange)
+
+	posMatrix = [posDmiVector]
+	for i in range(depth):
+		relativeTimeFrame = 2**(depth+1)
+		resamplVector = hotResampler(
+			baseVector=posDmiVector,
+			relativeTimeFrame=relativeTimeFrame,
+			resamplMode='end'
+		)
+		posMatrix.append(resamplVector)
+
+	negMatrix = [negDmiVector]
+	for i in range(depth):
+		relativeTimeFrame = 2**(depth+1)
+		resamplVector = hotResampler(
+			baseVector=negDmiVector,
+			relativeTimeFrame=relativeTimeFrame,
+			resamplMode='end'
+		)
+		negMatrix.append(resamplVector)
+
+	for i in range(firstIndex, lenth):
+		
+		real_i = i+1
+		multi = volMulti[i] if volMulti[i] > 1.0 else 1.0
+		window = int(baseWindow*multi)
+		address = int(np.log2(multi)) if (multi < 2**depth) else int(np.log2(2**depth))
+
+		currentPreCutPositive = posMatrix[address][real_i-window:real_i]
+		currentPreCutNegative = negMatrix[address][real_i-window:real_i]
+		pastPreCutPositive = posMatrix[address][i-window:i]
+		pastPreCutNegative = negMatrix[address][i-window:i]
+
+		currentCutPosDI = concentrator(preCutWindow=currentPreCutPositive, numberMissing=address)
+		currentCutNegDI = concentrator(preCutWindow=currentPreCutNegative, numberMissing=address)
+		pastCutPosDI = concentrator(preCutWindow=pastPreCutPositive, numberMissing=address)
+		pastCutNegDI = concentrator(preCutWindow=pastPreCutNegative, numberMissing=address)
+
+		currentCutDXI = 100*np.abs(currentCutPosDI - currentCutNegDI)/(currentCutPosDI + currentCutNegDI)
+		pastCutDXI = 100*np.abs(pastCutPosDI - pastCutNegDI)/(pastCutPosDI + pastCutNegDI)
+		
+		currentADX = np.mean(currentCutDXI)
+		pastADX = np.mean(pastCutDXI)
+
+		adxVector[i] = currentADX
+		adxDiffVector[i] = currentADX - pastADX
+	
+	return posDmiVector, negDmiVector, adxVector, adxDiffVector
+
+@njit(cache=True)
+def adaptive_correlation(
+		secondaryVector: npt.NDArray[np.float64],
+		primaryVector: npt.NDArray[np.float64],
+		volMulti: npt.NDArray[np.float64],
+		baseWindow: int = 20,
+		depth: int = 0
+	) -> npt.NDArray[np.float64]:
+
+	lenth = len(primaryVector)
+	model = np.empty(lenth, dtype=np.float64)
+	firstIndex = baseWindow*int(np.max(volMulti))
+
+	secondaryMatrix = [secondaryVector]
+	for i in range(depth):
+		relativeTimeFrame = 2**(depth+1)
+		resamplVector = hotResampler(
+			baseVector=secondaryVector,
+			relativeTimeFrame=relativeTimeFrame,
+			resamplMode='end'
+		)
+		secondaryMatrix.append(resamplVector)
+
+	primaryMatrix = [primaryVector]
+	for i in range(depth):
+		relativeTimeFrame = 2**(depth+1)
+		resamplVector = hotResampler(
+			baseVector=primaryVector,
+			relativeTimeFrame=relativeTimeFrame,
+			resamplMode='end'
+		)
+		primaryMatrix.append(resamplVector)
+
+	for i in range(firstIndex, lenth):
+
+		real_i = i+1
+		multi = volMulti[i] if volMulti[i] > 1.0 else 1.0
+		window = int(baseWindow*multi)
+		address = int(np.log2(multi)) if (multi < 2**depth) else int(np.log2(2**depth))
+
+		preCutSecondary = secondaryMatrix[address][real_i-window:real_i]
+		preCutPrimary = primaryMatrix[address][real_i-window:real_i]
+
+		cutSecondary = concentrator(preCutWindow=preCutSecondary, numberMissing=address)
+		cutPrimary = concentrator(preCutWindow=preCutPrimary, numberMissing=address)
+
+		model[i] = lr_correlation(cutPrimary, cutSecondary)
+	
+	return model
+
+@njit(cache=True)
+def adaptive_roc(
+		closeVector: npt.NDArray[np.float64],
+		volMulti: npt.NDArray[np.float64],
+		baseWindow: int = 20,
+		depth: int = 0
+	) -> npt.NDArray[np.float64]:
+	lenth = len(closeVector)
+	rocVector = np.empty(lenth, dtype=np.float64)
+	firstIndex = baseWindow*int(np.max(volMulti))
+
+	closeMatrix = [closeVector]
+	for i in range(depth):
+		relativeTimeFrame = 2**(depth+1)
+		resamplVector = hotResampler(
+			baseVector=closeVector,
+			relativeTimeFrame=relativeTimeFrame,
+			resamplMode='end'
+		)
+		closeMatrix.append(resamplVector)
+
 	for i in range(firstIndex, lenth):
 		real_i = i+1
-		window = windowVector[i]
-		cutOpen = openVector[real_i-window:real_i]
-		cutHigh = highVector[real_i-window:real_i]
-		cutLow = lowVector[real_i-window:real_i]
-		cutClose = closeVector[real_i-window:real_i]
-		upLineVector[i] = np.max(cutHigh)
-		downLineVector[i] = np.min(cutLow)
-		meanLineVector[i] = (upLineVector[i] + downLineVector[i])/2
-	return upLineVector, meanLineVector, downLineVector
+		multi = volMulti[i] if volMulti[i] > 1.0 else 1.0
+		window = int(baseWindow*multi)
+		address = int(np.log2(multi)) if (multi < 2**depth) else int(np.log2(2**depth))
+
+		preCutClose = closeMatrix[address][real_i-window:real_i]
+		cutClose = concentrator(preCutWindow=preCutClose, numberMissing=address)
+
+		rocVector[i] = (cutClose[-1] - cutClose[0])/cutClose[0]
+	
+	return rocVector
+
+@njit(cache=True)
+def adaptive_volume(
+		volumeVector: npt.NDArray[np.float64],
+		volMulti: npt.NDArray[np.float64],
+		baseWindow: int = 20,
+		depth: int = 0
+	) -> npt.NDArray[np.float64]:
+	lenth = len(volumeVector)
+	sumVector = np.empty(lenth, dtype=np.float64)
+	firstIndex = baseWindow*int(np.max(volMulti))
+
+	volumeMatrix = [volumeVector]
+	for i in range(depth):
+		relativeTimeFrame = 2**(depth+1)
+		resamplVector = hotResampler(
+			baseVector=volumeVector,
+			relativeTimeFrame=relativeTimeFrame,
+			resamplMode='sum'
+		)
+		volumeMatrix.append(resamplVector)
+
+	for i in range(firstIndex, lenth):
+
+		real_i = i+1
+		multi = volMulti[i] if volMulti[i] > 1.0 else 1.0
+		window = int(baseWindow*multi)
+		address = int(np.log2(multi)) if (multi < 2**depth) else int(np.log2(2**depth))
+
+		preCutVolume = volumeMatrix[address][real_i-window:real_i]
+		cutVolume = concentrator(preCutWindow=preCutVolume, numberMissing=address)
+		
+		sumVector[i] = np.sum(cutVolume)
+	
+	return sumVector
+
+#end indicators
+
+
+

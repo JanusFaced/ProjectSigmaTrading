@@ -30,7 +30,6 @@ def build_tasks(
 		'18min',
 		'15min',
 	]
-
 	listSymbol = [
 		'BTC',
 		'ETH',
@@ -48,17 +47,15 @@ def build_tasks(
 	listNameExchange = ['binance']
 	listStrategy = [
 		'moving:I',
-#		'trend:I',
-#		'channel:I',
-#		'forecast:I',
-#		'modeling:I',
-#		'pattern:I',
-#		'correlation:II',
+		'trend:I',
+		'channel:I',
+		'modeling:I',
+		'correlation:II',
 	]
 	listFactor = [
 		'BTC',
-#		'ETH',
-#		'BNB'
+		'ETH',
+		'BNB'
 #		'RE',
 #		'BOT',
 	]

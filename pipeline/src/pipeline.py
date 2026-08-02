@@ -1,6 +1,6 @@
 from typing import Any
 import dataFrameDownloader
-from strategies import moving, trend, channel, forecast, modeling, pattern, correlation
+from strategies import moving, trend, channel, modeling, correlation
 import trading_simulator
 import imitation_connector
 from filters_kit import filter_new, filter_exist
@@ -44,12 +44,8 @@ def main(inputMessage: dict[str, Any]) -> None:
 		trend.main(inputMessage)
 	elif firstName == "channel":
 		channel.main(inputMessage)
-	elif firstName == "forecast":
-		forecast.main(inputMessage)
 	elif firstName == "modeling":
 		modeling.main(inputMessage)
-	elif firstName == "pattern":
-		pattern.main(inputMessage)
 	elif firstName == "correlation":
 		correlation.main(inputMessage)
 

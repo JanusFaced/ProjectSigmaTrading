@@ -26,45 +26,49 @@ def main(inputMessage: dict[str, Any]) -> None:
 
 	dataFrame = dataFrame.with_columns((100*(pl.col('high')/pl.col('low') - 1)).alias('trueRange'))
 	dataFrame = dataFrame.with_columns(pl.col('trueRange').rolling_mean(window_size=filterWindow).alias('volativity'))
-	dataFrame = dataFrame.with_columns([
-		(pl.lit(baseVolativity)/pl.col('volativity')).fill_null(1.0).alias('volMulti')
-	])
-	dataFrame = dataFrame.with_columns([
-		(pl.col('volMulti')*directWindow).fill_null(directWindow).cast(pl.Int64).clip(2, None).alias('directWindow'),
-	])
+	dataFrame = dataFrame.with_columns((pl.lit(baseVolativity)/pl.col('volativity')).fill_null(1.0).alias('volMulti'))
 
-	moving, movingDiff = adaptive_moving(
+	upLineMoving, moving, downLineMoving, movingDiff = adaptive_moving(
 		closeVector=dataFrame['close'].to_numpy(),
 		volMulti=dataFrame['volMulti'].to_numpy(),
 		baseWindow=signalWindow,
+		multiple=1.0,
+		baseLineMode="MA",
 		depth=depthSwitch
 	)
 
-	pDMI, nDMI, direct = adaptive_adx(
+	pDMI, nDMI, direct, directDiff = adaptive_adx(
 		openVector=dataFrame['open'].to_numpy(),
 		highVector=dataFrame['high'].to_numpy(),
 		lowVector=dataFrame['low'].to_numpy(),
 		closeVector=dataFrame['close'].to_numpy(),
-		windowVector=dataFrame['directWindow'].to_numpy()
+		volMulti=dataFrame['volMulti'].to_numpy(),
+		baseWindow=directWindow,
+		depth=depthSwitch
 	)
 
-	trendMoving, trendMovingDiff = adaptive_moving(
+	trendUpLineMoving, trendMoving, trendDownLineMoving, trendMovingDiff = adaptive_moving(
 		closeVector=dataFrame['close'].to_numpy(),
 		volMulti=dataFrame['volMulti'].to_numpy(),
 		baseWindow=filterWindow,
+		multiple=1.0,
+		baseLineMode="MA",
 		depth=depthSwitch
 	)
 
 	dataFrame = dataFrame.with_columns([
+		pl.Series('upLineMoving', upLineMoving),
 		pl.Series('moving', moving),
+		pl.Series('downLineMoving', downLineMoving),
 		pl.Series('movingDiff', movingDiff),
+		pl.Series('pDMI', pDMI),
+		pl.Series('nDMI', nDMI),
 		pl.Series('direct', direct),
+		pl.Series('directDiff', directDiff),
+		pl.Series('trendUpLineMoving', trendUpLineMoving),
 		pl.Series('trendMoving', trendMoving),
+		pl.Series('trendDownLineMoving', trendDownLineMoving),
 		pl.Series('trendMovingDiff', trendMovingDiff),
-	])
-
-	dataFrame = dataFrame.with_columns([
-		(pl.col('direct')/pl.col('direct').shift(1) - 1).alias('directDiff'),
 	])
 
 	dataFrame = dataFrame.with_columns(
@@ -93,16 +97,9 @@ def main(inputMessage: dict[str, Any]) -> None:
 
 	#superName = str(output_dir) + f'/moving_{nameExchange}_{symbol}_{type}_{timeFrame}.png'
 	#tempDF = dataFrame.tail(1000)
-	#tempDF = tempDF.with_columns([
-	#	(pl.lit(15)).alias('maxBoard'),
-	#	(pl.lit(1)).alias('minBoard'),
-	#])
-	#plt.plot(tempDF['maxBoard'], color='red')
-	#plt.plot(tempDF['volMulti'], color='black')
-	#plt.plot(tempDF['minBoard'], color='red')
-	#plt.plot(tempDF['close'], color='black')
-	#plt.plot(tempDF['moving'], color='red')
-	#plt.plot(tempDF['trendMoving'], color='blue')
+	#plt.plot(tempDF['pDMI'], color='green')
+	#plt.plot(tempDF['nDMI'], color='red')
+	#plt.plot(tempDF['direct'], color='blue')
 	#plt.savefig(superName)
 	#plt.close()
 
