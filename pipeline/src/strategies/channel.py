@@ -2,7 +2,8 @@ from typing import Any
 import matplotlib.pyplot as plt
 import polars as pl
 import os
-from custom_ta import adaptive_moving, adaptive_adx
+from custom_ta import multi_volativity, adaptive_moving
+from convertorTF import convertorTimeFrame
 from pathlib import Path
 from duckDB_setup import get_duckdb
 from logger_setup import get_logger
@@ -20,13 +21,35 @@ def main(inputMessage: dict[str, Any]) -> None:
 	type = inputMessage['type']
 	timeFrame = inputMessage['timeFrame']
 
-	signalWindow, directWindow, filterWindow = 20, 100, 200 #20, 100, 200
-	baseVolativity = 1.0 #1.0
-	depthSwitch = 4 #4
+	numberTimeFrame = convertorTimeFrame(timeFrame)
+	volativityConvertor = {
+		"BTC": 4.0,
+		"ETH": 7.0,
+		"BNB": 5.0,
+		"XRP": 7.0,
+		"SOL": 7.0,
+		"TRX": 3.0,
+		"ADA": 7.0,
+		"LINK": 7.0,
+		"HYPE": 10.0,
+		"RE": 12.0,
+		"BOT": 12.0,
+	}
+	baseVolativity = volativityConvertor[symbol]
+	signalWindow, filterWindow = 20, 200 #20, 200
+	angle = 0.85
+	depthSwitch = 4
+	maxMulti = 2**depthSwitch
+	minMulti = 1
 
-	dataFrame = dataFrame.with_columns((100*(pl.col('high')/pl.col('low') - 1)).alias('trueRange'))
-	dataFrame = dataFrame.with_columns(pl.col('trueRange').rolling_mean(window_size=filterWindow).alias('volativity'))
-	dataFrame = dataFrame.with_columns((pl.lit(baseVolativity)/pl.col('volativity')).fill_null(1.0).alias('volMulti'))
+	volMulti = multi_volativity(
+		highVector=dataFrame['high'].to_numpy(),
+		lowVector=dataFrame['low'].to_numpy(),
+		baseVolativity=baseVolativity*(numberTimeFrame/1440)**(angle),
+		baseWindow=filterWindow,
+		depth=depthSwitch
+	)
+	dataFrame = dataFrame.with_columns(pl.Series('volMulti', volMulti))
 
 	upLineMoving, moving, downLineMoving, movingDiff = adaptive_moving(
 		closeVector=dataFrame['close'].to_numpy(),
@@ -37,54 +60,21 @@ def main(inputMessage: dict[str, Any]) -> None:
 		depth=depthSwitch
 	)
 
-	pDMI, nDMI, direct, directDiff = adaptive_adx(
-		openVector=dataFrame['open'].to_numpy(),
-		highVector=dataFrame['high'].to_numpy(),
-		lowVector=dataFrame['low'].to_numpy(),
-		closeVector=dataFrame['close'].to_numpy(),
-		volMulti=dataFrame['volMulti'].to_numpy(),
-		baseWindow=directWindow,
-		depth=depthSwitch
-	)
-
-	trendUpLineMoving, trendMoving, trendDownLineMoving, trendMovingDiff = adaptive_moving(
-		closeVector=dataFrame['close'].to_numpy(),
-		volMulti=dataFrame['volMulti'].to_numpy(),
-		baseWindow=filterWindow,
-		multiple=1.0,
-		baseLineMode="MA",
-		depth=depthSwitch
-	)
-
 	dataFrame = dataFrame.with_columns([
 		pl.Series('upLineMoving', upLineMoving),
 		pl.Series('moving', moving),
 		pl.Series('downLineMoving', downLineMoving),
 		pl.Series('movingDiff', movingDiff),
-		pl.Series('pDMI', pDMI),
-		pl.Series('nDMI', nDMI),
-		pl.Series('direct', direct),
-		pl.Series('directDiff', directDiff),
-		pl.Series('trendUpLineMoving', trendUpLineMoving),
-		pl.Series('trendMoving', trendMoving),
-		pl.Series('trendDownLineMoving', trendDownLineMoving),
-		pl.Series('trendMovingDiff', trendMovingDiff),
 	])
 
 	dataFrame = dataFrame.with_columns(
 		pl.when(
-			(pl.col('close') > pl.col('downLineMoving')) &
-			(pl.col('close') > pl.col('trendMoving')) & (pl.col('trendMovingDiff') > 0) &
-			(pl.col('directDiff') > 0) &
-			(pl.col('volMulti') < 15) &
-			(pl.col('volMulti') > 1)
+			(pl.col('close') > pl.col('upLineMoving')) &
+			(maxMulti > pl.col('volMulti')) & (pl.col('volMulti') > minMulti)
 		).then(pl.lit(2))
 		.when(
-			(pl.col('close') < pl.col('upLineMoving')) &
-			(pl.col('close') < pl.col('trendMoving')) & (pl.col('trendMovingDiff') < 0) &
-			(pl.col('directDiff') > 0) &
-			(pl.col('volMulti') < 15) &
-			(pl.col('volMulti') > 1)
+			(pl.col('close') < pl.col('downLineMoving')) &
+			(maxMulti > pl.col('volMulti')) & (pl.col('volMulti') > minMulti)
 		).then(pl.lit(0))
 		.otherwise(pl.lit(1))
 		.alias('strategy')
