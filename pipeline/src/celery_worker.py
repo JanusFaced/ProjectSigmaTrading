@@ -19,27 +19,25 @@ def build_tasks(
 	target_year_profit = 30.0
 
 	listTimeFrame = [
+		'4h',
+		'2h',
 		'1h',
-		'48min',
 		'45min',
-		'40min',
 		'36min',
 		'30min',
 		'24min',
-		'20min',
-		'18min',
 		'15min',
 	]
 	listSymbol = [
 		'BTC',
-		'ETH',
-		'BNB',
-		'XRP',
-		'SOL',
-		'TRX',
-		'ADA',
-		'LINK',
-		'HYPE',
+#		'ETH',
+#		'BNB',
+#		'XRP',
+#		'SOL',
+#		'TRX',
+#		'ADA',
+#		'LINK',
+#		'HYPE',
 #		'RE',
 #		'BOT',
 	]
@@ -47,15 +45,15 @@ def build_tasks(
 	listNameExchange = ['binance']
 	listStrategy = [
 		'moving:I',
-		'trend:I',
-		'channel:I',
-		'modeling:I',
-		'correlation:II',
+#		'trend:I',
+#		'channel:I',
+#		'modeling:I',
+#		'correlation:II',
 	]
 	listFactor = [
 		'BTC',
-		'ETH',
-		'BNB'
+#		'ETH',
+#		'BNB'
 #		'RE',
 #		'BOT',
 	]

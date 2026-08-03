@@ -2,7 +2,8 @@ from typing import Any
 import matplotlib.pyplot as plt
 import polars as pl
 import os
-from custom_ta import adaptive_moving, adaptive_adx
+from custom_ta import multi_volativity, adaptive_moving, adaptive_adx
+from convertorTF import convertorTimeFrame
 from pathlib import Path
 from duckDB_setup import get_duckdb
 from logger_setup import get_logger
@@ -20,13 +21,20 @@ def main(inputMessage: dict[str, Any]) -> None:
 	type = inputMessage['type']
 	timeFrame = inputMessage['timeFrame']
 
+	numberTimeFrame = convertorTimeFrame(timeFrame)
+
 	signalWindow, directWindow, filterWindow = 20, 100, 200 #20, 100, 200
-	baseVolativity = 1.0 #1.0
+	baseVolativity = 10.0*numberTimeFrame/1440 #10.0
 	depthSwitch = 4 #4
 
-	dataFrame = dataFrame.with_columns((100*(pl.col('high')/pl.col('low') - 1)).alias('trueRange'))
-	dataFrame = dataFrame.with_columns(pl.col('trueRange').rolling_mean(window_size=filterWindow).alias('volativity'))
-	dataFrame = dataFrame.with_columns((pl.lit(baseVolativity)/pl.col('volativity')).fill_null(1.0).alias('volMulti'))
+	volMulti = multi_volativity(
+		highVector=dataFrame['high'].to_numpy(),
+		lowVector=dataFrame['low'].to_numpy(),
+		baseVolativity=baseVolativity,
+		baseWindow=filterWindow,
+		depth=depthSwitch
+	)
+	dataFrame = dataFrame.with_columns(pl.Series('volMulti', volMulti))
 
 	upLineMoving, moving, downLineMoving, movingDiff = adaptive_moving(
 		closeVector=dataFrame['close'].to_numpy(),
@@ -96,10 +104,10 @@ def main(inputMessage: dict[str, Any]) -> None:
 	])
 
 	#superName = str(output_dir) + f'/moving_{nameExchange}_{symbol}_{type}_{timeFrame}.png'
-	#tempDF = dataFrame.tail(1000)
-	#plt.plot(tempDF['pDMI'], color='green')
-	#plt.plot(tempDF['nDMI'], color='red')
-	#plt.plot(tempDF['direct'], color='blue')
+	#tempDF = dataFrame.tail(2500)
+	#plt.plot(tempDF['volMulti'], color='black')
+	#plt.plot(tempDF['moving'], color='red')
+	#plt.plot(tempDF['trendMoving'], color='blue')
 	#plt.savefig(superName)
 	#plt.close()
 

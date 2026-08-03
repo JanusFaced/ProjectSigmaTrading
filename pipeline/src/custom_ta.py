@@ -161,7 +161,7 @@ def adaptive_moving(
 
 	matrix = [closeVector]
 	for i in range(depth):
-		relativeTimeFrame = 2**(depth+1)
+		relativeTimeFrame = 2**(i+1)
 		resamplVector = hotResampler(
 			baseVector=closeVector,
 			relativeTimeFrame=relativeTimeFrame,
@@ -218,7 +218,7 @@ def adaptive_adx(
 
 	openMatrix = [openVector]
 	for i in range(depth):
-		relativeTimeFrame = 2**(depth+1)
+		relativeTimeFrame = 2**(i+1)
 		resamplVector = hotResampler(
 			baseVector=openVector,
 			relativeTimeFrame=relativeTimeFrame,
@@ -228,7 +228,7 @@ def adaptive_adx(
 
 	highMatrix = [highVector]
 	for i in range(depth):
-		relativeTimeFrame = 2**(depth+1)
+		relativeTimeFrame = 2**(i+1)
 		resamplVector = hotResampler(
 			baseVector=highVector,
 			relativeTimeFrame=relativeTimeFrame,
@@ -238,7 +238,7 @@ def adaptive_adx(
 
 	lowMatrix = [lowVector]
 	for i in range(depth):
-		relativeTimeFrame = 2**(depth+1)
+		relativeTimeFrame = 2**(i+1)
 		resamplVector = hotResampler(
 			baseVector=lowVector,
 			relativeTimeFrame=relativeTimeFrame,
@@ -248,7 +248,7 @@ def adaptive_adx(
 
 	closeMatrix = [closeVector]
 	for i in range(depth):
-		relativeTimeFrame = 2**(depth+1)
+		relativeTimeFrame = 2**(i+1)
 		resamplVector = hotResampler(
 			baseVector=closeVector,
 			relativeTimeFrame=relativeTimeFrame,
@@ -283,7 +283,7 @@ def adaptive_adx(
 
 	posMatrix = [posDmiVector]
 	for i in range(depth):
-		relativeTimeFrame = 2**(depth+1)
+		relativeTimeFrame = 2**(i+1)
 		resamplVector = hotResampler(
 			baseVector=posDmiVector,
 			relativeTimeFrame=relativeTimeFrame,
@@ -293,7 +293,7 @@ def adaptive_adx(
 
 	negMatrix = [negDmiVector]
 	for i in range(depth):
-		relativeTimeFrame = 2**(depth+1)
+		relativeTimeFrame = 2**(i+1)
 		resamplVector = hotResampler(
 			baseVector=negDmiVector,
 			relativeTimeFrame=relativeTimeFrame,
@@ -344,7 +344,7 @@ def adaptive_correlation(
 
 	secondaryMatrix = [secondaryVector]
 	for i in range(depth):
-		relativeTimeFrame = 2**(depth+1)
+		relativeTimeFrame = 2**(i+1)
 		resamplVector = hotResampler(
 			baseVector=secondaryVector,
 			relativeTimeFrame=relativeTimeFrame,
@@ -354,7 +354,7 @@ def adaptive_correlation(
 
 	primaryMatrix = [primaryVector]
 	for i in range(depth):
-		relativeTimeFrame = 2**(depth+1)
+		relativeTimeFrame = 2**(i+1)
 		resamplVector = hotResampler(
 			baseVector=primaryVector,
 			relativeTimeFrame=relativeTimeFrame,
@@ -392,7 +392,7 @@ def adaptive_roc(
 
 	closeMatrix = [closeVector]
 	for i in range(depth):
-		relativeTimeFrame = 2**(depth+1)
+		relativeTimeFrame = 2**(i+1)
 		resamplVector = hotResampler(
 			baseVector=closeVector,
 			relativeTimeFrame=relativeTimeFrame,
@@ -426,7 +426,7 @@ def adaptive_volume(
 
 	volumeMatrix = [volumeVector]
 	for i in range(depth):
-		relativeTimeFrame = 2**(depth+1)
+		relativeTimeFrame = 2**(i+1)
 		resamplVector = hotResampler(
 			baseVector=volumeVector,
 			relativeTimeFrame=relativeTimeFrame,
@@ -450,5 +450,68 @@ def adaptive_volume(
 
 #end indicators
 
+#start multi_volativity
+@njit(cache=True)
+def multi_volativity(
+		highVector: npt.NDArray[np.float64],
+		lowVector: npt.NDArray[np.float64],
+		baseVolativity: float,
+		baseWindow: int = 200,
+		depth: int = 0
+	) -> npt.NDArray[np.float64]:
+	
+	lenth = len(highVector)
+	volMultiVector = np.empty(lenth, dtype=np.float64)
+	firstIndex = baseWindow*(depth+1)
+	window = baseWindow
 
+	maxMulti = 2**(depth+1)
+	minMulti = 0.5
 
+	highMatrix = [highVector]
+	for i in range(depth):
+		relativeTimeFrame = 2**(i+1)
+		resamplVector = hotResampler(
+			baseVector=highVector,
+			relativeTimeFrame=relativeTimeFrame,
+			resamplMode='max'
+		)
+		highMatrix.append(resamplVector)
+
+	lowMatrix = [lowVector]
+	for i in range(depth):
+		relativeTimeFrame = 2**(i+1)
+		resamplVector = hotResampler(
+			baseVector=lowVector,
+			relativeTimeFrame=relativeTimeFrame,
+			resamplMode='min'
+		)
+		lowMatrix.append(resamplVector)
+
+	for i in range(firstIndex, lenth):
+		real_i = i+1
+
+		tempVectorValues = np.empty(0, dtype=np.float64)
+		for address in range(depth+1):
+
+			preCutHigh = highMatrix[address][real_i-window:real_i]
+			preCutLow = lowMatrix[address][real_i-window:real_i]
+
+			cutHigh = concentrator(preCutWindow=preCutHigh, numberMissing=address)
+			cutLow = concentrator(preCutWindow=preCutLow, numberMissing=address)
+
+			cutTrueRange = 100*(cutHigh/cutLow - 1)
+			ATR = np.mean(cutTrueRange)/(2**address)
+
+			tempVectorValues = np.append(tempVectorValues, ATR)
+
+		volMultiVector[i] = baseVolativity/np.mean(tempVectorValues)
+
+	for i in range(len(volMultiVector)):
+		value = volMultiVector[i]
+		value = value if value < maxMulti else maxMulti
+		value = value if value > minMulti else minMulti
+		volMultiVector[i] = value
+
+	return volMultiVector
+#end multi_volativity
