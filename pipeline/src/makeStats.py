@@ -1,6 +1,6 @@
 from dataBaseModels import Backtest, Signal, Trade
 from dataBaseModels import get_session, close_session
-import pandas as pd
+import polars as pl
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -20,6 +20,11 @@ def main(
 		listSymbol: dict,
 		listFactor: dict,
 	) -> None:
+
+	def rsplit_to_parts(s: str) -> list[str]:
+		parts = s.rsplit('_', 4)
+		return (parts + [None] * 5)[:5]
+
 	listStrategy = [item.split(':')[0] for item in listStrategy]
 
 	dataBaseSession = get_session()
@@ -75,15 +80,19 @@ def main(
 				"sharp": table["sharp"] if table["sharp"] > -1 else -1,
 				"datetime": table["datetime"]
 			})
-	dataframe = pd.DataFrame(newTableBacktest)
+	dataframe = pl.from_dicts(newTableBacktest)
 
-	split_parts = dataframe['strategy'].str.rsplit('_', n=4, expand=True)
-	
-	dataframe['strategy_name'] = split_parts[0]
-	dataframe['symbol'] = split_parts[1]
-	dataframe['timeframe'] = split_parts[2]
-	dataframe['strategy_type'] = split_parts[3]
-	dataframe['exchange'] = split_parts[4]
+	dataframe = dataframe.with_columns([
+		pl.col("strategy")
+		  .map_elements(rsplit_to_parts, return_dtype=pl.List(pl.Utf8))
+		  .alias("parts")
+	]).with_columns([
+		pl.col("parts").list.get(0).alias("strategy_name"),
+		pl.col("parts").list.get(1).alias("symbol"),
+		pl.col("parts").list.get(2).alias("timeframe"),
+		pl.col("parts").list.get(3).alias("strategy_type"),
+		pl.col("parts").list.get(4).alias("exchange"),
+	]).drop("parts")
 
 	list_of_combi = [
 		['strategy_name', 'timeframe'],
@@ -97,46 +106,67 @@ def main(
 			nameY = combi[0]
 			nameX = combi[1]
 
-			pivot = pd.pivot_table(
-				dataframe,
-				values=metric_name,
-				index=nameY,
-				columns=nameX,
-				aggfunc='mean',
-				margins=True,
-				margins_name='final_mean'
+			base = (
+				dataframe.group_by([nameY, nameX])
+				.agg(pl.col(metric_name)
+				.mean().alias(metric_name))
+			)
+			pivot = (
+				base.pivot(
+					values=metric_name,
+					index=nameY,
+					columns=nameX,
+					aggregate_function="first"
+				)
 			)
 
-			cols = [col for col in pivot.columns if col != 'final_mean']
+			cols = [c for c in pivot.columns if c != nameY]
 			sorted_cols = sort_cols_and_rows(cols, nameX)
-			pivot = pivot[sorted_cols + ['final_mean']]
+			pivot = pivot.select([nameY] + sorted_cols)
 
-			rows = [row for row in pivot.index if row != 'final_mean']
-			sorted_rows = sort_cols_and_rows(rows, nameY)
-			pivot = pivot.reindex(sorted_rows + ['final_mean'])
+			cols = [c for c in pivot.columns if c != nameY]
+			pivot = pivot.with_columns(pl.concat_list(cols).list.mean().alias("final_mean"))
+
+			cols = [c for c in pivot.columns if c not in (nameY, "final_mean")]
+			col_means = pivot.select([pl.col(c).mean().alias(c) for c in cols]).row(0)
+			overall_mean = pivot.select(pl.col("final_mean").mean()).item()
+			final_row = {nameY: "final_mean", **{c: col_means[i] for i, c in enumerate(cols)}, "final_mean": overall_mean}
+			pivot = pl.concat([pivot, pl.DataFrame([final_row])], how="vertical")
+
+			cols = [c for c in pivot.columns if c != nameY]
+			y_labels = pivot.select(nameY).to_series().to_list()
+			y_labels = [str(x) for x in y_labels]
+			x_labels = [str(c) for c in cols]
+			heat = pivot.select(cols).to_numpy()
+			heat = np.array(heat, dtype=float)
 
 			fig, ax = plt.subplots(figsize=(12, 8))
 			sns.heatmap(
-				pivot,
+				heat,
+				ax=ax,
+				xticklabels=x_labels,
+				yticklabels=y_labels,
 				annot=True,
-				fmt='.2f',
-				cmap='RdYlGn',
+				fmt=".2f",
+				cmap="RdYlGn",
 				center=0,
 				robust=True,
-				square=False,
 				linewidths=0.5,
-				linecolor='white',
-				cbar_kws={'shrink': 0.8, 'label': metric_name.replace('_', ' ').title()},
-				ax=ax
+				linecolor="white",
+				cbar_kws={"shrink": 0.8, "label": metric_name.replace("_", " ").title()},
+				square=False,
 			)
-			ax.set_title(f'{metric_name}', fontsize=16, fontweight='bold', pad=20)
-			ax.set_xlabel(nameX, fontsize=12)
-			ax.set_ylabel(nameY, fontsize=12)
-			plt.xticks(rotation=45, ha='right')
+
+			ax.set_xlabel(nameX)
+			ax.set_ylabel(nameY)
+			ax.set_title(metric_name, fontsize=16, fontweight="bold", pad=20)
+
+			plt.xticks(rotation=45, ha="right")
 			plt.yticks(rotation=0)
 			plt.tight_layout()
+
 			fileName: str = f'{output_dir}/stats_{nameY}_{nameX}_{metric_name}.png'
-			plt.savefig(fileName, dpi=300, bbox_inches='tight', facecolor='white')
+			plt.savefig(fileName, dpi=300, bbox_inches="tight", facecolor="white")
 			plt.close()
 
 			logger.info(f"pivot {nameY}_{nameX}_{metric_name} is save to {fileName}")
@@ -169,6 +199,7 @@ def sort_cols_and_rows(inputList, name):
 			'50min': 50,
 			'1h': 60,
 			'2h': 120,
+			'3h': 180,
 			'4h': 240,
 			'6h': 360,
 			'8h': 480,

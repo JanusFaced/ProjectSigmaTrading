@@ -37,7 +37,7 @@ def backTester(inputMessage: dict[str, Any]) -> Dict:
 	db = get_duckdb()
 
 	dataFrame = db.execute("""
-		SELECT datetime, open, high, low, close, volume, long_signal, short_signal 
+		SELECT datetime, open, high, low, close, volume, long_signal, short_signal, leverage 
 		FROM temp_trading 
 		ORDER BY datetime
 	""").pl()
@@ -49,14 +49,15 @@ def backTester(inputMessage: dict[str, Any]) -> Dict:
 		pl.col("short_signal").shift(shift_signal).alias("short_signal"),
 	])
 
-	send_list = fastBackTester.main(dataFrame, testMode)
+	send_list = fastBackTester.coreBacktester(dataFrame, testMode)
 
 	return send_list
 
 def backTestAnalyst(
 		inputMessage: dict[str, Any],
-		report: Dict
-	) -> None:
+		report: Dict,
+		analystMode: bool = False
+	) -> dict:
 
 	testMode = inputMessage['testMode']
 	nameExchange = inputMessage['nameExchange']
@@ -182,35 +183,58 @@ def backTestAnalyst(
 	stable_index: float = float(round(stable_index, 2))
 	calmar: float = float(round(calmar, 2))
 
-	logger.info(f'========== ANALYST for {nameStrategy} ==========')
-	logger.info(f'winrate {winrate[0]} (L:{winrate[1]}|S:{winrate[2]}) %')
-	logger.info(f'freqTrads {freqTrads[0]} (L:{freqTrads[1]}|S:{freqTrads[2]}) trads/candle')
-	logger.info(f'trads {trads[0]} (L:{trads[1]}|S:{trads[2]})')
-	logger.info(f'maxProfitSize {maxProfitSize[0]} (L:{maxProfitSize[1]}|S:{maxProfitSize[2]}) %')
-	logger.info(f'averageProfitSize {averageProfitSize[0]} (L:{averageProfitSize[1]}|S:{averageProfitSize[2]}) %')
-	logger.info(f'averageLossSize {averageLossSize[0]} (L:{averageLossSize[1]}|S:{averageLossSize[2]}) %')
-	logger.info(f'maxLossSize {maxLossSize[0]} (L:{maxLossSize[1]}|S:{maxLossSize[2]}) %')
-	logger.info(f'max_time_reborn {max_time_reborn} candles')
-	logger.info(f'maxLengthTrade {maxLengthTrade[0]} (L:{maxLengthTrade[1]}|S:{maxLengthTrade[2]}) candles')
-	logger.info(f'minLenthTrade {minLenthTrade[0]} (L:{minLenthTrade[1]}|S:{minLenthTrade[2]}) candles')
-	logger.info(f'geom_mean_profit {geom_mean_profit} %')
-	logger.info(f'max_drawdawn {max_drawdawn} %')
-	logger.info(f'sharp_classic {sharp_classic}')
-	logger.info(f'stable_index {stable_index}')
-	logger.info(f'calmar {calmar}')
+	if analystMode == False:
+		logger.info(f'========== ANALYST for {nameStrategy} ==========')
+		logger.info(f'winrate {winrate[0]} (L:{winrate[1]}|S:{winrate[2]}) %')
+		logger.info(f'freqTrads {freqTrads[0]} (L:{freqTrads[1]}|S:{freqTrads[2]}) trads/candle')
+		logger.info(f'trads {trads[0]} (L:{trads[1]}|S:{trads[2]})')
+		logger.info(f'maxProfitSize {maxProfitSize[0]} (L:{maxProfitSize[1]}|S:{maxProfitSize[2]}) %')
+		logger.info(f'averageProfitSize {averageProfitSize[0]} (L:{averageProfitSize[1]}|S:{averageProfitSize[2]}) %')
+		logger.info(f'averageLossSize {averageLossSize[0]} (L:{averageLossSize[1]}|S:{averageLossSize[2]}) %')
+		logger.info(f'maxLossSize {maxLossSize[0]} (L:{maxLossSize[1]}|S:{maxLossSize[2]}) %')
+		logger.info(f'max_time_reborn {max_time_reborn} candles')
+		logger.info(f'maxLengthTrade {maxLengthTrade[0]} (L:{maxLengthTrade[1]}|S:{maxLengthTrade[2]}) candles')
+		logger.info(f'minLenthTrade {minLenthTrade[0]} (L:{minLenthTrade[1]}|S:{minLenthTrade[2]}) candles')
+		logger.info(f'geom_mean_profit {geom_mean_profit} %')
+		logger.info(f'max_drawdawn {max_drawdawn} %')
+		logger.info(f'sharp_classic {sharp_classic}')
+		logger.info(f'stable_index {stable_index}')
+		logger.info(f'calmar {calmar}')
 
-	nameResult: str = f"{nameExchange}_{symbol}_{type}_{timeFrame}_{strategy}".lower()
-	fileName: str = f'{output_dir}/backtest_custom_{nameResult}.png'
-	plt.plot(balanceCold)
-	plt.plot(balanceBody)
-	plt.savefig(fileName)
-	plt.close()
+		nameResult: str = f"{nameExchange}_{symbol}_{type}_{timeFrame}_{strategy}".lower()
+		fileName: str = f'{output_dir}/backtest_custom_{nameResult}.png'
+		plt.plot(balanceCold)
+		plt.plot(balanceBody)
+		plt.savefig(fileName)
+		plt.close()
 
-	inputData = {
-		"strategy": nameStrategy,
-		"year_profit": geom_mean_profit,
-		"max_drawdown": max_drawdawn,
-		"sharp": sharp_classic
-	}
-	saveToDB.saveBacktests(inputData=inputData)
-	logger.info('saveBacktests!')
+		listReport = {
+			"strategy": nameStrategy,
+			"year_profit": geom_mean_profit,
+			"max_drawdown": max_drawdawn,
+			"sharp": sharp_classic
+		}
+		saveToDB.saveBacktests(inputData=listReport)
+		logger.info('saveBacktests!')
+
+	else:
+
+		optimization_index = (
+			geom_mean_profit if geom_mean_profit < 0
+			else calmar if calmar < 1
+			else trads[0]
+		)
+
+		listReport = {
+			"strategy": nameStrategy,
+			"year_profit": geom_mean_profit,
+			"max_drawdown": max_drawdawn,
+			"sharp": sharp_classic,
+			"optiMetric": optimization_index
+		}
+
+	return listReport
+
+
+
+

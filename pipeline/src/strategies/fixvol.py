@@ -2,7 +2,7 @@ from typing import Any
 import matplotlib.pyplot as plt
 import polars as pl
 import os
-from custom_ta import multi_volativity, adaptive_adx
+from custom_ta import multi_volativity, adaptive_moving
 from convertorTF import convertorTimeFrame
 from pathlib import Path
 from duckDB_setup import get_duckdb
@@ -21,60 +21,49 @@ def main(inputMessage: dict[str, Any]) -> None:
 	type = inputMessage['type']
 	timeFrame = inputMessage['timeFrame']
 
-	numberTimeFrame = convertorTimeFrame(timeFrame)
-	volativityConvertor = {
-		"BTC": 4.0,
-		"ETH": 7.0,
-		"BNB": 5.0,
-		"XRP": 7.0,
-		"SOL": 7.0,
-		"TRX": 3.0,
-		"ADA": 7.0,
-		"LINK": 7.0,
-		"HYPE": 10.0,
-		"RE": 12.0,
-		"BOT": 12.0,
-	}
-	baseVolativity = volativityConvertor[symbol]
+	numberTimeframe = convertorTimeFrame(timeFrame)
+	targetVolativity = 2.0
+	targetTimeframe = 240
+	
 	signalWindow, filterWindow = 20, 200 #20, 200
-	angle = 0.85
 	depthSwitch = 4
 	maxMulti = 2**depthSwitch
 	minMulti = 1
 
+	leverage = 3
+	dataFrame = dataFrame.with_columns(pl.lit(leverage).alias('leverage'))
+
 	volMulti = multi_volativity(
 		highVector=dataFrame['high'].to_numpy(),
 		lowVector=dataFrame['low'].to_numpy(),
-		baseVolativity=baseVolativity*(numberTimeFrame/1440)**(angle),
+		baseVolativity=targetVolativity*(numberTimeframe/targetTimeframe)**(0.5),
 		baseWindow=filterWindow,
 		depth=depthSwitch
 	)
 	dataFrame = dataFrame.with_columns(pl.Series('volMulti', volMulti))
 
-	signalPos, signalNeg, signalDirect, signalDirectDiff = adaptive_adx(
-		openVector=dataFrame['open'].to_numpy(),
-		highVector=dataFrame['high'].to_numpy(),
-		lowVector=dataFrame['low'].to_numpy(),
+	upLineMoving, moving, downLineMoving, movingDiff = adaptive_moving(
 		closeVector=dataFrame['close'].to_numpy(),
 		volMulti=dataFrame['volMulti'].to_numpy(),
 		baseWindow=signalWindow,
+		multiple=1.0,
+		baseLineMode="MA",
 		depth=depthSwitch
 	)
-
 	dataFrame = dataFrame.with_columns([
-		pl.Series('signalPos', signalPos),
-		pl.Series('signalNeg', signalNeg),
-		pl.Series('signalDirect', signalDirect),
-		pl.Series('signalDirectDiff', signalDirectDiff),
+		pl.Series('signalUpLineMoving', upLineMoving),
+		pl.Series('signalMoving', moving),
+		pl.Series('signalDownLineMoving', downLineMoving),
+		pl.Series('signalMovingDiff', movingDiff),
 	])
 
 	dataFrame = dataFrame.with_columns(
 		pl.when(
-			(pl.col('signalPos') > pl.col('signalNeg')) & (pl.col('signalDirectDiff') > 0) &
+			(pl.col('close') > pl.col('signalMoving')) &
 			(maxMulti > pl.col('volMulti')) & (pl.col('volMulti') > minMulti)
 		).then(pl.lit(2))
 		.when(
-			(pl.col('signalPos') < pl.col('signalNeg')) & (pl.col('signalDirectDiff') > 0) &
+			(pl.col('close') < pl.col('signalMoving')) &
 			(maxMulti > pl.col('volMulti')) & (pl.col('volMulti') > minMulti)
 		).then(pl.lit(0))
 		.otherwise(pl.lit(1))
@@ -86,13 +75,13 @@ def main(inputMessage: dict[str, Any]) -> None:
 		pl.when(pl.col('strategy') == 0).then(pl.lit(1)).otherwise(pl.lit(-1)).alias('short_signal'),
 	])
 
-	#superName = str(output_dir) + f'/trend_{nameExchange}_{symbol}_{type}_{timeFrame}.png'
-	#tempDF = dataFrame.tail(1440)
-	#plt.plot(tempDF['pDMI'], color='green')
-	#plt.plot(tempDF['nDMI'], color='red')
-	#plt.plot(tempDF['ADX'], color='blue')
+	#superName = str(output_dir) + f'/moving_{nameExchange}_{symbol}_{type}_{timeFrame}.png'
+	#tempDF = dataFrame.tail(len(dataFrame)-2500)
+	#plt.plot(tempDF['volMulti'], color='blue')
+	#plt.plot(tempDF['moving'], color='red')
+	#plt.plot(tempDF['trendMoving'], color='blue')
 	#plt.savefig(superName)
 	#plt.close()
 
-	dataFrame = dataFrame.select(['datetime', 'open', 'high', 'low', 'close', 'volume', 'long_signal', 'short_signal'])
+	dataFrame = dataFrame.select(['datetime', 'open', 'high', 'low', 'close', 'volume', 'long_signal', 'short_signal', 'leverage'])
 	db.execute("CREATE OR REPLACE TEMP TABLE temp_trading AS SELECT * FROM dataFrame")

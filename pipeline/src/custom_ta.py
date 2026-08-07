@@ -171,8 +171,8 @@ def adaptive_moving(
 
 	for i in range(firstIndex, lenth):
 		real_i = i+1
-		multi = volMulti[i] if volMulti[i] > 1.0 else 1.0
-		window = int(baseWindow*multi)
+		multi = volMulti[i]
+		window = int(baseWindow*multi) if int(baseWindow*multi) > 2 else 2
 		address = int(np.log2(multi)) if (multi < 2**depth) else int(np.log2(2**depth))
 
 		currentPreCutWindow = matrix[address][real_i-window:real_i]
@@ -259,8 +259,8 @@ def adaptive_adx(
 	for i in range(firstIndex, lenth):
 
 		real_i = i+1
-		multi = volMulti[i] if volMulti[i] > 1.0 else 1.0
-		window = int(baseWindow*multi)
+		multi = volMulti[i]
+		window = int(baseWindow*multi) if int(baseWindow*multi) > 3 else 3
 		address = int(np.log2(multi)) if (multi < 2**depth) else int(np.log2(2**depth))
 
 		preCutOpen = openMatrix[address][real_i-window:real_i]
@@ -278,8 +278,9 @@ def adaptive_adx(
 		cutNegM = cutLow[:-1] - cutLow[1:]
 		cutPosDM = np.where((cutPosM > cutNegM) & (cutPosM > 0), cutPosM, 0.0)
 		cutNegDM = np.where((cutNegM > cutPosM) & (cutNegM > 0), cutNegM, 0.0)
-		posDmiVector[i] = np.mean(cutPosDM)/np.mean(cutTrueRange)
-		negDmiVector[i] = np.mean(cutNegDM)/np.mean(cutTrueRange)
+		ATR = np.mean(cutTrueRange)
+		posDmiVector[i] = np.mean(cutPosDM)/ATR if ATR > 0 else 0
+		negDmiVector[i] = np.mean(cutNegDM)/ATR if ATR > 0 else 0
 
 	posMatrix = [posDmiVector]
 	for i in range(depth):
@@ -304,8 +305,8 @@ def adaptive_adx(
 	for i in range(firstIndex, lenth):
 		
 		real_i = i+1
-		multi = volMulti[i] if volMulti[i] > 1.0 else 1.0
-		window = int(baseWindow*multi)
+		multi = volMulti[i]
+		window = int(baseWindow*multi) if int(baseWindow*multi) > 2 else 2
 		address = int(np.log2(multi)) if (multi < 2**depth) else int(np.log2(2**depth))
 
 		currentPreCutPositive = posMatrix[address][real_i-window:real_i]
@@ -501,9 +502,10 @@ def multi_volativity(
 			cutLow = concentrator(preCutWindow=preCutLow, numberMissing=address)
 
 			cutTrueRange = 100*(cutHigh/cutLow - 1)
-			ATR = np.mean(cutTrueRange)/(2**address)
+			localATR = np.mean(cutTrueRange)
+			targetATR = localATR*(1/(2**address))**(0.5)
 
-			tempVectorValues = np.append(tempVectorValues, ATR)
+			tempVectorValues = np.append(tempVectorValues, targetATR)
 
 		volMultiVector[i] = baseVolativity/np.mean(tempVectorValues)
 

@@ -25,7 +25,11 @@ def preAnalyst(
 		negDeltaTrads = delta_trads[delta_trads < 0]
 		winCount = len(posDeltaTrads)
 		lossCount = len(negDeltaTrads)
-		win_loss = round(100*winCount/(winCount + lossCount), 2)
+
+		if winCount > 0 or lossCount > 0:
+			win_loss = round(100*winCount/(winCount + lossCount), 2)
+		else:
+			win_loss = 0.00
 
 		#average_profit_size and max_profit_size
 		if winCount > 0:
@@ -97,7 +101,7 @@ def preAnalyst(
 
 	return send_list
 
-def main(dataFrame: pl.DataFrame, testMode: str) -> dict:
+def coreBacktester(dataFrame: pl.DataFrame, testMode: str) -> dict:
 	testMode = 1 if testMode == 'cumul' else 0
 
 	cash_balance_body, cash_balance_cold, longDeltaTrads, longLenTrads, shortDeltaTrads, shortLenTrads = backtest(
@@ -108,6 +112,7 @@ def main(dataFrame: pl.DataFrame, testMode: str) -> dict:
 		volumeVector = dataFrame['volume'].to_numpy(),
 		longSignalVector = dataFrame['long_signal'].to_numpy(),
 		shortSignalVector = dataFrame['short_signal'].to_numpy(),
+		leverageVector = dataFrame['leverage'].to_numpy(),
 		testMode = testMode,
 	)
 
@@ -138,11 +143,11 @@ def backtest(
 		volumeVector: npt.NDArray[np.float64],
 		longSignalVector: npt.NDArray[np.int64],
 		shortSignalVector: npt.NDArray[np.int64],
+		leverageVector: npt.NDArray[np.int64],
 		testMode: int,
 	) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.float64], npt.NDArray[np.float64], npt.NDArray[np.int64], npt.NDArray[np.int64], npt.NDArray[np.int64]]:
 
 	start_fiat: float = 100.0
-	leverage: int = 1
 	max_lot: float = start_fiat if testMode == 1 else False
 
 	lenthDataFrame: int = len(closeVector)
@@ -170,6 +175,7 @@ def backtest(
 		volumeValue = volumeVector[i]
 		longSignal = longSignalVector[i]
 		shortSignal = shortSignalVector[i]
+		leverage = leverageVector[i]
 
 		fiat, active, deposit, tradEvent, cold_fiat = imitationEngine.coreEngine(
 			price=closeValue,

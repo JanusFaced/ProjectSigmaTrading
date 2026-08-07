@@ -1,6 +1,10 @@
 from typing import Any
 import dataFrameDownloader
-from strategies import moving, trend, channel, modeling, correlation
+from strategies import (
+	fixvol, floatvol,
+	opt_moving, opt_trend, opt_stochastic, opt_cross_ma, opt_fixvol_moving, opt_floatvol_moving,
+	modeling, correlation
+)
 import trading_simulator
 import imitation_connector
 from filters_kit import filter_new, filter_exist
@@ -38,12 +42,22 @@ def main(inputMessage: dict[str, Any]) -> None:
 		factorExchange=inputMessage['factorExchange']
 	)
 
-	if firstName == "moving":
-		moving.main(inputMessage)
-	elif firstName == "trend":
-		trend.main(inputMessage)
-	elif firstName == "channel":
-		channel.main(inputMessage)
+	if firstName == "fixvol":
+		fixvol.main(inputMessage)
+	elif firstName == "floatvol":
+		floatvol.main(inputMessage)
+	elif firstName == "opt_moving":
+		opt_moving.main(inputMessage)
+	elif firstName == "opt_cross_ma":
+		opt_cross_ma.main(inputMessage)
+	elif firstName == "opt_trend":
+		opt_trend.main(inputMessage)
+	elif firstName == "opt_stochastic":
+		opt_stochastic.main(inputMessage)
+	elif firstName == "opt_fixvol_moving":
+		opt_fixvol_moving.main(inputMessage)
+	elif firstName == "opt_floatvol_moving":
+		opt_floatvol_moving.main(inputMessage)
 	elif firstName == "modeling":
 		modeling.main(inputMessage)
 	elif firstName == "correlation":

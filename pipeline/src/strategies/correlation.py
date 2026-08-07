@@ -1,6 +1,7 @@
 from typing import Any
 import matplotlib.pyplot as plt
 import polars as pl
+import numpy as np
 import os
 from custom_ta import multi_volativity, adaptive_correlation
 from convertorTF import convertorTimeFrame
@@ -41,6 +42,9 @@ def main(inputMessage: dict[str, Any]) -> None:
 	depthSwitch = 4
 	maxMulti = 2**depthSwitch
 	minMulti = 1
+
+	leverage = 3
+	dataFrame = dataFrame.with_columns(pl.lit(leverage).alias('leverage'))
 
 	volMulti = multi_volativity(
 		highVector=dataFrame['high'].to_numpy(),
@@ -87,6 +91,6 @@ def main(inputMessage: dict[str, Any]) -> None:
 	#plt.savefig(superName)
 	#plt.close()
 
-	dataFrame = dataFrame.select(['datetime', 'open', 'high', 'low', 'close', 'volume', 'long_signal', 'short_signal'])
+	dataFrame = dataFrame.select(['datetime', 'open', 'high', 'low', 'close', 'volume', 'long_signal', 'short_signal', 'leverage'])
 	db.execute("CREATE OR REPLACE TEMP TABLE temp_trading AS SELECT * FROM dataFrame")
 
