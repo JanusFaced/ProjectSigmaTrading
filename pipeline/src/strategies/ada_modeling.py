@@ -1,8 +1,10 @@
 from typing import Any
 import matplotlib.pyplot as plt
 import polars as pl
+import numpy as np
 import os
-from custom_ta import adaptive_moving
+from custom_ta import adaptive_roc, adaptive_volume, adaptive_correlation
+from convertorTF import convertorTimeFrame
 from pathlib import Path
 from duckDB_setup import get_duckdb
 from logger_setup import get_logger
@@ -22,9 +24,9 @@ def main(inputMessage: dict[str, Any]) -> None:
 
 	signalWindow, trendWindow, currentVolativityWindow, targetVolativityWindow = 20, 200, 200, 2000
 	depthSwitch = 4
-	maxMulti = 2**depthSwitch
-	minMulti = 1.0
-	leverage = 3
+	maxMulti, minMulti = 2**depthSwitch, 1.0
+	leverage = 1
+	multiModel = 0.5
 
 	dataFrame = dataFrame.with_columns(pl.lit(leverage).alias('leverage'))
 
@@ -39,43 +41,43 @@ def main(inputMessage: dict[str, Any]) -> None:
 		(pl.col('slowATR')/pl.col('fastATR')).clip(0.1, 16).alias('volMulti'),
 	])
 
-	upLineMoving, moving, downLineMoving, movingDiff = adaptive_moving(
+	signalDiff = adaptive_roc(
 		closeVector=dataFrame['close'].to_numpy(),
 		volMulti=dataFrame['volMulti'].to_numpy(),
 		baseWindow=signalWindow,
-		multiple=1.0,
-		baseLineMode="MA",
 		depth=depthSwitch
 	)
+	primary = adaptive_volume(
+		volumeVector=dataFrame['volume'].to_numpy(),
+		volMulti=dataFrame['volMulti'].to_numpy(),
+		baseWindow=signalWindow,
+		depth=depthSwitch
+	)
+	model = adaptive_correlation(
+		secondaryVector=abs(signalDiff),
+		primaryVector=primary,
+		volMulti=dataFrame['volMulti'].to_numpy(),
+		baseWindow=signalWindow,
+		depth=depthSwitch
+	)
+
 	dataFrame = dataFrame.with_columns([
-		pl.Series('signalUpLineMoving', upLineMoving),
-		pl.Series('signalMoving', moving),
-		pl.Series('signalDownLineMoving', downLineMoving),
-		pl.Series('signalMovingDiff', movingDiff),
+		pl.Series('signalDiff', signalDiff),
+		pl.Series('model', model),
 	])
 
-	upLineMoving, moving, downLineMoving, movingDiff = adaptive_moving(
-		closeVector=dataFrame['close'].to_numpy(),
-		volMulti=dataFrame['volMulti'].to_numpy(),
-		baseWindow=trendWindow,
-		multiple=1.0,
-		baseLineMode="MA",
-		depth=depthSwitch
-	)
 	dataFrame = dataFrame.with_columns([
-		pl.Series('trendMoving', moving),
-		pl.Series('trendMovingDiff', movingDiff),
+		(pl.lit(multiModel)*pl.col('model')).alias('pModel'),
+		(pl.lit(-multiModel)*pl.col('model')).alias('nModel'),
 	])
 
 	dataFrame = dataFrame.with_columns(
 		pl.when(
-			(pl.col('close') > pl.col('signalUpLineMoving')) &
-			(pl.col('close') > pl.col('trendMoving')) & (pl.col('trendMovingDiff') > 0) &
+			(pl.col('signalDiff') > pl.col('pModel')) &
 			(maxMulti > pl.col('volMulti')) & (pl.col('volMulti') > minMulti)
 		).then(pl.lit(2))
 		.when(
-			(pl.col('close') < pl.col('signalDownLineMoving')) &
-			(pl.col('close') < pl.col('trendMoving')) & (pl.col('trendMovingDiff') < 0) &
+			(pl.col('signalDiff') < pl.col('nModel')) &
 			(maxMulti > pl.col('volMulti')) & (pl.col('volMulti') > minMulti)
 		).then(pl.lit(0))
 		.otherwise(pl.lit(1))
@@ -87,11 +89,11 @@ def main(inputMessage: dict[str, Any]) -> None:
 		pl.when(pl.col('strategy') == 0).then(pl.lit(1)).otherwise(pl.lit(-1)).alias('short_signal'),
 	])
 
-	#superName = str(output_dir) + f'/moving_{nameExchange}_{symbol}_{type}_{timeFrame}.png'
-	#tempDF = dataFrame.tail(len(dataFrame)-2500)
-	#plt.plot(tempDF['volMulti'], color='blue')
-	#plt.plot(tempDF['moving'], color='red')
-	#plt.plot(tempDF['trendMoving'], color='blue')
+	#superName = str(output_dir) + f'/modeling_{nameExchange}_{symbol}_{type}_{timeFrame}.png'
+	#tempDF = dataFrame.tail(1440)
+	#plt.plot(tempDF['signalDiff'], color='black')
+	#plt.plot(tempDF['nModel'], color='red')
+	#plt.plot(tempDF['pModel'], color='green')
 	#plt.savefig(superName)
 	#plt.close()
 

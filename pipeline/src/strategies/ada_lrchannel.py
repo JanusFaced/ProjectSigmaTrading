@@ -2,8 +2,7 @@ from typing import Any
 import matplotlib.pyplot as plt
 import polars as pl
 import os
-from custom_ta import multi_volativity, adaptive_moving
-from convertorTF import convertorTimeFrame
+from custom_ta import adaptive_moving
 from pathlib import Path
 from duckDB_setup import get_duckdb
 from logger_setup import get_logger
@@ -21,49 +20,58 @@ def main(inputMessage: dict[str, Any]) -> None:
 	type = inputMessage['type']
 	timeFrame = inputMessage['timeFrame']
 
-	numberTimeframe = convertorTimeFrame(timeFrame)
-	targetVolativity = 2.0
-	targetTimeframe = 240
-	
-	signalWindow, filterWindow = 20, 200 #20, 200
+	signalWindow, trendWindow, currentVolativityWindow, targetVolativityWindow = 20, 200, 200, 2000
 	depthSwitch = 4
-	maxMulti = 2**depthSwitch
-	minMulti = 1
+	maxMulti, minMulti = 2**depthSwitch, 1.0
+	leverage = 1
 
-	leverage = 3
 	dataFrame = dataFrame.with_columns(pl.lit(leverage).alias('leverage'))
 
-	volMulti = multi_volativity(
-		highVector=dataFrame['high'].to_numpy(),
-		lowVector=dataFrame['low'].to_numpy(),
-		baseVolativity=targetVolativity*(numberTimeframe/targetTimeframe)**(0.5),
-		baseWindow=filterWindow,
-		depth=depthSwitch
-	)
-	dataFrame = dataFrame.with_columns(pl.Series('volMulti', volMulti))
+	dataFrame = dataFrame.with_columns([
+		(pl.lit(100)*(pl.col('high')/pl.col('low')-1)).alias('TR'),
+	])
+	dataFrame = dataFrame.with_columns([
+		pl.col('TR').rolling_mean(window_size=currentVolativityWindow).alias('fastATR'),
+		pl.col('TR').rolling_mean(window_size=targetVolativityWindow).alias('slowATR'),
+	])
+	dataFrame = dataFrame.with_columns([
+		(pl.col('slowATR')/pl.col('fastATR')).clip(0.1, 16).alias('volMulti'),
+	])
 
-	upLineMoving, moving, downLineMoving, movingDiff = adaptive_moving(
+	signalUpLine, signalMoving, signalDownLine, movingDiff = adaptive_moving(
 		closeVector=dataFrame['close'].to_numpy(),
 		volMulti=dataFrame['volMulti'].to_numpy(),
 		baseWindow=signalWindow,
 		multiple=1.0,
+		baseLineMode="LR",
+		depth=depthSwitch
+	)
+
+	upLine, trendMoving, downLine, movingDiff = adaptive_moving(
+		closeVector=dataFrame['close'].to_numpy(),
+		volMulti=dataFrame['volMulti'].to_numpy(),
+		baseWindow=trendWindow,
+		multiple=1.0,
 		baseLineMode="MA",
 		depth=depthSwitch
 	)
+
 	dataFrame = dataFrame.with_columns([
-		pl.Series('signalUpLineMoving', upLineMoving),
-		pl.Series('signalMoving', moving),
-		pl.Series('signalDownLineMoving', downLineMoving),
-		pl.Series('signalMovingDiff', movingDiff),
+		pl.Series('signalUpLine', signalUpLine),
+		pl.Series('signalMoving', signalMoving),
+		pl.Series('signalDownLine', signalDownLine),
+		pl.Series('trendMoving', trendMoving),
 	])
 
 	dataFrame = dataFrame.with_columns(
 		pl.when(
-			(pl.col('close') > pl.col('signalMoving')) &
+			(pl.col('close') > pl.col('signalUpLine')) &
+			(pl.col('close') > pl.col('trendMoving')) &
 			(maxMulti > pl.col('volMulti')) & (pl.col('volMulti') > minMulti)
 		).then(pl.lit(2))
 		.when(
-			(pl.col('close') < pl.col('signalMoving')) &
+			(pl.col('close') < pl.col('signalDownLine')) &
+			(pl.col('close') < pl.col('trendMoving')) &
 			(maxMulti > pl.col('volMulti')) & (pl.col('volMulti') > minMulti)
 		).then(pl.lit(0))
 		.otherwise(pl.lit(1))

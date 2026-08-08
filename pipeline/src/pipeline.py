@@ -1,9 +1,11 @@
 from typing import Any
 import dataFrameDownloader
 from strategies import (
-	fixvol, floatvol,
-	opt_moving, opt_trend, opt_stochastic, opt_cross_ma, opt_fixvol_moving, opt_floatvol_moving,
-	modeling, correlation
+	opt_moving, opt_trend, opt_stochastic,
+	opt_cross_ma, opt_bollinger, opt_keltner,
+	opt_envelopes, opt_modeling, opt_correlation,
+	opt_lrcurve, opt_lrchannel, opt_complex,
+	ada_moving, ada_trend, ada_modeling, ada_correlation, ada_lrcurve, ada_lrchannel
 )
 import trading_simulator
 import imitation_connector
@@ -42,11 +44,7 @@ def main(inputMessage: dict[str, Any]) -> None:
 		factorExchange=inputMessage['factorExchange']
 	)
 
-	if firstName == "fixvol":
-		fixvol.main(inputMessage)
-	elif firstName == "floatvol":
-		floatvol.main(inputMessage)
-	elif firstName == "opt_moving":
+	if firstName == "opt_moving":
 		opt_moving.main(inputMessage)
 	elif firstName == "opt_cross_ma":
 		opt_cross_ma.main(inputMessage)
@@ -54,14 +52,35 @@ def main(inputMessage: dict[str, Any]) -> None:
 		opt_trend.main(inputMessage)
 	elif firstName == "opt_stochastic":
 		opt_stochastic.main(inputMessage)
-	elif firstName == "opt_fixvol_moving":
-		opt_fixvol_moving.main(inputMessage)
-	elif firstName == "opt_floatvol_moving":
-		opt_floatvol_moving.main(inputMessage)
-	elif firstName == "modeling":
-		modeling.main(inputMessage)
-	elif firstName == "correlation":
-		correlation.main(inputMessage)
+	elif firstName == "opt_bollinger":
+		opt_bollinger.main(inputMessage)
+	elif firstName == "opt_keltner":
+		opt_keltner.main(inputMessage)
+	elif firstName == "opt_envelopes":
+		opt_envelopes.main(inputMessage)
+	elif firstName == "opt_modeling":
+		opt_modeling.main(inputMessage)
+	elif firstName == "opt_correlation":
+		opt_correlation.main(inputMessage)
+	elif firstName == "opt_lrcurve":
+		opt_lrcurve.main(inputMessage)
+	elif firstName == "opt_lrchannel":
+		opt_lrchannel.main(inputMessage)
+	elif firstName == "opt_complex":
+		opt_complex.main(inputMessage)
+
+	elif firstName == "ada_moving":
+		ada_moving.main(inputMessage)
+	elif firstName == "ada_trend":
+		ada_trend.main(inputMessage)
+	elif firstName == "ada_modeling":
+		ada_modeling.main(inputMessage)
+	elif firstName == "ada_correlation":
+		ada_correlation.main(inputMessage)
+	elif firstName == "ada_lrcurve":
+		ada_lrcurve.main(inputMessage)
+	elif firstName == "ada_lrchannel":
+		ada_lrchannel.main(inputMessage)
 
 	if inputMessage['mode'] == 'test':
 		trading_simulator.main(inputMessage)

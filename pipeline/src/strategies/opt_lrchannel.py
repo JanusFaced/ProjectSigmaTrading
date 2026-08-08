@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import polars as pl
 import os
 from walk_forward_simulator import walkForward
+from custom_ta import simple_linear_regression
 from pathlib import Path
 from duckDB_setup import get_duckdb
 from logger_setup import get_logger
@@ -45,19 +46,29 @@ def algorithm(
 	
 	leverage = 1
 
+	lrcurve = simple_linear_regression(
+		closeVector=dataFrame['close'].to_numpy(),
+		baseWindow=signalWindow
+	)
+
 	dataFrame = dataFrame.with_columns([
 		pl.lit(leverage).alias('leverage'),
-		( 100*(pl.col('close')/pl.col('close').shift(signalWindow) - 1) ).alias('signalROC'),
+		pl.Series('lrcurve', lrcurve),
+		pl.col('close').rolling_std(window_size=signalWindow).alias('sigma'),
 		pl.col('close').rolling_mean(window_size=trendWindow).alias('trendMoving'),
+	])
+	dataFrame = dataFrame.with_columns([
+		(pl.col('lrcurve') + pl.col('sigma')).alias('upLine'),
+		(pl.col('lrcurve') - pl.col('sigma')).alias('downLine'),
 	])
 
 	dataFrame = dataFrame.with_columns(
 		pl.when(
-			(pl.col('signalROC') > 0) &
+			(pl.col('close') > pl.col('upLine')) &
 			(pl.col('close') > pl.col('trendMoving'))
 		).then(pl.lit(2))
 		.when(
-			(pl.col('signalROC') < 0) &
+			(pl.col('close') < pl.col('downLine')) &
 			(pl.col('close') < pl.col('trendMoving'))
 		).then(pl.lit(0))
 		.otherwise(pl.lit(1))

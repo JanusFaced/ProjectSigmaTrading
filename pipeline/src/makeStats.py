@@ -99,7 +99,11 @@ def main(
 		['strategy_name', 'symbol'],
 		['symbol', 'timeframe']
 	]
-	list_of_metrics = ['year_profit']
+	list_of_metrics = [
+		'year_profit',
+		'max_drawdown',
+		'sharp',
+	]
 
 	for combi in list_of_combi:
 		for metric_name in list_of_metrics:

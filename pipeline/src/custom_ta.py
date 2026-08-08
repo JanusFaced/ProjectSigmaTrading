@@ -199,6 +199,24 @@ def adaptive_moving(
 	return upLineVector, movingVector, downLineVector, movingDiffVector
 
 @njit(cache=True)
+def simple_linear_regression(
+		closeVector: npt.NDArray[np.float64],
+		baseWindow: int = 20,
+	) -> npt.NDArray[np.float64]:
+
+	lenth = len(closeVector)
+	curveVector = np.empty(lenth, dtype=np.float64)
+	firstIndex = baseWindow
+
+	for i in range(firstIndex, lenth):
+		real_i = i+1
+		window = baseWindow
+		cutWindow = closeVector[real_i-window:real_i]
+		curveVector[i] = linearRegression(cutWindow)
+
+	return curveVector
+
+@njit(cache=True)
 def adaptive_adx(
 		openVector: npt.NDArray[np.float64],
 		highVector: npt.NDArray[np.float64],
@@ -376,6 +394,25 @@ def adaptive_correlation(
 		cutSecondary = concentrator(preCutWindow=preCutSecondary, numberMissing=address)
 		cutPrimary = concentrator(preCutWindow=preCutPrimary, numberMissing=address)
 
+		model[i] = lr_correlation(cutPrimary, cutSecondary)
+	
+	return model
+
+@njit(cache=True)
+def simple_correlation(
+		secondaryVector: npt.NDArray[np.float64],
+		primaryVector: npt.NDArray[np.float64],
+		baseWindow: int = 20
+	) -> npt.NDArray[np.float64]:
+
+	lenth = len(primaryVector)
+	model = np.empty(lenth, dtype=np.float64)
+	firstIndex = baseWindow
+	for i in range(firstIndex, lenth):
+		real_i = i+1
+		window = baseWindow
+		cutSecondary = secondaryVector[real_i-window:real_i]
+		cutPrimary = primaryVector[real_i-window:real_i]
 		model[i] = lr_correlation(cutPrimary, cutSecondary)
 	
 	return model

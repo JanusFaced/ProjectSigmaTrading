@@ -18,8 +18,7 @@ def main(inputMessage: dict[str, Any]) -> None:
 	train_size, test_size = 1000, 300
 	quantSlippage = 2000
 	parametrs = {
-		"signalWindow": {"min": 10, "max": 100, "split": 5},
-		"trendWindow": {"min": 200, "max": 2000, "split": 5},
+		"signalWindow": {"min": 20, "max": 200, "split": 5},
 	}
 
 	dataFrame = walkForward(
@@ -42,7 +41,7 @@ def algorithm(
 	) -> pl.DataFrame:
 
 	signalWindow = params['signalWindow']
-	trendWindow = params['trendWindow']
+	trendWindow = 10*signalWindow
 	
 	fastSignalWindow = signalWindow
 	slowSignalWindow = 2*signalWindow
@@ -54,18 +53,15 @@ def algorithm(
 		pl.col('close').rolling_mean(window_size=slowSignalWindow).alias('slowSignalMoving'),
 		pl.col('close').rolling_mean(window_size=trendWindow).alias('trendMoving'),
 	])
-	dataFrame = dataFrame.with_columns([
-		(pl.col('trendMoving')/pl.col('trendMoving').shift(1) - 1).rolling_mean(window_size=trendWindow).alias('trendMovingDiff'),
-	])
 
 	dataFrame = dataFrame.with_columns(
 		pl.when(
 			(pl.col('fastSignalMoving') > pl.col('slowSignalMoving')) &
-			(pl.col('close') > pl.col('trendMoving')) & (pl.col('trendMovingDiff') > 0)
+			(pl.col('close') > pl.col('trendMoving'))
 		).then(pl.lit(2))
 		.when(
 			(pl.col('fastSignalMoving') < pl.col('slowSignalMoving')) &
-			(pl.col('close') < pl.col('trendMoving')) & (pl.col('trendMovingDiff') < 0)
+			(pl.col('close') < pl.col('trendMoving'))
 		).then(pl.lit(0))
 		.otherwise(pl.lit(1))
 		.alias('strategy')

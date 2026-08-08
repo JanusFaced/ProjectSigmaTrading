@@ -19,7 +19,6 @@ def main(inputMessage: dict[str, Any]) -> None:
 	quantSlippage = 2000
 	parametrs = {
 		"signalWindow": {"min": 20, "max": 200, "split": 5},
-		"trendWindow": {"min": 200, "max": 2000, "split": 5},
 	}
 
 	dataFrame = walkForward(
@@ -42,30 +41,24 @@ def algorithm(
 	) -> pl.DataFrame:
 
 	signalWindow = params['signalWindow']
-	trendWindow = params['trendWindow']
+	trendWindow = 10*signalWindow
 	
 	leverage = 1
 
 	dataFrame = dataFrame.with_columns([
 		pl.lit(leverage).alias('leverage'),
 		pl.col('close').rolling_mean(window_size=signalWindow).alias('signalMoving'),
-		pl.col('close').rolling_std(window_size=signalWindow).alias('signalSigma'),
 		pl.col('close').rolling_mean(window_size=trendWindow).alias('trendMoving'),
-	])
-	dataFrame = dataFrame.with_columns([
-		(pl.col('signalMoving') + pl.col('signalSigma')).alias('signalMovingUpLine'),
-		(pl.col('signalMoving') - pl.col('signalSigma')).alias('signalMovingDownLine'),
-		(pl.col('trendMoving')/pl.col('trendMoving').shift(1) - 1).rolling_mean(window_size=trendWindow).alias('trendMovingDiff'),
 	])
 
 	dataFrame = dataFrame.with_columns(
 		pl.when(
-			(pl.col('close') > pl.col('signalMovingDownLine')) &
-			(pl.col('close') > pl.col('trendMoving')) & (pl.col('trendMovingDiff') > 0)
+			(pl.col('close') > pl.col('signalMoving')) &
+			(pl.col('close') > pl.col('trendMoving'))
 		).then(pl.lit(2))
 		.when(
-			(pl.col('close') < pl.col('signalMovingUpLine')) &
-			(pl.col('close') < pl.col('trendMoving')) & (pl.col('trendMovingDiff') < 0)
+			(pl.col('close') < pl.col('signalMoving')) &
+			(pl.col('close') < pl.col('trendMoving'))
 		).then(pl.lit(0))
 		.otherwise(pl.lit(1))
 		.alias('strategy')

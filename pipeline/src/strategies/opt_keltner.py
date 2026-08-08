@@ -47,17 +47,22 @@ def algorithm(
 
 	dataFrame = dataFrame.with_columns([
 		pl.lit(leverage).alias('leverage'),
-		( 100*(pl.col('close')/pl.col('close').shift(signalWindow) - 1) ).alias('signalROC'),
+		pl.col('close').rolling_mean(window_size=signalWindow).alias('signalMoving'),
+		(pl.col('high')-pl.col('low')).rolling_std(window_size=signalWindow).alias('ATR'),
 		pl.col('close').rolling_mean(window_size=trendWindow).alias('trendMoving'),
+	])
+	dataFrame = dataFrame.with_columns([
+		(pl.col('signalMoving') + pl.col('ATR')).alias('signalMovingUpLine'),
+		(pl.col('signalMoving') - pl.col('ATR')).alias('signalMovingDownLine'),
 	])
 
 	dataFrame = dataFrame.with_columns(
 		pl.when(
-			(pl.col('signalROC') > 0) &
+			(pl.col('close') > pl.col('signalMovingDownLine')) &
 			(pl.col('close') > pl.col('trendMoving'))
 		).then(pl.lit(2))
 		.when(
-			(pl.col('signalROC') < 0) &
+			(pl.col('close') < pl.col('signalMovingUpLine')) &
 			(pl.col('close') < pl.col('trendMoving'))
 		).then(pl.lit(0))
 		.otherwise(pl.lit(1))

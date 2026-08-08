@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import polars as pl
 import os
 from walk_forward_simulator import walkForward
+from custom_ta import simple_correlation
 from pathlib import Path
 from duckDB_setup import get_duckdb
 from logger_setup import get_logger
@@ -44,20 +45,41 @@ def algorithm(
 	trendWindow = 10*signalWindow
 	
 	leverage = 1
+	modelMulti = 0.5
 
 	dataFrame = dataFrame.with_columns([
 		pl.lit(leverage).alias('leverage'),
-		( 100*(pl.col('close')/pl.col('close').shift(signalWindow) - 1) ).alias('signalROC'),
+		(pl.col('close')/pl.col('close').shift(signalWindow) - 1).alias('signalDiff'),
+	])
+
+	dataFrame = dataFrame.with_columns([
+		pl.col('signalDiff').abs().alias('secondary'),
+		pl.col('volume').rolling_sum(window_size=signalWindow).alias('primary')
+	])
+
+	model = simple_correlation(
+		secondaryVector=dataFrame['secondary'].to_numpy(),
+		primaryVector=dataFrame['primary'].to_numpy(),
+		baseWindow=signalWindow
+	)
+
+	dataFrame = dataFrame.with_columns([
+		pl.Series('model', model),
 		pl.col('close').rolling_mean(window_size=trendWindow).alias('trendMoving'),
+	])
+
+	dataFrame = dataFrame.with_columns([
+		(pl.lit(modelMulti)*pl.col('model')).alias('pModel'),
+		(pl.lit(-modelMulti)*pl.col('model')).alias('nModel'),
 	])
 
 	dataFrame = dataFrame.with_columns(
 		pl.when(
-			(pl.col('signalROC') > 0) &
+			(pl.col('signalDiff') > pl.col('pModel')) &
 			(pl.col('close') > pl.col('trendMoving'))
 		).then(pl.lit(2))
 		.when(
-			(pl.col('signalROC') < 0) &
+			(pl.col('signalDiff') < pl.col('nModel')) &
 			(pl.col('close') < pl.col('trendMoving'))
 		).then(pl.lit(0))
 		.otherwise(pl.lit(1))
