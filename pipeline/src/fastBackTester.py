@@ -11,9 +11,17 @@ logger = get_logger(__name__)
 
 def preAnalyst(
 		lenthDF: int,
-		delta_trads: npt.NDArray[np.float64],
+		delta_trads_signal: npt.NDArray[np.float64],
+		delta_trads_stop: npt.NDArray[np.float64],
 		len_trads: npt.NDArray[np.float64],
 	) -> dict:
+
+	amountTakeProfit = len(delta_trads_stop[delta_trads_stop > 0])
+	amountStopLoss = len(delta_trads_stop[delta_trads_stop < 0])
+	amountProfitSignal = len(delta_trads_signal[delta_trads_signal > 0])
+	amountLossSignal = len(delta_trads_signal[delta_trads_signal < 0])
+
+	delta_trads = np.concatenate([delta_trads_signal, delta_trads_stop])
 
 	if len(delta_trads) > 0:
 		#trads and freq_trads
@@ -60,10 +68,6 @@ def preAnalyst(
 			average_len_trad = 0
 			min_len_trad = 0
 
-		#amount_profit_signal and amount_loss_signal
-		amount_profit_signal = winCount
-		amount_loss_signal = lossCount
-
 	else:
 		trads = 0
 		freq_trads = lenthDF
@@ -79,8 +83,6 @@ def preAnalyst(
 		max_len_trad = 0
 		average_len_trad = 0
 		min_len_trad = 0
-		amount_profit_signal = 0
-		amount_loss_signal = 0
 
 	send_list = {
 		'trads': trads,
@@ -93,10 +95,10 @@ def preAnalyst(
 		'maxLengthTrade': max_len_trad,
 		'averageLengthTrade': average_len_trad,
 		'minLenthTrade': min_len_trad,
-		'amountTakeProfit': 0,
-		'amountStopLoss': 0,
-		'amountProfitSignal': amount_profit_signal,
-		'amountLossSignal': amount_loss_signal,
+		'amountTakeProfit': amountTakeProfit,
+		'amountStopLoss': amountStopLoss,
+		'amountProfitSignal': amountProfitSignal,
+		'amountLossSignal': amountLossSignal,
 	}
 
 	return send_list
@@ -104,7 +106,7 @@ def preAnalyst(
 def coreBacktester(dataFrame: pl.DataFrame, testMode: str) -> dict:
 	testMode = 1 if testMode == 'cumul' else 0
 
-	cash_balance_body, cash_balance_cold, longDeltaTrads, longLenTrads, shortDeltaTrads, shortLenTrads = backtest(
+	cash_balance_body, cash_balance_cold, longDeltaTradsSignal, longDeltaTradsStop, longLenTrads, shortDeltaTradsSignal, shortDeltaTradsStop, shortLenTrads = backtest(
 		openVector = dataFrame['open'].to_numpy(),
 		highVector = dataFrame['high'].to_numpy(),
 		lowVector = dataFrame['low'].to_numpy(),
@@ -113,16 +115,19 @@ def coreBacktester(dataFrame: pl.DataFrame, testMode: str) -> dict:
 		longSignalVector = dataFrame['long_signal'].to_numpy(),
 		shortSignalVector = dataFrame['short_signal'].to_numpy(),
 		leverageVector = dataFrame['leverage'].to_numpy(),
+		maxLossVector = dataFrame['maxLoss'].to_numpy(),
+		maxProfitVector = dataFrame['maxProfit'].to_numpy(),
 		testMode = testMode,
 	)
 
-	delta_trads = np.concatenate([longDeltaTrads, shortDeltaTrads])
+	delta_trads_signal = np.concatenate([longDeltaTradsSignal, shortDeltaTradsSignal])
+	delta_trads_stop = np.concatenate([longDeltaTradsStop, shortDeltaTradsStop])
 	len_trads = np.concatenate([longLenTrads, shortLenTrads])
 
 	lenthDF = len(cash_balance_body)
-	general_list = preAnalyst(lenthDF, delta_trads, len_trads)
-	long_list = preAnalyst(lenthDF, longDeltaTrads, longLenTrads)
-	short_list = preAnalyst(lenthDF, shortDeltaTrads, shortLenTrads)
+	general_list = preAnalyst(lenthDF, delta_trads_signal, delta_trads_stop, len_trads)
+	long_list = preAnalyst(lenthDF, longDeltaTradsSignal, longDeltaTradsStop, longLenTrads)
+	short_list = preAnalyst(lenthDF, shortDeltaTradsSignal, shortDeltaTradsSignal, shortLenTrads)
 
 	send_list = {
 		'balanceBody': cash_balance_body,
@@ -144,28 +149,32 @@ def backtest(
 		longSignalVector: npt.NDArray[np.int64],
 		shortSignalVector: npt.NDArray[np.int64],
 		leverageVector: npt.NDArray[np.int64],
+		maxLossVector: npt.NDArray[np.float64],
+		maxProfitVector: npt.NDArray[np.float64],
 		testMode: int,
-	) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.float64], npt.NDArray[np.float64], npt.NDArray[np.int64], npt.NDArray[np.int64], npt.NDArray[np.int64]]:
-
-	start_fiat: float = 100.0
-	max_lot: float = start_fiat if testMode == 1 else False
+	) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.float64], npt.NDArray[np.float64], npt.NDArray[np.float64], npt.NDArray[np.int64], npt.NDArray[np.float64], npt.NDArray[np.float64], npt.NDArray[np.int64]]:
 
 	lenthDataFrame: int = len(closeVector)
+
 	cash_balance_body: npt.NDArray[np.float64] = np.empty(0, dtype=np.float64)
 	cash_balance_cold: npt.NDArray[np.float64] = np.empty(0, dtype=np.float64)
 
+	longDeltaTradsSignal: npt.NDArray[np.float64] = np.empty(0, dtype=np.float64)
+	longDeltaTradsStop: npt.NDArray[np.float64] = np.empty(0, dtype=np.float64)
+	longLenTrads: npt.NDArray[np.float64] = np.empty(0, dtype=np.float64)
+	
+	shortDeltaTradsSignal: npt.NDArray[np.float64] = np.empty(0, dtype=np.float64)
+	shortDeltaTradsStop: npt.NDArray[np.float64] = np.empty(0, dtype=np.float64)
+	shortLenTrads: npt.NDArray[np.float64] = np.empty(0, dtype=np.float64)
+
+	start_fiat: float = 100.0
+	max_lot: float = start_fiat if testMode == 1 else False
 	cold_fiat: float = 0.0
 	fiat: float = start_fiat
 	active: float = 0.0
-
-	longDeltaTrads: npt.NDArray[np.float64] = np.empty(0, dtype=np.float64)
-	longLenTrads: npt.NDArray[np.float64] = np.empty(0, dtype=np.float64)
-	
-	shortDeltaTrads: npt.NDArray[np.float64] = np.empty(0, dtype=np.float64)
-	shortLenTrads: npt.NDArray[np.float64] = np.empty(0, dtype=np.float64)
-	
-	oldDeposite: float = start_fiat
+	currentPosition = start_fiat
 	oldTimePoint: int = 0
+	tempMaxProfit, tempMaxLoss = maxProfitVector[0], maxLossVector[0]
 
 	for i in range(lenthDataFrame):
 		openValue = openVector[i]
@@ -176,11 +185,16 @@ def backtest(
 		longSignal = longSignalVector[i]
 		shortSignal = shortSignalVector[i]
 		leverage = leverageVector[i]
+		maxLoss = maxLossVector[i]
+		maxProfit = maxProfitVector[i]
 
-		fiat, active, deposit, tradEvent, cold_fiat = imitationEngine.coreEngine(
+		fiat, active, deposit, financeReturn, tradEvent, cold_fiat = imitationEngine.coreEngine(
 			price=closeValue,
 			long_signal=longSignal,
 			short_signal=shortSignal,
+			maxProfit=tempMaxProfit,
+			maxLoss=tempMaxLoss,
+			currentPosition=currentPosition,
 			fiat=fiat,
 			active=active,
 			cold_fiat=cold_fiat,
@@ -188,25 +202,42 @@ def backtest(
 			leverage=leverage,
 		)
 
-		if True in [tradEvent['close_long'], tradEvent['open_long'], tradEvent['close_short'], tradEvent['open_short']]:
-			if tradEvent['close_long']:
-				longDeltaTrads = np.append(longDeltaTrads, 100*(deposit - oldDeposite)/oldDeposite)
-				longLenTrads = np.append(longLenTrads, i - oldTimePoint)
+		if tradEvent['close_long_signal'] or tradEvent['close_long_stop']:
+			longLenTrads = np.append(longLenTrads, i - oldTimePoint)
 
-			elif tradEvent['close_short']:
-				shortDeltaTrads = np.append(shortDeltaTrads, 100*(deposit - oldDeposite)/oldDeposite)
-				shortLenTrads = np.append(shortLenTrads, i - oldTimePoint)
+			if tradEvent['close_long_signal']:
+				longDeltaTradsSignal = np.append(longDeltaTradsSignal, financeReturn)
+			
+			elif tradEvent['close_long_stop']:
+				longDeltaTradsStop = np.append(longDeltaTradsStop, financeReturn)
 
-			if tradEvent['open_long'] or tradEvent['open_short']:
-				oldDeposite = deposit
-				oldTimePoint = i
+		elif tradEvent['close_short_signal'] or tradEvent['close_short_stop']:
+			shortLenTrads = np.append(shortLenTrads, i - oldTimePoint)
 
-			#logger.info(f"==================================================================")
-			#logger.info(f"{tradEvent}")
-			#logger.info(f"{fiat} {active} {deposit} {cold_fiat} {longSignal} {shortSignal}")
-			#time.sleep(3)
+			if tradEvent['close_short_signal']:
+				shortDeltaTradsSignal = np.append(shortDeltaTradsSignal, financeReturn)
+			
+			elif tradEvent['close_short_stop']:
+				shortDeltaTradsStop = np.append(shortDeltaTradsStop, financeReturn)
+
+		if tradEvent['open_long'] or tradEvent['open_short']:
+			currentPosition = deposit
+			tempMaxLoss, tempMaxProfit = maxLoss, maxProfit
+			oldTimePoint = i
+
+		#if True in [tradEvent['close_long'], tradEvent['open_long'], tradEvent['close_short'], tradEvent['open_short']]:
+		#	if active < 0:
+		#		logger.info(f"tradEvent={tradEvent}")
+		#		logger.info(f"currentPosition={currentPosition} signalClose={signalClose}")
+		#		logger.info(f"open={openValue} high={highValue} low={lowValue} close={closeValue} volume={volumeValue}")
+		#		logger.info(f"longSignal={longSignal} shortSignal={shortSignal}")
+		#		logger.info(f"fiat={fiat} active={active} deposit={deposit}")
+		#		logger.info(f"maxLoss={maxLoss} maxProfit={maxProfit}")
+		#		logger.info(f"========================================")
+		#	
+		#		for _ in range(10): time.sleep(1)
 
 		cash_balance_body = np.append(cash_balance_body, deposit)
 		cash_balance_cold = np.append(cash_balance_cold, cold_fiat)
 
-	return cash_balance_body, cash_balance_cold, longDeltaTrads, longLenTrads, shortDeltaTrads, shortLenTrads
+	return cash_balance_body, cash_balance_cold, longDeltaTradsSignal, longDeltaTradsStop, longLenTrads, shortDeltaTradsSignal, shortDeltaTradsStop, shortLenTrads

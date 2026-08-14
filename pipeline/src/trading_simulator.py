@@ -34,11 +34,16 @@ def main(inputMessage: dict[str, Any]) -> None:
 def backTester(inputMessage: dict[str, Any]) -> Dict:
 	testMode = inputMessage['testMode']
 
+	nameExchange = inputMessage['nameExchange']
+	symbol = inputMessage['symbol']
+	type = inputMessage['type']
+	timeFrame = inputMessage['timeFrame']
+	strategy = inputMessage['strategy']
+
 	db = get_duckdb()
 
 	dataFrame = db.execute("""
-		SELECT datetime, open, high, low, close, volume, long_signal, short_signal, leverage 
-		FROM temp_trading 
+		SELECT * FROM temp_trading 
 		ORDER BY datetime
 	""").pl()
 
@@ -50,6 +55,86 @@ def backTester(inputMessage: dict[str, Any]) -> Dict:
 	])
 
 	send_list = fastBackTester.coreBacktester(dataFrame, testMode)
+
+	cash_balance_body = send_list['balanceBody']
+	cash_balance_cold = send_list['balanceCold']
+
+	dataFrame = dataFrame.with_columns([
+		pl.Series('cash_balance_body', cash_balance_body),
+		pl.Series('cash_balance_cold', cash_balance_cold),
+	])
+
+	dataFrame = dataFrame.with_columns([
+		(pl.col('cash_balance_body') + pl.col('cash_balance_cold')).alias('deposite')
+	])
+
+	
+	indicatorName = "oscillator"
+	financialReturnName = "futureFinReturn"
+	bin_width = 0.01
+
+	tempDF = dataFrame.select([indicatorName, financialReturnName]).drop_nulls()
+
+	x_min = float(tempDF[indicatorName].min())
+	x_max = float(tempDF[indicatorName].max())
+
+	n_bins = int(np.ceil((x_max - x_min) / bin_width))
+	n_bins = max(n_bins, 1)
+
+	cutDF = tempDF.with_columns(
+		((pl.col(indicatorName) - x_min) / bin_width).floor().clip(0, n_bins - 1).cast(pl.Int32).alias("bin")
+	).drop_nulls(["bin"])
+
+	aggDF = cutDF.group_by("bin", maintain_order=True).agg([
+		pl.len().alias("count"),
+		pl.col(indicatorName).mean().alias("mean_x"),
+		pl.col(financialReturnName).min().alias("min_y"),
+		pl.col(financialReturnName).std().alias("std_y"),
+		pl.col(financialReturnName).mean().alias("mean_y"),
+		pl.col(financialReturnName).max().alias("max_y"),
+	]).sort("bin").with_columns([
+		(pl.col("mean_y") + pl.col("std_y")).alias("up_y"),
+		(pl.col("mean_y") - pl.col("std_y")).alias("down_y"),
+	])
+
+	for nameYaxis in ['up_y', 'mean_y', 'down_y']:
+		x_axis, y_axis = aggDF["mean_x"].to_numpy(), aggDF[nameYaxis].to_numpy()
+		mask = np.isfinite(x_axis) & np.isfinite(y_axis)
+		x_axis, y_axis = x_axis[mask], y_axis[mask]
+		a_par, b_par = np.polyfit(x_axis, y_axis, 1)
+
+		aggDF = aggDF.with_columns([
+			(a_par*pl.col("mean_x") + b_par).alias(f"{nameYaxis}_line"),
+		])
+
+	aggDF = aggDF.with_columns([
+		(pl.col("up_y_line") - 0).alias("positivePotential"),
+		(0 - pl.col("down_y_line")).alias("negativePotential"),
+	]).with_columns([
+		(pl.col('positivePotential')/(pl.col('positivePotential') + pl.col('negativePotential'))).alias('potentialMove'),
+	])
+
+	superName = str(output_dir) + f'/stats_{indicatorName}_{strategy}_{symbol}_{timeFrame}_{type}_{nameExchange}.png'
+	plt.plot(aggDF['mean_x'], aggDF['up_y'], color='purple')
+	plt.plot(aggDF['mean_x'], aggDF['mean_y'], color='black')
+	plt.plot(aggDF['mean_x'], aggDF['down_y'], color='blue')
+	plt.plot(aggDF['mean_x'], aggDF['up_y_line'], color='pink')
+	plt.plot(aggDF['mean_x'], aggDF['mean_y_line'], color='grey')
+	plt.plot(aggDF['mean_x'], aggDF['down_y_line'], color='cyan')
+	plt.savefig(superName)
+	plt.close()
+
+	superName = str(output_dir) + f'/potentialMove_{indicatorName}_{strategy}_{symbol}_{timeFrame}_{type}_{nameExchange}.png'
+	plt.plot(aggDF['mean_x'], aggDF['potentialMove'], color='green')
+	plt.savefig(superName)
+	plt.close()
+
+	tempDF = dataFrame.select(['upBoard', 'downBoard'])
+	superName = str(output_dir) + f'/boards_{indicatorName}_{strategy}_{symbol}_{timeFrame}_{type}_{nameExchange}.png'
+	plt.plot(tempDF['upBoard'], color='green')
+	plt.plot(tempDF['downBoard'], color='red')
+	plt.savefig(superName)
+	plt.close()
 
 	return send_list
 
@@ -188,6 +273,10 @@ def backTestAnalyst(
 		logger.info(f'winrate {winrate[0]} (L:{winrate[1]}|S:{winrate[2]}) %')
 		logger.info(f'freqTrads {freqTrads[0]} (L:{freqTrads[1]}|S:{freqTrads[2]}) trads/candle')
 		logger.info(f'trads {trads[0]} (L:{trads[1]}|S:{trads[2]})')
+		logger.info(f"stopLoss {amountStopLoss[0]} (L:{amountStopLoss[1]}|S:{amountStopLoss[2]})")
+		logger.info(f"takeProfit {amountTakeProfit[0]} (L:{amountTakeProfit[1]}|S:{amountTakeProfit[2]})")
+		logger.info(f"lossSignal {amountLossSignal[0]} (L:{amountLossSignal[1]}|S:{amountLossSignal[2]})")
+		logger.info(f"profitSignal {amountProfitSignal[0]} (L:{amountProfitSignal[1]}|S:{amountProfitSignal[2]})")
 		logger.info(f'maxProfitSize {maxProfitSize[0]} (L:{maxProfitSize[1]}|S:{maxProfitSize[2]}) %')
 		logger.info(f'averageProfitSize {averageProfitSize[0]} (L:{averageProfitSize[1]}|S:{averageProfitSize[2]}) %')
 		logger.info(f'averageLossSize {averageLossSize[0]} (L:{averageLossSize[1]}|S:{averageLossSize[2]}) %')
@@ -220,9 +309,7 @@ def backTestAnalyst(
 	else:
 
 		optimization_index = (
-			geom_mean_profit if geom_mean_profit < 0
-			else calmar if calmar < 1
-			else trads[0]
+			geom_mean_profit
 		)
 
 		listReport = {

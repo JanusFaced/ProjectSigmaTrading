@@ -440,8 +440,8 @@ def adaptive_roc(
 
 	for i in range(firstIndex, lenth):
 		real_i = i+1
-		multi = volMulti[i] if volMulti[i] > 1.0 else 1.0
-		window = int(baseWindow*multi)
+		multi = volMulti[i]
+		window = int(baseWindow*multi) if int(baseWindow*multi) > 2 else 2
 		address = int(np.log2(multi)) if (multi < 2**depth) else int(np.log2(2**depth))
 
 		preCutClose = closeMatrix[address][real_i-window:real_i]
@@ -473,10 +473,9 @@ def adaptive_volume(
 		volumeMatrix.append(resamplVector)
 
 	for i in range(firstIndex, lenth):
-
 		real_i = i+1
-		multi = volMulti[i] if volMulti[i] > 1.0 else 1.0
-		window = int(baseWindow*multi)
+		multi = volMulti[i]
+		window = int(baseWindow*multi) if int(baseWindow*multi) > 2 else 2
 		address = int(np.log2(multi)) if (multi < 2**depth) else int(np.log2(2**depth))
 
 		preCutVolume = volumeMatrix[address][real_i-window:real_i]
@@ -554,3 +553,4 @@ def multi_volativity(
 
 	return volMultiVector
 #end multi_volativity
+

@@ -24,18 +24,20 @@ def main(inputMessage: dict[str, Any]) -> None:
 	depthSwitch = 4
 	maxMulti, minMulti = 2**depthSwitch, 1.0
 	leverage = 1
+	multiMaxLoss = 1
+	multiMaxProfit = 100
 
 	dataFrame = dataFrame.with_columns(pl.lit(leverage).alias('leverage'))
 
 	dataFrame = dataFrame.with_columns([
-		(pl.lit(100)*(pl.col('high')/pl.col('low')-1)).alias('TR'),
+		(pl.col('high')/pl.col('low')-1).alias('TR'),
 	])
 	dataFrame = dataFrame.with_columns([
-		pl.col('TR').rolling_mean(window_size=currentVolativityWindow).alias('fastATR'),
+		pl.col('TR').rolling_mean(window_size=currentVolativityWindow).alias('ATR'),
 		pl.col('TR').rolling_mean(window_size=targetVolativityWindow).alias('slowATR'),
 	])
 	dataFrame = dataFrame.with_columns([
-		(pl.col('slowATR')/pl.col('fastATR')).clip(0.1, 16).alias('volMulti'),
+		(pl.col('slowATR')/pl.col('ATR')).clip(0.1, 16).alias('volMulti'),
 	])
 
 	signalROC = adaptive_roc(
@@ -59,25 +61,38 @@ def main(inputMessage: dict[str, Any]) -> None:
 		pl.Series('trendMoving', trendMoving),
 	])
 
+	dataFrame = dataFrame.with_columns([
+		(pl.lit(-multiMaxLoss)*pl.col('ATR')).alias('maxLoss'),
+		(pl.lit(multiMaxProfit)*pl.col('ATR')).alias('maxProfit'),
+	])
+
 	dataFrame = dataFrame.with_columns(
 		pl.when(
-			(pl.col('signalROC') > 0) &
+			(pl.col('signalROC') > 0) & (0 > pl.col('signalROC').shift(1)) &
 			(pl.col('close') > pl.col('trendMoving')) &
 			(maxMulti > pl.col('volMulti')) & (pl.col('volMulti') > minMulti)
-		).then(pl.lit(2))
+		).then(pl.lit(-1))
 		.when(
-			(pl.col('signalROC') < 0) &
+			(pl.col('signalROC') < 0) & (0 < pl.col('signalROC').shift(1)) &
+			(pl.col('close') > pl.col('trendMoving')) &
+			(maxMulti > pl.col('volMulti')) & (pl.col('volMulti') > minMulti)
+		).then(pl.lit(1))
+		.otherwise(pl.lit(0))
+		.alias('long_signal'),
+
+		pl.when(
+			(pl.col('signalROC') > 0) & (0 > pl.col('signalROC').shift(1)) &
 			(pl.col('close') < pl.col('trendMoving')) &
 			(maxMulti > pl.col('volMulti')) & (pl.col('volMulti') > minMulti)
-		).then(pl.lit(0))
-		.otherwise(pl.lit(1))
-		.alias('strategy')
+		).then(pl.lit(-1))
+		.when(
+			(pl.col('signalROC') < 0) & (0 < pl.col('signalROC').shift(1)) &
+			(pl.col('close') < pl.col('trendMoving')) &
+			(maxMulti > pl.col('volMulti')) & (pl.col('volMulti') > minMulti)
+		).then(pl.lit(1))
+		.otherwise(pl.lit(0))
+		.alias('short_signal'),
 	)
-	
-	dataFrame = dataFrame.with_columns([
-		pl.when(pl.col('strategy') == 2).then(pl.lit(-1)).otherwise(pl.lit(1)).alias('long_signal'),
-		pl.when(pl.col('strategy') == 0).then(pl.lit(1)).otherwise(pl.lit(-1)).alias('short_signal'),
-	])
 
 	#superName = str(output_dir) + f'/moving_{nameExchange}_{symbol}_{type}_{timeFrame}.png'
 	#tempDF = dataFrame.tail(len(dataFrame)-2500)
@@ -87,5 +102,12 @@ def main(inputMessage: dict[str, Any]) -> None:
 	#plt.savefig(superName)
 	#plt.close()
 
-	dataFrame = dataFrame.select(['datetime', 'open', 'high', 'low', 'close', 'volume', 'long_signal', 'short_signal', 'leverage'])
+	validList = [
+		'datetime',
+		'open', 'high', 'low', 'close', 'volume',
+		'long_signal', 'short_signal', 'leverage',
+		'maxLoss', 'maxProfit',
+	]
+
+	dataFrame = dataFrame.select(validList)
 	db.execute("CREATE OR REPLACE TEMP TABLE temp_trading AS SELECT * FROM dataFrame")

@@ -18,8 +18,9 @@ def main(inputMessage: dict[str, Any]) -> None:
 
 	train_size, test_size = 1000, 300
 	quantSlippage = 2000
+	generation = 3
 	parametrs = {
-		"signalWindow": {"min": 20, "max": 200, "split": 5},
+		"baseWindow": {"min": 20, "max": 200, "split": 5},
 	}
 
 	dataFrame = walkForward(
@@ -29,10 +30,10 @@ def main(inputMessage: dict[str, Any]) -> None:
 		inputMessage=inputMessage,
 		originalDataFrame=dataFrame,
 		parametrs=parametrs,
-		quantSlippage=quantSlippage
+		quantSlippage=quantSlippage,
+		generation=generation
 	)
 
-	dataFrame = dataFrame.select(['datetime', 'open', 'high', 'low', 'close', 'volume', 'long_signal', 'short_signal', 'leverage'])
 	db.execute("CREATE OR REPLACE TEMP TABLE temp_trading AS SELECT * FROM dataFrame")
 
 def algorithm(
@@ -41,10 +42,19 @@ def algorithm(
 		params: dict
 	) -> pl.DataFrame:
 
-	signalWindow = params['signalWindow']
-	trendWindow = 10*signalWindow
-	
+	nameExchange = inputMessage['nameExchange']
+	symbol = inputMessage['symbol']
+	type = inputMessage['type']
+	timeFrame = inputMessage['timeFrame']
+
+	baseWindow = int(params['baseWindow'])
+	signalWindow = 1*baseWindow
+	trendWindow = 10*baseWindow
+
 	leverage = 1
+
+	multiMaxLoss = 1.0
+	multiMaxProfit = 100.0
 
 	lrcurve = simple_linear_regression(
 		closeVector=dataFrame['close'].to_numpy(),
@@ -53,42 +63,59 @@ def algorithm(
 
 	dataFrame = dataFrame.with_columns([
 		pl.lit(leverage).alias('leverage'),
+		(pl.col('high')/pl.col('low') - 1).rolling_mean(window_size=trendWindow).alias('ATR'),
 		pl.Series('lrcurve', lrcurve),
 		pl.col('close').rolling_std(window_size=signalWindow).alias('sigma'),
 		pl.col('close').rolling_mean(window_size=trendWindow).alias('trendMoving'),
 	])
 	dataFrame = dataFrame.with_columns([
-		(pl.col('lrcurve') + pl.col('sigma')).alias('upLine'),
-		(pl.col('lrcurve') - pl.col('sigma')).alias('downLine'),
+		(pl.col('lrcurve') + pl.col('sigma')).alias('signalMovingUpLine'),
+		(pl.col('lrcurve') - pl.col('sigma')).alias('signalMovingDownLine'),
+	])
+
+	dataFrame = dataFrame.with_columns([
+		(pl.lit(-multiMaxLoss)*pl.col('ATR')).alias('maxLoss'),
+		(pl.lit(multiMaxProfit)*pl.col('ATR')).alias('maxProfit'),
 	])
 
 	dataFrame = dataFrame.with_columns(
 		pl.when(
-			(pl.col('close') > pl.col('upLine')) &
+			(pl.col('close') > pl.col('signalMovingUpLine')) & (pl.col('signalMovingUpLine') > pl.col('close').shift(1)) &
 			(pl.col('close') > pl.col('trendMoving'))
-		).then(pl.lit(2))
+		).then(pl.lit(-1))
 		.when(
-			(pl.col('close') < pl.col('downLine')) &
-			(pl.col('close') < pl.col('trendMoving'))
-		).then(pl.lit(0))
-		.otherwise(pl.lit(1))
-		.alias('strategy')
-	)
-	
-	dataFrame = dataFrame.with_columns([
-		pl.when(pl.col('strategy') == 2).then(pl.lit(-1)).otherwise(pl.lit(1)).alias('long_signal'),
-		pl.when(pl.col('strategy') == 0).then(pl.lit(1)).otherwise(pl.lit(-1)).alias('short_signal'),
-	])
+			(pl.col('close') < pl.col('signalMovingUpLine')) & (pl.col('signalMovingUpLine') < pl.col('close').shift(1)) &
+			(pl.col('close') > pl.col('trendMoving'))
+		).then(pl.lit(1))
+		.otherwise(pl.lit(0))
+		.alias('long_signal'),
 
-	#superName = str(output_dir) + f'/moving_{nameExchange}_{symbol}_{type}_{timeFrame}.png'
+		pl.when(
+			(pl.col('close') > pl.col('signalMovingDownLine')) & (pl.col('signalMovingDownLine') > pl.col('close').shift(1)) &
+			(pl.col('close') < pl.col('trendMoving'))
+		).then(pl.lit(-1))
+		.when(
+			(pl.col('close') < pl.col('signalMovingDownLine')) & (pl.col('signalMovingDownLine') < pl.col('close').shift(1)) &
+			(pl.col('close') < pl.col('trendMoving'))
+		).then(pl.lit(1))
+		.otherwise(pl.lit(0))
+		.alias('short_signal'),
+	)
+
+	#superName = str(output_dir) + f'/trend_{nameExchange}_{symbol}_{type}_{timeFrame}.png'
 	#tempDF = dataFrame.tail(len(dataFrame)-2500)
-	#plt.plot(tempDF['volMulti'], color='blue')
-	#plt.plot(tempDF['moving'], color='red')
-	#plt.plot(tempDF['trendMoving'], color='blue')
+	#plt.plot(tempDF['long_signal'], color='blue')
 	#plt.savefig(superName)
 	#plt.close()
 
-	return dataFrame
+	validList = [
+		'datetime',
+		'open', 'high', 'low', 'close', 'volume',
+		'long_signal', 'short_signal', 'leverage',
+		'maxLoss', 'maxProfit',
+	]
+
+	return dataFrame.select(validList)
 
 
 

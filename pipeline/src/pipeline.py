@@ -4,7 +4,7 @@ from strategies import (
 	opt_moving, opt_trend, opt_stochastic,
 	opt_cross_ma, opt_bollinger, opt_keltner,
 	opt_envelopes, opt_modeling, opt_correlation,
-	opt_lrcurve, opt_lrchannel, opt_complex,
+	opt_lrcurve, opt_lrchannel,
 	ada_moving, ada_trend, ada_modeling, ada_correlation, ada_lrcurve, ada_lrchannel
 )
 import trading_simulator
@@ -66,8 +66,6 @@ def main(inputMessage: dict[str, Any]) -> None:
 		opt_lrcurve.main(inputMessage)
 	elif firstName == "opt_lrchannel":
 		opt_lrchannel.main(inputMessage)
-	elif firstName == "opt_complex":
-		opt_complex.main(inputMessage)
 
 	elif firstName == "ada_moving":
 		ada_moving.main(inputMessage)

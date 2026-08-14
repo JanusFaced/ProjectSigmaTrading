@@ -5,6 +5,7 @@ import numpy as np
 import numpy.typing as npt
 from numba import njit
 import os
+import copy
 from fastBackTester import coreBacktester
 from trading_simulator import backTestAnalyst
 from logger_setup import get_logger
@@ -12,13 +13,16 @@ from logger_setup import get_logger
 logger = get_logger(__name__)
 
 def walkForward(
-		algorithm: Callable[pl.DataFrame, Any],
+		featuresMaker: Callable[pl.DataFrame, Any],
+		statsFitting: Callable[pl.DataFrame, Any],
+		logicStrategy: Callable[pl.DataFrame, Any],
 		train_size: int,
 		test_size: int,
 		inputMessage: dict,
 		originalDataFrame: pl.DataFrame,
 		parametrs: dict,
-		quantSlippage: int
+		quantSlippage: int,
+		generation: int
 	) -> pl.DataFrame:
 
 	listIndexes = makeIndexes(
@@ -28,51 +32,85 @@ def walkForward(
 		quantSlippage=quantSlippage
 	)
 
-	combiPars = {}
-	for namePar, configPar in parametrs.items():
-		minValue = configPar['min']
-		maxValue = configPar['max']
-		splitValue = configPar['split']
-		step = int((maxValue - minValue)/(splitValue - 1))
-		combiPars[namePar] = list(range(minValue, maxValue, step))
-
-	keys = list(combiPars.keys())
-	value_lists = [combiPars[k] for k in keys]
-
 	numberWFcycle = 0
 	for indexes in listIndexes:
 		trainDataFrame = originalDataFrame[indexes['startTrain']:indexes['endTrain']]
+
 		testDataFrame = originalDataFrame[indexes['startTest']:indexes['endTest']]
 
-		optiList = []
-		parsList = []
-		for combo in product(*value_lists):
-			params = dict(zip(keys, combo))
+		tempParametrs = copy.deepcopy(parametrs)
 
-			dataFrame = algorithm(
-				dataFrame=trainDataFrame,
-				inputMessage=inputMessage,
-				params=params
-			)
-			report = coreBacktester(dataFrame, inputMessage["testMode"])
-			analystReport = backTestAnalyst(
-				inputMessage=inputMessage,
-				report=report,
-				analystMode=True
-			)
-			optiList.append(analystReport['optiMetric'])
-			parsList.append(params)
+		for gen in range(generation):
 
-		bestResult = max(optiList)
-		indexBestPars = optiList.index(bestResult)
-		bestPars = parsList[indexBestPars]
+			combiPars = {}
+			for namePar, configPar in tempParametrs.items():
+				minValue = configPar['min']
+				maxValue = configPar['max']
+				splitValue = configPar['split']
+				step = (maxValue - minValue)/(splitValue - 1)
+				combiPars[namePar] = [minValue + i*step for i in range(splitValue)]
 
-		#logger.info(f"{numberWFcycle} best result {bestResult} with best pars = {bestPars}")
+			keys = list(combiPars.keys())
+			value_lists = [combiPars[k] for k in keys]
 
-		tempDataFrame = algorithm(
+			optiList = []
+			parsList = []
+			statParsList = []
+			for combo in product(*value_lists):
+				params = dict(zip(keys, combo))
+
+				featuresDataFrame = featuresMaker(
+					dataFrame=trainDataFrame,
+					inputMessage=inputMessage,
+					params=params,
+					statsParams=None
+				)
+				statsParams = statsFitting(
+					dataFrame=featuresDataFrame,
+					inputMessage=inputMessage
+				)
+				logicDataFrame = logicStrategy(
+					dataFrame=featuresDataFrame,
+					inputMessage=inputMessage,
+					params=params,
+					statsParams=statsParams
+				)
+
+				report = coreBacktester(logicDataFrame, inputMessage["testMode"])
+				analystReport = backTestAnalyst(
+					inputMessage=inputMessage,
+					report=report,
+					analystMode=True
+				)
+				optiList.append(analystReport['optiMetric'])
+				parsList.append(params)
+				statParsList.append(statsParams)
+
+			bestResult = max(optiList)
+			indexBestPars = optiList.index(bestResult)
+			bestPars = parsList[indexBestPars]
+			bestStatsParams = statParsList[indexBestPars]
+
+			for namePar, valuePar in bestPars.items():
+				minValue = tempParametrs[namePar]['min']
+				maxValue = tempParametrs[namePar]['max']
+				splitValue = tempParametrs[namePar]['split']
+				step = (maxValue - minValue)/(splitValue - 1)
+
+				tempParametrs[namePar]['max'] = valuePar + step if valuePar != maxValue else maxValue
+				tempParametrs[namePar]['min'] = valuePar - step if valuePar != minValue else minValue
+
+		featuresDataFrame = featuresMaker(
 			dataFrame=testDataFrame,
 			inputMessage=inputMessage,
-			params=bestPars
+			params=bestPars,
+			statsParams=None
+		)
+		tempDataFrame = logicStrategy(
+			dataFrame=featuresDataFrame,
+			inputMessage=inputMessage,
+			params=bestPars,
+			statsParams=bestStatsParams
 		)
 
 		if numberWFcycle == 0:

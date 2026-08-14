@@ -124,7 +124,7 @@ services:
       DB_HOST: dataBase
       DB_PORT: 5432
       REDIS_URL: redis://redis:6379/0
-      GLOBAL_WORK_MODE: 'test'
+      GLOBAL_WORK_MODE: 'stats'
     volumes:
       - ./pipeline/src/config:/app/src/config
       - ./pipeline/src/output:/app/src/output
