@@ -35,7 +35,6 @@ def walkForward(
 	numberWFcycle = 0
 	for indexes in listIndexes:
 		trainDataFrame = originalDataFrame[indexes['startTrain']:indexes['endTrain']]
-
 		testDataFrame = originalDataFrame[indexes['startTest']:indexes['endTest']]
 
 		tempParametrs = copy.deepcopy(parametrs)
@@ -67,7 +66,8 @@ def walkForward(
 				)
 				statsParams = statsFitting(
 					dataFrame=featuresDataFrame,
-					inputMessage=inputMessage
+					inputMessage=inputMessage,
+					params=params
 				)
 				logicDataFrame = logicStrategy(
 					dataFrame=featuresDataFrame,
@@ -141,7 +141,7 @@ def makeIndexes(
 		startTest = endTrain - quantSlippage
 		endTest = endTrain + test_size
 		
-		if (lenth - startTest) > test_size:
+		if (lenth - endTrain) > test_size:
 
 			listIndexes.append({
 				"startTrain": startTrain,
