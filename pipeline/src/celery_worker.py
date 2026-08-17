@@ -19,12 +19,16 @@ def build_tasks(
 	target_year_profit = 30.0
 
 	listTimeFrame = [
+		'8h',
+		'6h',
 		'4h',
 		'3h',
 		'2h',
 		'1h',
 		'48min',
+		'45min',
 		'36min',
+		'30min',
 		'24min',
 	]
 	listSymbol = [
@@ -43,24 +47,24 @@ def build_tasks(
 	listTypeMarket = ['futures']
 	listNameExchange = ['binance']
 	listStrategy = [
-#		'opt_moving:I',
-#		'opt_cross_ma:I',
-#		'opt_trend:I',
+#		'opt_moving:I', #delete
+#		'opt_cross_ma:I', #delete
+#		'opt_trend:I', #rebult to stats methods (pastReturns to futureReturns)
 		'opt_stochastic:I',
-#		'opt_bollinger:I',
-#		'opt_keltner:I',
-#		'opt_envelopes:I',
-#		'opt_modeling:I',
-#		'opt_lrcurve:I',
-#		'opt_lrchannel:I',
-#		'opt_correlation:II',
+#		'opt_bollinger:I', #delete
+#		'opt_keltner:I', #delete
+#		'opt_envelopes:I', #delete
+#		'opt_modeling:I', #rebult to stats methods (volume to futureReturns)
+#		'opt_lrcurve:I', #delete
+#		'opt_lrchannel:I', #delete
+#		'opt_correlation:II', #rebult to stats methods (correlations returns)
 
-#		'ada_moving:I',
-#		'ada_trend:I',
-#		'ada_modeling:I',
-#		'ada_lrcurve:I',
-#		'ada_lrchannel:I',
-#		'ada_correlation:II',
+#		'ada_moving:I', #delete
+#		'ada_trend:I', #delete
+#		'ada_modeling:I', #delete
+#		'ada_lrcurve:I', #delete
+#		'ada_lrchannel:I', #delete
+#		'ada_correlation:II', #delete
 	]
 	listFactor = [
 		'BTC',

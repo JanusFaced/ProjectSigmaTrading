@@ -56,6 +56,7 @@ def backTester(inputMessage: dict[str, Any]) -> Dict:
 
 	send_list = fastBackTester.coreBacktester(dataFrame, testMode)
 
+	'''
 	cash_balance_body = send_list['balanceBody']
 	cash_balance_cold = send_list['balanceCold']
 
@@ -68,92 +69,13 @@ def backTester(inputMessage: dict[str, Any]) -> Dict:
 		(pl.col('cash_balance_body') + pl.col('cash_balance_cold')).alias('deposite')
 	])
 
-	'''
-	indicatorName = "trendOscillator"
-	financialReturnName = "futureFinReturn"
-	bin_width = 0.01
-
-	tempDF = dataFrame.select([indicatorName, financialReturnName]).drop_nulls()
-
-	x_min = float(tempDF[indicatorName].min())
-	x_max = float(tempDF[indicatorName].max())
-
-	n_bins = int(np.ceil((x_max - x_min) / bin_width))
-	n_bins = max(n_bins, 1)
-
-	cutDF = tempDF.with_columns(
-		((pl.col(indicatorName) - x_min) / bin_width).floor().clip(0, n_bins - 1).cast(pl.Int32).alias("bin")
-	).drop_nulls(["bin"])
-
-	aggDF = cutDF.group_by("bin", maintain_order=True).agg([
-		pl.len().alias("count"),
-		pl.col(indicatorName).mean().alias("mean_x"),
-		pl.col(financialReturnName).min().alias("min_y"),
-		pl.col(financialReturnName).std().alias("std_y"),
-		pl.col(financialReturnName).mean().alias("mean_y"),
-		pl.col(financialReturnName).max().alias("max_y"),
-	]).sort("bin").with_columns([
-		(pl.col("mean_y") + pl.col("std_y")).alias("up_y"),
-		(pl.col("mean_y") - pl.col("std_y")).alias("down_y"),
-	])
-
-	plt.plot(aggDF['mean_x'], aggDF['up_y'], color='purple')
-	plt.plot(aggDF['mean_x'], aggDF['mean_y'], color='black')
-	plt.plot(aggDF['mean_x'], aggDF['down_y'], color='blue')
-
-	for nameYaxis in ['up_y', 'mean_y', 'down_y']:
-		x_axis, y_axis = aggDF["mean_x"].to_numpy(), aggDF[nameYaxis].to_numpy()
-		mask = np.isfinite(x_axis) & np.isfinite(y_axis)
-		x_axis, y_axis = x_axis[mask], y_axis[mask]
-		
-		degree = 3
-		coeffs = np.polyfit(x_axis, y_axis, degree)
-		polyModel = np.poly1d(coeffs)
-		y_fit = polyModel(x_axis)
-
-		nameLine = f"{nameYaxis}_line"
-		aggDF = aggDF.with_columns(pl.Series(nameLine, y_fit))
-
-		if nameYaxis == 'up_y':
-			color = 'pink'
-		elif nameYaxis == 'mean_y':
-			color = 'grey'
-		elif nameYaxis == 'down_y':
-			color = 'cyan'
-
-		plt.plot(aggDF['mean_x'], aggDF[nameLine], color=color)
-
-	superName = str(output_dir) + f'/stats_{indicatorName}_{strategy}_{symbol}_{timeFrame}_{type}_{nameExchange}.png'
-	plt.savefig(superName)
-	plt.close()
-
-	aggDF = aggDF.with_columns([
-		(pl.col("up_y_line") - 0).alias("positivePotential"),
-		(0 - pl.col("down_y_line")).alias("negativePotential"),
-	]).with_columns([
-		(pl.col('positivePotential')/(pl.col('positivePotential') + pl.col('negativePotential'))).alias('potentialMove'),
-	]).with_columns([
-		(pl.col("up_y") - 0).alias("positivePotentialClear"),
-		(0 - pl.col("down_y")).alias("negativePotentialClear"),
-	]).with_columns([
-		(pl.col('positivePotentialClear')/(pl.col('positivePotentialClear') + pl.col('negativePotentialClear'))).alias('potentialMoveClear'),
-	])
-
-	superName = str(output_dir) + f'/potentialMove_{indicatorName}_{strategy}_{symbol}_{timeFrame}_{type}_{nameExchange}.png'
-	plt.plot(aggDF['mean_x'], aggDF['potentialMove'], color='green')
-	plt.plot(aggDF['mean_x'], aggDF['potentialMoveClear'], color='orange')
-	plt.savefig(superName)
-	plt.close()
-	'''
-
-	tempDF = dataFrame.select(['signalUpBoard', 'signalDownBoard', 'trendUpBoard', 'trendDownBoard'])
+	tempDF = dataFrame.select(['signalUpBoard', 'signalDownBoard'])
 	superName = str(output_dir) + f'/boards_{strategy}_{symbol}_{timeFrame}_{type}_{nameExchange}.png'
 	plt.plot(tempDF['signalUpBoard'], color='green')
 	plt.plot(tempDF['signalDownBoard'], color='red')
-	plt.plot(tempDF['trendUpBoard'], color='blue')
-	plt.plot(tempDF['trendDownBoard'], color='purple')
 	plt.savefig(superName)
 	plt.close()
+	'''
 
 	return send_list
 
