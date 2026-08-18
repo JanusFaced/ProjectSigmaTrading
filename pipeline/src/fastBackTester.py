@@ -41,8 +41,8 @@ def preAnalyst(
 
 		#average_profit_size and max_profit_size
 		if winCount > 0:
-			average_profit_size = round(np.mean(posDeltaTrads), 2)
-			max_profit_size = round(np.max(posDeltaTrads), 2)
+			average_profit_size = 100*round(np.mean(posDeltaTrads), 2)
+			max_profit_size = 100*round(np.max(posDeltaTrads), 2)
 
 		else:
 			average_profit_size = 0
@@ -50,8 +50,8 @@ def preAnalyst(
 
 		#average_loss_size and max_loss_size
 		if lossCount > 0:
-			average_loss_size =  round(np.mean(negDeltaTrads), 2)
-			max_loss_size = round(np.min(negDeltaTrads), 2)
+			average_loss_size =  100*round(np.mean(negDeltaTrads), 2)
+			max_loss_size = 100*round(np.min(negDeltaTrads), 2)
 
 		else:
 			average_loss_size = 0

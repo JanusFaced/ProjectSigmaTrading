@@ -61,15 +61,10 @@ def featuresMaker(
 	metricsWindow = baseWindow//4
 	signalWindow = baseWindow
 	trendWindow = 10*baseWindow
-
-	leverage = 1
-
-	multiMaxLoss = 1.0
-	multiMaxProfit = 100.0
+	leverage = 3
 
 	dataFrame = dataFrame.with_columns([
 		pl.lit(leverage).alias('leverage'),
-		((pl.col('high')/pl.col('low'))-1).rolling_mean(window_size=trendWindow).alias('ATR'),
 		pl.col('close').rolling_max(window_size=signalWindow).alias('sMax'),
 		pl.col('close').rolling_min(window_size=signalWindow).alias('sMin'),
 		pl.col('close').rolling_max(window_size=trendWindow).alias('tMax'),
@@ -77,11 +72,6 @@ def featuresMaker(
 	]).with_columns([
 		((pl.col('close') - pl.col('sMin'))/(pl.col('sMax') - pl.col('sMin'))).alias('signalOscillator'),
 		((pl.col('close') - pl.col('tMin'))/(pl.col('tMax') - pl.col('tMin'))).alias('trendOscillator'),
-		(pl.lit(-multiMaxLoss)*pl.col('ATR')).alias('maxLoss'),
-		(pl.lit(multiMaxProfit)*pl.col('ATR')).alias('maxProfit'),
-	]).with_columns([
-		(pl.col('close').shift(1)*(1+pl.col('maxLoss'))).alias('longTrailingStop'),
-		(pl.col('close').shift(1)*(1-pl.col('maxLoss'))).alias('shortTrailingStop'),
 	]).with_columns([
 		((pl.col('open') + pl.col('high') + pl.col('low') + pl.col('close'))/4).alias('price'),
 	]).with_columns([
@@ -101,15 +91,22 @@ def statsFitting(
 	) -> dict:
 
 	divided = 100 #100
-	profit_loss = 2.0 #2.0
+	profit_loss = 2.71 #2.71
 	maxValueInd, minValueInd = 1.00, 0.00
-	degree = 3 #3
+	degree = 5 #5
 	
 	target_for_long = profit_loss/(profit_loss+1)
 	target_for_short = 1/(profit_loss+1)
 	financialReturnName = "futureFinReturn"
 
-	statsParams = {}
+	dataFrame = dataFrame.with_columns([
+		(pl.col('high')/pl.col('low')-1).alias('statTR'),
+	])
+
+	historyATR = float(np.nanmean(dataFrame['statTR'].to_numpy()))
+
+	statsParams = {'historyATR': historyATR}
+
 	for indicatorName in ["signalOscillator", "trendOscillator"]:
 		
 		fullRangeInd = (maxValueInd - minValueInd)
@@ -206,28 +203,6 @@ def statsFitting(
 		else:
 			shortDict[0]['start'] = minValueInd
 
-		'''
-		logger.info(f"longDict={longDict} | shortDict={shortDict}")
-
-		plt.plot(aggDF['real_x'], aggDF['up_y'], color='purple')
-		plt.plot(aggDF['real_x'], aggDF['mean_y'], color='black')
-		plt.plot(aggDF['real_x'], aggDF['down_y'], color='blue')
-		plt.plot(aggDF['real_x'], aggDF['up_y_line'], color='pink')
-		plt.plot(aggDF['real_x'], aggDF['mean_y_line'], color='grey')
-		plt.plot(aggDF['real_x'], aggDF['down_y_line'], color='cyan')
-		superName = str(output_dir) + f'/stats_1_{indicatorName}.png'
-		plt.savefig(superName)
-		plt.close()
-
-		plt.plot(aggDF['real_x'], aggDF['potentialMove'], color='green')
-		superName = str(output_dir) + f'/stats_2_{indicatorName}.png'
-		plt.savefig(superName)
-		plt.close()
-
-		time.sleep(5)
-		'''
-
-		
 		if indicatorName == 'signalOscillator':
 			statsParams['signalLongFields'] = longDict
 			statsParams['signalShortFields'] = shortDict
@@ -248,6 +223,10 @@ def logicStrategy(
 	signalDownBoard = statsParams['signalShortFields'][0]['end']
 	trendLongFields = statsParams['trendLongFields']
 	trendShortFields = statsParams['trendShortFields']
+	historyATR = statsParams['historyATR']
+	
+	multiMaxLoss = 3.0*historyATR
+	multiMaxProfit = 100.0*historyATR
 
 	trendLogicDict = {}
 	series = pl.col("trendOscillator")
@@ -261,6 +240,11 @@ def logicStrategy(
 	dataFrame = dataFrame.with_columns([
 		pl.lit(signalUpBoard).alias('signalUpBoard'),
 		pl.lit(signalDownBoard).alias('signalDownBoard'),
+		pl.lit(-multiMaxLoss).alias('maxLoss'),
+		pl.lit(multiMaxProfit).alias('maxProfit'),
+	]).with_columns([
+		(pl.col('close').shift(1)*(1-multiMaxLoss)).alias('longTrailingStop'),
+		(pl.col('close').shift(1)*(1+multiMaxLoss)).alias('shortTrailingStop'),
 	]).with_columns([
 		pl.when(
 			(pl.col('signalOscillator') > signalUpBoard) & (signalUpBoard > pl.col('signalOscillator').shift(1)) &

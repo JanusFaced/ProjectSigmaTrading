@@ -69,12 +69,91 @@ def backTester(inputMessage: dict[str, Any]) -> Dict:
 		(pl.col('cash_balance_body') + pl.col('cash_balance_cold')).alias('deposite')
 	])
 
-	tempDF = dataFrame.select(['signalUpBoard', 'signalDownBoard'])
-	superName = str(output_dir) + f'/boards_{strategy}_{symbol}_{timeFrame}_{type}_{nameExchange}.png'
-	plt.plot(tempDF['signalUpBoard'], color='green')
-	plt.plot(tempDF['signalDownBoard'], color='red')
+	indicatorName = "volume"
+	divided = 100
+	maxValueInd = float(np.nanmax(dataFrame[indicatorName].to_numpy())) #1.00
+	minValueInd = float(np.nanmin(dataFrame[indicatorName].to_numpy())) #0.00
+	degree = 3
+	
+	logger.info(f"maxValueInd={maxValueInd} | minValueInd={minValueInd}")
+
+	financialReturnName = "futureFinReturn"
+
+	fullRangeInd = (maxValueInd - minValueInd)
+	bin_width = fullRangeInd/divided
+	n_bins = max(int(np.ceil((maxValueInd - minValueInd) / bin_width)), 1)
+
+	tempDF = dataFrame.select([indicatorName, financialReturnName]).drop_nulls().with_columns(
+		((pl.col(indicatorName) - minValueInd) / bin_width).floor().clip(0, n_bins - 1).cast(pl.Int32).alias("bin")
+	)
+
+	aggDataFrame = tempDF.group_by("bin", maintain_order=True).agg([
+		pl.len().alias("count"),
+		pl.col(financialReturnName).std().alias("std_y"),
+		pl.col(financialReturnName).mean().alias("mean_y"),
+	])
+
+	allRangeBins = pl.DataFrame({"bin": list(range(0, divided))})
+
+	aggDF = allRangeBins.join(aggDataFrame, on=["bin"], how="left").with_columns([
+		(pl.col('bin')*bin_width + minValueInd).alias("real_x"),
+	]).with_columns([
+		(pl.col("mean_y") + pl.col("std_y")).alias("up_y"),
+		(pl.col("mean_y") - pl.col("std_y")).alias("down_y"),
+	])
+
+	for nameYaxis in ['up_y', 'mean_y', 'down_y']:
+		x_axis, y_axis, cnt_axis = aggDF["real_x"].to_numpy(), aggDF[nameYaxis].to_numpy(), aggDF["count"].to_numpy()
+		x_scaled = 2*(x_axis - minValueInd)/(maxValueInd - minValueInd) - 1
+
+		mask = np.isfinite(x_scaled) & np.isfinite(y_axis) & np.isfinite(cnt_axis) & (cnt_axis > 0)
+		x_axis, y_axis, cnt_axis = x_scaled[mask], y_axis[mask], cnt_axis[mask]
+
+		cnt_axis = np.log1p(cnt_axis)
+
+		coeffs = np.polyfit(x_axis, y_axis, degree, w=cnt_axis)
+		polyModel = np.poly1d(coeffs)
+
+		y_fit = polyModel(x_scaled)
+		aggDF = aggDF.with_columns(pl.Series(f"{nameYaxis}_line", y_fit))
+
+	aggDF = aggDF.with_columns([
+		pl.when(
+			pl.col("up_y_line") < pl.col("mean_y_line")
+		).then(pl.col("mean_y_line")).otherwise(pl.col("up_y_line")).alias("up_y_line"),
+		pl.when(
+			pl.col("down_y_line") > pl.col("mean_y_line")).then(pl.col("mean_y_line")
+		).otherwise(pl.col("down_y_line")).alias("down_y_line"),
+	]).with_columns([
+		(pl.col("up_y_line") - 0).alias("positivePotential"),
+		(0 - pl.col("down_y_line")).alias("negativePotential"),
+	]).with_columns([
+		(pl.col('positivePotential')/(pl.col('positivePotential') + pl.col('negativePotential'))).alias('potentialMove'),
+	])
+
+	
+	plt.plot(aggDF['real_x'], aggDF['up_y'], color='purple')
+	plt.plot(aggDF['real_x'], aggDF['mean_y'], color='black')
+	plt.plot(aggDF['real_x'], aggDF['down_y'], color='blue')
+	plt.plot(aggDF['real_x'], aggDF['up_y_line'], color='pink')
+	plt.plot(aggDF['real_x'], aggDF['mean_y_line'], color='grey')
+	plt.plot(aggDF['real_x'], aggDF['down_y_line'], color='cyan')
+	superName = str(output_dir) + f'/stats_{indicatorName}_{strategy}_{symbol}_{timeFrame}_{type}_{nameExchange}.png'
 	plt.savefig(superName)
 	plt.close()
+
+	superName = str(output_dir) + f'/potentialMove_{indicatorName}_{strategy}_{symbol}_{timeFrame}_{type}_{nameExchange}.png'
+	plt.plot(aggDF['real_x'], aggDF['potentialMove'], color='green')
+	plt.savefig(superName)
+	plt.close()
+	
+
+	#tempDF = dataFrame.select(['signalUpBoard', 'signalDownBoard'])
+	#superName = str(output_dir) + f'/boards_{strategy}_{symbol}_{timeFrame}_{type}_{nameExchange}.png'
+	#plt.plot(tempDF['signalUpBoard'], color='green')
+	#plt.plot(tempDF['signalDownBoard'], color='red')
+	#plt.savefig(superName)
+	#plt.close()
 	'''
 
 	return send_list
