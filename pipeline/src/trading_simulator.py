@@ -56,7 +56,7 @@ def backTester(inputMessage: dict[str, Any]) -> Dict:
 
 	send_list = fastBackTester.coreBacktester(dataFrame, testMode)
 
-	'''
+	
 	cash_balance_body = send_list['balanceBody']
 	cash_balance_cold = send_list['balanceCold']
 
@@ -69,7 +69,8 @@ def backTester(inputMessage: dict[str, Any]) -> Dict:
 		(pl.col('cash_balance_body') + pl.col('cash_balance_cold')).alias('deposite')
 	])
 
-	indicatorName = "volume"
+	indicatorName = 'zScoreVolume'
+
 	divided = 100
 	maxValueInd = float(np.nanmax(dataFrame[indicatorName].to_numpy())) #1.00
 	minValueInd = float(np.nanmin(dataFrame[indicatorName].to_numpy())) #0.00
@@ -125,13 +126,9 @@ def backTester(inputMessage: dict[str, Any]) -> Dict:
 			pl.col("down_y_line") > pl.col("mean_y_line")).then(pl.col("mean_y_line")
 		).otherwise(pl.col("down_y_line")).alias("down_y_line"),
 	]).with_columns([
-		(pl.col("up_y_line") - 0).alias("positivePotential"),
-		(0 - pl.col("down_y_line")).alias("negativePotential"),
-	]).with_columns([
-		(pl.col('positivePotential')/(pl.col('positivePotential') + pl.col('negativePotential'))).alias('potentialMove'),
+		(pl.col("up_y_line") - pl.col("down_y_line")).alias("dispersion"),
 	])
 
-	
 	plt.plot(aggDF['real_x'], aggDF['up_y'], color='purple')
 	plt.plot(aggDF['real_x'], aggDF['mean_y'], color='black')
 	plt.plot(aggDF['real_x'], aggDF['down_y'], color='blue')
@@ -142,19 +139,10 @@ def backTester(inputMessage: dict[str, Any]) -> Dict:
 	plt.savefig(superName)
 	plt.close()
 
-	superName = str(output_dir) + f'/potentialMove_{indicatorName}_{strategy}_{symbol}_{timeFrame}_{type}_{nameExchange}.png'
-	plt.plot(aggDF['real_x'], aggDF['potentialMove'], color='green')
+	plt.plot(aggDF['real_x'], aggDF['dispersion'], color='black')
+	superName = str(output_dir) + f'/dispersion_{indicatorName}_{strategy}_{symbol}_{timeFrame}_{type}_{nameExchange}.png'
 	plt.savefig(superName)
 	plt.close()
-	
-
-	#tempDF = dataFrame.select(['signalUpBoard', 'signalDownBoard'])
-	#superName = str(output_dir) + f'/boards_{strategy}_{symbol}_{timeFrame}_{type}_{nameExchange}.png'
-	#plt.plot(tempDF['signalUpBoard'], color='green')
-	#plt.plot(tempDF['signalDownBoard'], color='red')
-	#plt.savefig(superName)
-	#plt.close()
-	'''
 
 	return send_list
 

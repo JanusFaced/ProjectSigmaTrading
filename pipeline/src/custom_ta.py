@@ -1,4 +1,6 @@
 from typing import Any, TypedDict
+from convertorTF import convertorTimeFrame
+import polars as pl
 import numpy as np
 import numpy.typing as npt
 from numba import njit
@@ -553,4 +555,121 @@ def multi_volativity(
 
 	return volMultiVector
 #end multi_volativity
+
+def volativityTuning(
+		dataFrame: pl.DataFrame,
+		inputMessage: dict,
+	) -> dict:
+	timeFrame = inputMessage['timeFrame']
+	numberTimeFrame = convertorTimeFrame(timeFrame)
+	dataFrame = dataFrame.with_columns((pl.col('high')/pl.col('low')-1).alias('statTR'))
+	historyATR = float(np.nanmean(dataFrame['statTR'].to_numpy()))
+	volParams = {
+		'historyATR': historyATR,
+	}
+	return volParams
+
+def indicatorTuning(
+		dataFrame: pl.DataFrame,
+		inputMessage: dict,
+		indicatorName: str,
+		financialReturnName: str,
+		divided: int = 100,
+		profit_loss: float = 2.71,
+		rangeIndicator: dict = {'max': 1.00, 'min': 0.00},
+		degree: int = 5,
+	) -> tuple[dict, dict]:
+
+	maxValueInd, minValueInd = rangeIndicator['max'], rangeIndicator['min']
+	target_for_long = profit_loss/(profit_loss+1)
+	target_for_short = 1/(profit_loss+1)
+
+	fullRangeInd = (maxValueInd - minValueInd)
+	bin_width = fullRangeInd/divided
+	n_bins = max(int(np.ceil((maxValueInd - minValueInd) / bin_width)), 1)
+
+	tempDF = dataFrame.select([indicatorName, financialReturnName]).drop_nulls().with_columns(
+		((pl.col(indicatorName) - minValueInd) / bin_width).floor().clip(0, n_bins - 1).cast(pl.Int32).alias("bin")
+	)
+
+	aggDataFrame = tempDF.group_by("bin", maintain_order=True).agg([
+		pl.len().alias("count"),
+		pl.col(financialReturnName).std().alias("std_y"),
+		pl.col(financialReturnName).mean().alias("mean_y"),
+	])
+
+	allRangeBins = pl.DataFrame({"bin": list(range(0, divided))})
+
+	aggDF = allRangeBins.join(aggDataFrame, on=["bin"], how="left").with_columns([
+		(pl.col('bin')*bin_width + minValueInd).alias("real_x"),
+	]).with_columns([
+		(pl.col("mean_y") + pl.col("std_y")).alias("up_y"),
+		(pl.col("mean_y") - pl.col("std_y")).alias("down_y"),
+	])
+
+	for nameYaxis in ['up_y', 'mean_y', 'down_y']:
+		x_axis, y_axis, cnt_axis = aggDF["real_x"].to_numpy(), aggDF[nameYaxis].to_numpy(), aggDF["count"].to_numpy()
+		x_scaled = 2*(x_axis - minValueInd)/(maxValueInd - minValueInd) - 1
+
+		mask = np.isfinite(x_scaled) & np.isfinite(y_axis) & np.isfinite(cnt_axis) & (cnt_axis > 0)
+		x_axis, y_axis, cnt_axis = x_scaled[mask], y_axis[mask], cnt_axis[mask]
+
+		cnt_axis = np.log1p(cnt_axis)
+
+		coeffs = np.polyfit(x_axis, y_axis, degree, w=cnt_axis)
+		polyModel = np.poly1d(coeffs)
+
+		y_fit = polyModel(x_scaled)
+		aggDF = aggDF.with_columns(pl.Series(f"{nameYaxis}_line", y_fit))
+
+	aggDF = aggDF.with_columns([
+		pl.when(
+			pl.col("up_y_line") < pl.col("mean_y_line")
+		).then(pl.col("mean_y_line")).otherwise(pl.col("up_y_line")).alias("up_y_line"),
+		pl.when(
+			pl.col("down_y_line") > pl.col("mean_y_line")).then(pl.col("mean_y_line")
+		).otherwise(pl.col("down_y_line")).alias("down_y_line"),
+	]).with_columns([
+		(pl.col("up_y_line") - 0).alias("positivePotential"),
+		(0 - pl.col("down_y_line")).alias("negativePotential"),
+	]).with_columns([
+		(pl.col('positivePotential')/(pl.col('positivePotential') + pl.col('negativePotential'))).alias('potentialMove'),
+	])
+
+	commonDict = {}
+	for direction in ['long', 'short']:
+		target = target_for_long if direction == 'long' else target_for_short
+		cond = (pl.col("potentialMove") > target) if direction == "long" else (pl.col("potentialMove") < target)
+
+		workDF = aggDF.with_row_count("i").select(["i", "real_x", "potentialMove"]).with_columns(
+			cond.alias("hit")
+		)
+
+		workDF = workDF.with_columns(
+			pl.when(pl.col("hit") & ~pl.col("hit").shift(1, fill_value=False))
+			.then(1)
+			.otherwise(0)
+			.alias("new_run")
+		).with_columns(
+			pl.when(pl.col("hit"))
+			.then(pl.col("new_run").cum_sum())
+			.otherwise(None)
+			.alias("run_key")
+		)
+
+		outData = workDF.drop_nulls("run_key").group_by("run_key").agg(
+			pl.first("i").alias("start"),
+			pl.last("i").alias("end"),
+			pl.first("real_x").alias("x_start"),
+			pl.last("real_x").alias("x_end"),
+		).sort("start").select(["x_start", "x_end"]).to_dicts()
+
+		commonDict[direction] = [{'start': d['x_start'], 'end': d['x_end']} for d in outData]
+
+	commonDict['long'] = [{'start': maxValueInd, 'end': maxValueInd}] if len(commonDict['long']) == 0 else commonDict['long']
+	commonDict['short'] = [{'start': minValueInd, 'end': minValueInd}] if len(commonDict['short']) == 0 else commonDict['short']
+	commonDict['long'][-1]['end'], commonDict['short'][0]['start'] = maxValueInd, minValueInd
+
+	return commonDict
+
 

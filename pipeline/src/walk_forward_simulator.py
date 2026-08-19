@@ -13,9 +13,7 @@ from logger_setup import get_logger
 logger = get_logger(__name__)
 
 def walkForward(
-		featuresMaker: Callable[pl.DataFrame, Any],
-		statsFitting: Callable[pl.DataFrame, Any],
-		logicStrategy: Callable[pl.DataFrame, Any],
+		algorithm: Callable[pl.DataFrame, Any],
 		train_size: int,
 		test_size: int,
 		inputMessage: dict,
@@ -58,25 +56,13 @@ def walkForward(
 			for combo in product(*value_lists):
 				params = dict(zip(keys, combo))
 
-				featuresDataFrame = featuresMaker(
+				backtestDataFrame, statsParams = algorithm(
 					dataFrame=trainDataFrame,
 					inputMessage=inputMessage,
 					params=params,
 					statsParams=None
 				)
-				statsParams = statsFitting(
-					dataFrame=featuresDataFrame,
-					inputMessage=inputMessage,
-					params=params
-				)
-				logicDataFrame = logicStrategy(
-					dataFrame=featuresDataFrame,
-					inputMessage=inputMessage,
-					params=params,
-					statsParams=statsParams
-				)
-
-				report = coreBacktester(logicDataFrame, inputMessage["testMode"])
+				report = coreBacktester(backtestDataFrame, inputMessage["testMode"])
 				analystReport = backTestAnalyst(
 					inputMessage=inputMessage,
 					report=report,
@@ -100,14 +86,8 @@ def walkForward(
 				tempParametrs[namePar]['max'] = valuePar + step if valuePar != maxValue else maxValue
 				tempParametrs[namePar]['min'] = valuePar - step if valuePar != minValue else minValue
 
-		featuresDataFrame = featuresMaker(
+		tempDataFrame, _ = algorithm(
 			dataFrame=testDataFrame,
-			inputMessage=inputMessage,
-			params=bestPars,
-			statsParams=None
-		)
-		tempDataFrame = logicStrategy(
-			dataFrame=featuresDataFrame,
 			inputMessage=inputMessage,
 			params=bestPars,
 			statsParams=bestStatsParams
