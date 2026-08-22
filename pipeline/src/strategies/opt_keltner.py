@@ -38,7 +38,8 @@ def main(inputMessage: dict[str, Any]) -> None:
 def algorithm(
 		dataFrame: pl.DataFrame,
 		inputMessage: dict,
-		params: dict
+		params: dict,
+		statsParams: dict
 	) -> pl.DataFrame:
 
 	nameExchange = inputMessage['nameExchange']
@@ -78,15 +79,13 @@ def algorithm(
 			(pl.col('close') > pl.col('trendMoving'))
 		).then(pl.lit(-1))
 		.when(
-			(pl.col('close') < pl.col('signalMovingUpLine')) & (pl.col('signalMovingUpLine') < pl.col('close').shift(1)) &
-			(pl.col('close') > pl.col('trendMoving'))
+			(pl.col('close') < pl.col('signalMovingUpLine')) & (pl.col('signalMovingUpLine') < pl.col('close').shift(1))
 		).then(pl.lit(1))
 		.otherwise(pl.lit(0))
 		.alias('long_signal'),
 
 		pl.when(
-			(pl.col('close') > pl.col('signalMovingDownLine')) & (pl.col('signalMovingDownLine') > pl.col('close').shift(1)) &
-			(pl.col('close') < pl.col('trendMoving'))
+			(pl.col('close') > pl.col('signalMovingDownLine')) & (pl.col('signalMovingDownLine') > pl.col('close').shift(1))
 		).then(pl.lit(-1))
 		.when(
 			(pl.col('close') < pl.col('signalMovingDownLine')) & (pl.col('signalMovingDownLine') < pl.col('close').shift(1)) &
@@ -96,20 +95,8 @@ def algorithm(
 		.alias('short_signal'),
 	)
 
-	#superName = str(output_dir) + f'/trend_{nameExchange}_{symbol}_{type}_{timeFrame}.png'
-	#tempDF = dataFrame.tail(len(dataFrame)-2500)
-	#plt.plot(tempDF['long_signal'], color='blue')
-	#plt.savefig(superName)
-	#plt.close()
-
-	validList = [
-		'datetime',
-		'open', 'high', 'low', 'close', 'volume',
-		'long_signal', 'short_signal', 'leverage',
-		'maxLoss', 'maxProfit',
-	]
-
-	return dataFrame.select(validList)
+	statsParams = {}
+	return dataFrame, statsParams
 
 
 

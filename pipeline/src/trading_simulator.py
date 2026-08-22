@@ -69,6 +69,7 @@ def backTester(inputMessage: dict[str, Any]) -> Dict:
 		(pl.col('cash_balance_body') + pl.col('cash_balance_cold')).alias('deposite')
 	])
 
+	'''
 	indicatorName = 'zScoreVolume'
 
 	divided = 100
@@ -143,6 +144,15 @@ def backTester(inputMessage: dict[str, Any]) -> Dict:
 	superName = str(output_dir) + f'/dispersion_{indicatorName}_{strategy}_{symbol}_{timeFrame}_{type}_{nameExchange}.png'
 	plt.savefig(superName)
 	plt.close()
+	'''
+
+	new_name = f"{strategy}_{symbol}_{timeFrame}_{type}_{nameExchange}"
+	equityDataframe = dataFrame[['datetime', 'cash_balance_body']].rename({"cash_balance_body": new_name})
+
+	saveToDB.saveEquity(
+		tableName=f"equity_{new_name}",
+		equityDataframe=equityDataframe,
+	)
 
 	return send_list
 

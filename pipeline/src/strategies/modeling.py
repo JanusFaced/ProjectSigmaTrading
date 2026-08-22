@@ -2,7 +2,6 @@ from typing import Any
 import matplotlib.pyplot as plt
 import polars as pl
 import os
-from walk_forward_simulator import walkForward
 from custom_ta import simple_correlation
 from pathlib import Path
 from duckDB_setup import get_duckdb
@@ -16,45 +15,15 @@ def main(inputMessage: dict[str, Any]) -> None:
 	dataFrame = db.execute("SELECT * FROM temp_analyst").pl()
 	db.execute("DROP TABLE IF EXISTS temp_analyst")
 
-	train_size, test_size = 1000, 300
-	quantSlippage = 2000
-	generation = 3
-	parametrs = {
-		"baseWindow": {"min": 20, "max": 200, "split": 5},
-	}
-
-	dataFrame = walkForward(
-		algorithm=algorithm,
-		train_size=train_size,
-		test_size=test_size,
-		inputMessage=inputMessage,
-		originalDataFrame=dataFrame,
-		parametrs=parametrs,
-		quantSlippage=quantSlippage,
-		generation=generation
-	)
-
-	db.execute("CREATE OR REPLACE TEMP TABLE temp_trading AS SELECT * FROM dataFrame")
-
-def algorithm(
-		dataFrame: pl.DataFrame,
-		inputMessage: dict,
-		params: dict,
-		statsParams: dict
-	) -> pl.DataFrame:
-
 	nameExchange = inputMessage['nameExchange']
 	symbol = inputMessage['symbol']
 	type = inputMessage['type']
 	timeFrame = inputMessage['timeFrame']
 
-	baseWindow = int(params['baseWindow'])
-	signalWindow = 1*baseWindow
-	trendWindow = 10*baseWindow
-
+	signalWindow, trendWindow = 20, 200
 	leverage = 1
 
-	multiMaxLoss = 1.0
+	multiMaxLoss = 0.01
 	multiMaxProfit = 100.0
 
 	modelMulti = 0.5
@@ -112,11 +81,4 @@ def algorithm(
 		.otherwise(pl.lit(0))
 		.alias('short_signal'),
 	)
-
-	statsParams = {}
-	return dataFrame, statsParams
-
-
-
-
-
+	db.execute("CREATE OR REPLACE TEMP TABLE temp_trading AS SELECT * FROM dataFrame")

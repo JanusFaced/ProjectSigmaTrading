@@ -1,12 +1,42 @@
+import polars as pl
 import os
 import sys
 import time
 from datetime import datetime
-from dataBaseModels import Signal, Backtest, Trade
-from dataBaseModels import get_session, close_session
+from sqlalchemy import text
+from dataBaseModels import (
+	DATABASE_URL,
+	Signal, Backtest, Trade,
+	get_session, close_session
+)
 from logger_setup import get_logger
 
 logger = get_logger(__name__)
+
+def saveEquity(
+		tableName: str,
+		equityDataframe: pl.DataFrame,
+	) -> None:
+
+	tryCount, maxTryOnes = 0, 7
+	while True:
+		try:
+			equityDataframe.write_database(
+				table_name=tableName,
+				connection=DATABASE_URL,
+				engine="adbc",
+				if_table_exists="replace",
+			)
+
+			logger.info(f' --> Table: {tableName} is saved! <--')
+			break
+	
+		except Exception as e:
+			logger.error(f"Error saving table! Try again! {tryCount}")
+			tryCount += 1
+			time.sleep(tryCount)
+			if tryCount > maxTryOnes:
+				raise e
 
 def saveBacktests(inputData: dict) -> None:
 	tryCount, maxTryOnes = 0, 7

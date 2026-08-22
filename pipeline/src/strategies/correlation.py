@@ -2,7 +2,7 @@ from typing import Any
 import matplotlib.pyplot as plt
 import polars as pl
 import os
-from walk_forward_simulator import walkForward
+from custom_ta import simple_correlation
 from pathlib import Path
 from duckDB_setup import get_duckdb
 from logger_setup import get_logger
@@ -15,51 +15,30 @@ def main(inputMessage: dict[str, Any]) -> None:
 	dataFrame = db.execute("SELECT * FROM temp_analyst").pl()
 	db.execute("DROP TABLE IF EXISTS temp_analyst")
 
-	train_size, test_size = 1000, 300
-	quantSlippage = 2000
-	generation = 3
-	parametrs = {
-		"baseWindow": {"min": 20, "max": 200, "split": 5},
-	}
-
-	dataFrame = walkForward(
-		algorithm=algorithm,
-		train_size=train_size,
-		test_size=test_size,
-		inputMessage=inputMessage,
-		originalDataFrame=dataFrame,
-		parametrs=parametrs,
-		quantSlippage=quantSlippage,
-		generation=generation
-	)
-
-	db.execute("CREATE OR REPLACE TEMP TABLE temp_trading AS SELECT * FROM dataFrame")
-
-def algorithm(
-		dataFrame: pl.DataFrame,
-		inputMessage: dict,
-		params: dict,
-		statsParams: dict
-	) -> pl.DataFrame:
-
 	nameExchange = inputMessage['nameExchange']
 	symbol = inputMessage['symbol']
 	type = inputMessage['type']
 	timeFrame = inputMessage['timeFrame']
 
-	baseWindow = int(params['baseWindow'])
-	signalWindow = 1*baseWindow
-	trendWindow = 10*baseWindow
-
+	signalWindow, trendWindow = 20, 200
 	leverage = 1
 
-	multiMaxLoss = 1.0
+	multiMaxLoss = 0.01
 	multiMaxProfit = 100.0
 
 	dataFrame = dataFrame.with_columns([
 		pl.lit(leverage).alias('leverage'),
 		(pl.col('high')/pl.col('low') - 1).rolling_mean(window_size=trendWindow).alias('ATR'),
-		( 100*(pl.col('close')/pl.col('close').shift(signalWindow) - 1) ).alias('signalROC'),
+	])
+
+	model = simple_correlation(
+		secondaryVector=dataFrame['close'].to_numpy(),
+		primaryVector=dataFrame['closeFactor'].to_numpy(),
+		baseWindow=signalWindow
+	)
+
+	dataFrame = dataFrame.with_columns([
+		pl.Series('model', model),
 		pl.col('close').rolling_mean(window_size=trendWindow).alias('trendMoving'),
 	])
 
@@ -67,33 +46,27 @@ def algorithm(
 		(pl.lit(-multiMaxLoss)*pl.col('ATR')).alias('maxLoss'),
 		(pl.lit(multiMaxProfit)*pl.col('ATR')).alias('maxProfit'),
 	])
-
+	
 	dataFrame = dataFrame.with_columns(
 		pl.when(
-			(pl.col('signalROC') > 0) & (0 > pl.col('signalROC').shift(1)) &
+			(pl.col('close') > pl.col('model')) & (pl.col('model') > pl.col('close').shift(1)) &
 			(pl.col('close') > pl.col('trendMoving'))
 		).then(pl.lit(-1))
 		.when(
-			(pl.col('signalROC') < 0) & (0 < pl.col('signalROC').shift(1))
+			(pl.col('close') < pl.col('model')) & (pl.col('model') < pl.col('close').shift(1))
 		).then(pl.lit(1))
 		.otherwise(pl.lit(0))
 		.alias('long_signal'),
 
 		pl.when(
-			(pl.col('signalROC') > 0) & (0 > pl.col('signalROC').shift(1))
+			(pl.col('close') > pl.col('model')) & (pl.col('model') > pl.col('close').shift(1))
 		).then(pl.lit(-1))
 		.when(
-			(pl.col('signalROC') < 0) & (0 < pl.col('signalROC').shift(1)) &
+			(pl.col('close') < pl.col('model')) & (pl.col('model') < pl.col('close').shift(1)) &
 			(pl.col('close') < pl.col('trendMoving'))
 		).then(pl.lit(1))
 		.otherwise(pl.lit(0))
 		.alias('short_signal'),
 	)
-
-	statsParams = {}
-	return dataFrame, statsParams
-
-
-
-
-
+	
+	db.execute("CREATE OR REPLACE TEMP TABLE temp_trading AS SELECT * FROM dataFrame")

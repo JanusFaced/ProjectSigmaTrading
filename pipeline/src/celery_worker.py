@@ -1,6 +1,6 @@
 from celery_app import app
+import portfolio
 import pipeline
-from filters_kit import filter_new, filter_exist
 import makeStats
 import os
 from logger_setup import get_logger
@@ -14,32 +14,32 @@ def build_tasks(
 		mode: str = 'imitation'
 	) -> list:
 
-	testMode = 'cumul' #cumul/reinvest
-	modeFilter= 'exist'
-	target_year_profit = 30.0
+	listPortfolio = [
+		'standart',
+	]
+
+	testMode = 'reinvest' #cumul/reinvest
 
 	listTimeFrame = [
-#		'8h',
-#		'6h',
 		'4h',
 		'3h',
 		'2h',
-		'1h',
-		'48min',
-		'45min',
-		'36min',
+#		'1h',
+#		'48min',
+#		'45min',
+#		'36min',
 #		'30min',
 #		'24min',
 	]
 	listSymbol = [
-#		'BTC',
-#		'ETH',
-#		'BNB',
-#		'XRP',
+		'BTC',
+		'ETH',
+		'BNB',
+		'XRP',
 		'SOL',
-#		'TRX',
-#		'ADA',
-#		'LINK',
+		'TRX',
+		'ADA',
+		'LINK',
 #		'HYPE',
 #		'RE',
 #		'BOT',
@@ -47,24 +47,39 @@ def build_tasks(
 	listTypeMarket = ['futures']
 	listNameExchange = ['binance']
 	listStrategy = [
-#		'opt_moving:I', #delete
-#		'opt_cross_ma:I', #delete
-#		'opt_trend:I', #delete
-		'opt_stochastic:I',
-#		'opt_bollinger:I', #delete
-#		'opt_keltner:I', #delete
-#		'opt_envelopes:I', #delete
-#		'opt_modeling:I', #delete
-#		'opt_lrcurve:I', #delete
-#		'opt_lrchannel:I', #delete
-#		'opt_correlation:II', #rebult
+#		'opt_moving:I',
+#		'opt_cross_ma:I',
+#		'opt_trend:I',
+#		'opt_stochastic:I',
+#		'opt_bollinger:I',
+#		'opt_keltner:I',
+#		'opt_envelopes:I',
+#		'opt_modeling:I',
+#		'opt_lrcurve:I',
+#		'opt_lrchannel:I',
+#		'opt_correlation:II',
 
-#		'ada_moving:I', #delete
-#		'ada_trend:I', #delete
-#		'ada_modeling:I', #delete
-#		'ada_lrcurve:I', #delete
-#		'ada_lrchannel:I', #delete
-#		'ada_correlation:II', #delete
+#		'ada_moving:I',
+#		'ada_trend:I',
+#		'ada_modeling:I',
+#		'ada_lrcurve:I',
+#		'ada_lrchannel:I',
+#		'ada_correlation:II',
+
+#		'opt_stats_stochastic:I',
+
+		'moving:I',
+		'cross_ma:I',
+		'trend:I',
+		'stochastic:I',
+		'bollinger:I',
+		'keltner:I',
+		'envelopes:I',
+		'modeling:I',
+		'lrcurve:I',
+		'lrchannel:I',
+		'correlation:II',
+
 	]
 	listFactor = [
 		'BTC',
@@ -76,74 +91,82 @@ def build_tasks(
 	listTypeFactor = ['futures']
 	listFactorExchange = ['binance']
 
-	listMSGs = []
-	for nameExchange in listNameExchange:
-		for typeMarket in listTypeMarket:
-			for timeFrame in listTimeFrame:
-				for symbol in listSymbol:
-					for strategy in listStrategy:
-						splitNameStrategy = strategy.split(":")
+	portfolioList = []
+	for portfolioName in listPortfolio:
 
-						if splitNameStrategy[1] == "I":
-							listMSGs.append({
-									'mode': mode,
-									'testMode': testMode,
-									'nameExchange': nameExchange,
-									'symbol': symbol,
-									'type': typeMarket,
-									'timeFrame': timeFrame,
-									'strategy': strategy,
-									'factor': 'None',
-									'typeFactor': 'None',
-									'factorExchange': 'None'
-								})
+		assetsList = []
+		for nameExchange in listNameExchange:
+			for typeMarket in listTypeMarket:
+				for timeFrame in listTimeFrame:
+					for symbol in listSymbol:
+						for strategy in listStrategy:
+							splitNameStrategy = strategy.split(":")
 
-						elif splitNameStrategy[1] == "II":
-							for factor in listFactor:
-								for typeFactor in listTypeFactor:
-									for factorExchange in listFactorExchange:
+							if splitNameStrategy[1] == "I":
+								assetsList.append({
+										'mode': mode,
+										'testMode': testMode,
+										'nameExchange': nameExchange,
+										'symbol': symbol,
+										'type': typeMarket,
+										'timeFrame': timeFrame,
+										'strategy': strategy,
+										'factor': 'None',
+										'typeFactor': 'None',
+										'factorExchange': 'None'
+									})
 
-										logicSymbol = True if (symbol == factor) else False
-										logicType = True if (typeMarket == typeFactor) else False
-										logicExchange = True if (nameExchange == factorExchange) else False
+							elif splitNameStrategy[1] == "II":
+								for factor in listFactor:
+									for typeFactor in listTypeFactor:
+										for factorExchange in listFactorExchange:
 
-										if not(logicSymbol and logicType and logicExchange):
-											listMSGs.append({
-												'mode': mode,
-												'testMode': testMode,
-												'nameExchange': nameExchange,
-												'symbol': symbol,
-												'type': typeMarket,
-												'timeFrame': timeFrame,
-												'strategy': strategy,
-												'factor': factor,
-												'typeFactor': typeFactor,
-												'factorExchange': factorExchange
-											})
+											logicSymbol = True if (symbol == factor) else False
+											logicType = True if (typeMarket == typeFactor) else False
+											logicExchange = True if (nameExchange == factorExchange) else False
 
-	lenthCombi = len(listMSGs)
-	logger.info(f"full lenth combination = {lenthCombi}")
+											if not(logicSymbol and logicType and logicExchange):
+												assetsList.append({
+													'mode': mode,
+													'testMode': testMode,
+													'nameExchange': nameExchange,
+													'symbol': symbol,
+													'type': typeMarket,
+													'timeFrame': timeFrame,
+													'strategy': strategy,
+													'factor': factor,
+													'typeFactor': typeFactor,
+													'factorExchange': factorExchange
+												})
 
-	if mode in ["imitation"]:
-		if modeFilter == 'new':
-			listMSGs = filter_new.main(
-				listMSGs=listMSGs,
-				target_year_profit=target_year_profit,
-			)
-		elif modeFilter == 'exist':
-			listMSGs = filter_exist.main(
-				listMSGs=listMSGs,
-				target_year_profit=target_year_profit,
-			)
-
-		lenthCombi = len(listMSGs)
-		logger.info(f"filter for imitation lenth combination = {lenthCombi}")
+		portfolioList.append(
+			{
+				'portfolioName': portfolioName,
+				'assetsList': assetsList,
+			}
+		)
 
 	tasks_to_run: list = []
-	if mode != 'stats':
-		for i in range(len(listMSGs)):
-			tasks_to_run.append({'id': i+1, 'params': listMSGs[i]})
-	else:
+	if mode == 'portfolio':
+		for i in range(len(portfolioList)):
+			assetsList = portfolioList[i]['assetsList']
+			lenthCombi = len(assetsList)
+			logger.info(f"full lenth combination = {lenthCombi}")
+
+			tasks_to_run.append({'id': i+1, 'mode': mode, 'params': portfolioList[i]})
+
+	elif mode == 'test':
+		for i in range(len(portfolioList)):
+			portfolioName = portfolioList[i]['portfolioName']
+			assetsList = portfolioList[i]['assetsList']
+			
+			lenthCombi = len(assetsList)
+			logger.info(f" portfolio {portfolioName}: full lenth combination = {lenthCombi}")
+
+			for i in range(len(assetsList)):
+				tasks_to_run.append({'id': i+1, 'mode': mode, 'params': assetsList[i]})
+
+	elif mode == 'stats':
 		makeStats.main(
 			listTimeFrame=listTimeFrame,
 			listStrategy=listStrategy,
@@ -159,31 +182,34 @@ def run_workflow(timeframe: str) -> str:
 	tasks = build_tasks(listTimeFrame=[timeframe])
 	for task in tasks:
 		app.send_task(
-			'celery_worker.run_pipeline',
-			args=[task['id'], task['params']],
+			'celery_worker.run_portfolio',
+			args=[task['id'], task['mode'], task['params']],
 			queue='pipeline_work'
 		)
 	logger.info(f"✅ pipeline_work заготовил себе {len(tasks)} задач для {timeframe}")
 	return f"Scheduled {len(tasks)} tasks for {timeframe}"
 
 @app.task
-def run_pipeline(item_id: int, params: dict) -> None:
+def run_portfolio(item_id: int, mode: str, params: dict) -> None:
 	logger.info(f"🚀 Worker выполняет задачу {item_id}")
 	try:
-		pipeline.main(params)
+		if mode == 'portfolio':
+			portfolio.main(params)
+		elif mode == 'test':
+			pipeline.main(params)
 		logger.info(f"✅ Задача {item_id} завершена!")
 	except Exception as e:
 		logger.error(f"❌ Ошибка в задаче {item_id}: {e}")
 		raise
 
-if global_work_mode in ['test', 'stats']:
+if global_work_mode in ['portfolio', 'test', 'stats']:
 	def startBackTests() -> None:
 		logger.info(f"Пользователь создает задачи для бэктеста!")
 		tasks = build_tasks(mode=global_work_mode)
 		for task in tasks:
 			app.send_task(
-				'celery_worker.run_pipeline',
-				args=[task['id'], task['params']],
+				'celery_worker.run_portfolio',
+				args=[task['id'], task['mode'], task['params']],
 				queue='pipeline_work'
 			)
 		logger.info(f"✅ Пользователь отправил {len(tasks)} задач!")
