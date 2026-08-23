@@ -6,7 +6,7 @@ from strategies import (
 	opt_envelopes, opt_modeling, opt_correlation,
 	opt_lrcurve, opt_lrchannel,
 	ada_moving, ada_trend, ada_modeling, ada_correlation, ada_lrcurve, ada_lrchannel,
-	opt_stats_stochastic,
+	stats_stochastic,
 	moving, cross_ma, trend,
 	stochastic, bollinger, keltner,
 	envelopes, modeling, correlation,
@@ -83,8 +83,8 @@ def main(inputMessage: dict) -> None:
 	elif firstName == "ada_lrchannel":
 		ada_lrchannel.main(inputMessage)
 
-	elif firstName == "opt_stats_stochastic":
-		opt_stats_stochastic.main(inputMessage)
+	elif firstName == "stats_stochastic":
+		stats_stochastic.main(inputMessage)
 		
 	elif firstName == "moving":
 		moving.main(inputMessage)

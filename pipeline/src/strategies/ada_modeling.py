@@ -30,19 +30,15 @@ def main(inputMessage: dict[str, Any]) -> None:
 	multiMaxProfit = 100
 	multiModel = 0.5
 
-	dataFrame = dataFrame.with_columns(pl.lit(leverage).alias('leverage'))
-
 	dataFrame = dataFrame.with_columns([
+		pl.lit(leverage).alias('leverage'),
 		(pl.col('high')/pl.col('low')-1).alias('TR'),
-	])
-	dataFrame = dataFrame.with_columns([
+	]).with_columns([
 		pl.col('TR').rolling_mean(window_size=currentVolativityWindow).alias('ATR'),
 		pl.col('TR').rolling_mean(window_size=targetVolativityWindow).alias('slowATR'),
+	]).with_columns([
+		(pl.col('slowATR')/pl.col('ATR')).fill_null(1.0).clip(0.1, 16).alias('volMulti'),
 	])
-	dataFrame = dataFrame.with_columns([
-		(pl.col('slowATR')/pl.col('ATR')).clip(0.1, 16).alias('volMulti'),
-	])
-
 	signalDiff = adaptive_roc(
 		closeVector=dataFrame['close'].to_numpy(),
 		volMulti=dataFrame['volMulti'].to_numpy(),
@@ -76,36 +72,29 @@ def main(inputMessage: dict[str, Any]) -> None:
 		pl.Series('signalDiff', signalDiff),
 		pl.Series('model', model),
 		pl.Series('trendMoving', trendMoving),
-	])
-
-	dataFrame = dataFrame.with_columns([
+	]).with_columns([
 		(pl.lit(multiModel)*pl.col('model')).alias('pModel'),
 		(pl.lit(-multiModel)*pl.col('model')).alias('nModel'),
-	])
-
-	dataFrame = dataFrame.with_columns([
+	]).with_columns([
 		(pl.lit(-multiMaxLoss)*pl.col('ATR')).alias('maxLoss'),
 		(pl.lit(multiMaxProfit)*pl.col('ATR')).alias('maxProfit'),
-	])
-
-	dataFrame = dataFrame.with_columns(
+	]).with_columns(
 		pl.when(
 			(pl.col('signalDiff') > pl.col('pModel')) & (pl.col('pModel') > pl.col('signalDiff').shift(1)) &
 			(pl.col('close') > pl.col('trendMoving')) &
 			(maxMulti > pl.col('volMulti')) & (pl.col('volMulti') > minMulti)
 		).then(pl.lit(-1))
 		.when(
-			(pl.col('signalDiff') < pl.col('pModel')) & (pl.col('pModel') < pl.col('signalDiff').shift(1)) &
-			(pl.col('close') > pl.col('trendMoving')) &
-			(maxMulti > pl.col('volMulti')) & (pl.col('volMulti') > minMulti)
-		).then(pl.lit(1))
+			(
+				(pl.col('signalDiff') < pl.col('pModel')) & (pl.col('pModel') < pl.col('signalDiff').shift(1))
+			) | ((pl.col('volMulti') > maxMulti) & (minMulti > pl.col('volMulti')))		).then(pl.lit(1))
 		.otherwise(pl.lit(0))
 		.alias('long_signal'),
 
 		pl.when(
-			(pl.col('signalDiff') > pl.col('nModel')) & (pl.col('nModel') > pl.col('signalDiff').shift(1)) &
-			(pl.col('close') < pl.col('trendMoving')) &
-			(maxMulti > pl.col('volMulti')) & (pl.col('volMulti') > minMulti)
+			(
+				(pl.col('signalDiff') > pl.col('nModel')) & (pl.col('nModel') > pl.col('signalDiff').shift(1))
+			) | ((pl.col('volMulti') > maxMulti) & (minMulti > pl.col('volMulti')))
 		).then(pl.lit(-1))
 		.when(
 			(pl.col('signalDiff') < pl.col('nModel')) & (pl.col('nModel') < pl.col('signalDiff').shift(1)) &
@@ -116,20 +105,4 @@ def main(inputMessage: dict[str, Any]) -> None:
 		.alias('short_signal'),
 	)
 
-	#superName = str(output_dir) + f'/modeling_{nameExchange}_{symbol}_{type}_{timeFrame}.png'
-	#tempDF = dataFrame.tail(1440)
-	#plt.plot(tempDF['signalDiff'], color='black')
-	#plt.plot(tempDF['nModel'], color='red')
-	#plt.plot(tempDF['pModel'], color='green')
-	#plt.savefig(superName)
-	#plt.close()
-
-	validList = [
-		'datetime',
-		'open', 'high', 'low', 'close', 'volume',
-		'long_signal', 'short_signal', 'leverage',
-		'maxLoss', 'maxProfit',
-	]
-
-	dataFrame = dataFrame.select(validList)
 	db.execute("CREATE OR REPLACE TEMP TABLE temp_trading AS SELECT * FROM dataFrame")

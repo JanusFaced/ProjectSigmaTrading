@@ -5,6 +5,11 @@ import numpy as np
 import numpy.typing as npt
 from numba import njit
 import time
+from pathlib import Path
+from logger_setup import get_logger
+
+logger = get_logger(__name__)
+output_dir = Path(__file__).parent.parent / "output"
 
 #start technical functions
 @njit(cache=True)
@@ -159,7 +164,7 @@ def adaptive_moving(
 	movingVector = np.empty(lenth, dtype=np.float64)
 	downLineVector = np.empty(lenth, dtype=np.float64)
 	movingDiffVector = np.empty(lenth, dtype=np.float64)
-	firstIndex = baseWindow*int(np.max(volMulti))
+	firstIndex = baseWindow*int(np.nanmax(volMulti))
 
 	matrix = [closeVector]
 	for i in range(depth):
@@ -173,9 +178,9 @@ def adaptive_moving(
 
 	for i in range(firstIndex, lenth):
 		real_i = i+1
-		multi = volMulti[i]
-		window = int(baseWindow*multi) if int(baseWindow*multi) > 2 else 2
-		address = int(np.log2(multi)) if (multi < 2**depth) else int(np.log2(2**depth))
+		multi = volMulti[i] if volMulti[i] > 0.50 else 0.50
+		window = int(baseWindow*multi)
+		address = int(np.log2(multi)) if multi >= 1 else 0
 
 		currentPreCutWindow = matrix[address][real_i-window:real_i]
 		pastPreCutWindow = matrix[address][i-window:i]
@@ -219,138 +224,6 @@ def simple_linear_regression(
 	return curveVector
 
 @njit(cache=True)
-def adaptive_adx(
-		openVector: npt.NDArray[np.float64],
-		highVector: npt.NDArray[np.float64],
-		lowVector: npt.NDArray[np.float64],
-		closeVector: npt.NDArray[np.float64],
-		volMulti: npt.NDArray[np.float64],
-		baseWindow: int = 20,
-		depth: int = 0
-	) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.float64], npt.NDArray[np.float64], npt.NDArray[np.float64]]:
-	
-	lenth = len(closeVector)
-	posDmiVector = np.empty(lenth, dtype=np.float64)
-	negDmiVector = np.empty(lenth, dtype=np.float64)
-	adxVector = np.empty(lenth, dtype=np.float64)
-	adxDiffVector = np.empty(lenth, dtype=np.float64)
-	firstIndex = baseWindow*int(np.max(volMulti))
-
-	openMatrix = [openVector]
-	for i in range(depth):
-		relativeTimeFrame = 2**(i+1)
-		resamplVector = hotResampler(
-			baseVector=openVector,
-			relativeTimeFrame=relativeTimeFrame,
-			resamplMode='start'
-		)
-		openMatrix.append(resamplVector)
-
-	highMatrix = [highVector]
-	for i in range(depth):
-		relativeTimeFrame = 2**(i+1)
-		resamplVector = hotResampler(
-			baseVector=highVector,
-			relativeTimeFrame=relativeTimeFrame,
-			resamplMode='max'
-		)
-		highMatrix.append(resamplVector)
-
-	lowMatrix = [lowVector]
-	for i in range(depth):
-		relativeTimeFrame = 2**(i+1)
-		resamplVector = hotResampler(
-			baseVector=lowVector,
-			relativeTimeFrame=relativeTimeFrame,
-			resamplMode='min'
-		)
-		lowMatrix.append(resamplVector)
-
-	closeMatrix = [closeVector]
-	for i in range(depth):
-		relativeTimeFrame = 2**(i+1)
-		resamplVector = hotResampler(
-			baseVector=closeVector,
-			relativeTimeFrame=relativeTimeFrame,
-			resamplMode='end'
-		)
-		closeMatrix.append(resamplVector)
-
-	for i in range(firstIndex, lenth):
-
-		real_i = i+1
-		multi = volMulti[i]
-		window = int(baseWindow*multi) if int(baseWindow*multi) > 3 else 3
-		address = int(np.log2(multi)) if (multi < 2**depth) else int(np.log2(2**depth))
-
-		preCutOpen = openMatrix[address][real_i-window:real_i]
-		preCutHigh = highMatrix[address][real_i-window:real_i]
-		preCutLow = lowMatrix[address][real_i-window:real_i]
-		preCutClose = closeMatrix[address][real_i-window:real_i]
-
-		cutOpen = concentrator(preCutWindow=preCutOpen, numberMissing=address)
-		cutHigh = concentrator(preCutWindow=preCutHigh, numberMissing=address)
-		cutLow = concentrator(preCutWindow=preCutLow, numberMissing=address)
-		cutClose = concentrator(preCutWindow=preCutClose, numberMissing=address)
-
-		cutTrueRange = (cutHigh - cutLow)[1:]
-		cutPosM = cutHigh[1:] - cutHigh[:-1]
-		cutNegM = cutLow[:-1] - cutLow[1:]
-		cutPosDM = np.where((cutPosM > cutNegM) & (cutPosM > 0), cutPosM, 0.0)
-		cutNegDM = np.where((cutNegM > cutPosM) & (cutNegM > 0), cutNegM, 0.0)
-		ATR = np.mean(cutTrueRange)
-		posDmiVector[i] = np.mean(cutPosDM)/ATR if ATR > 0 else 0
-		negDmiVector[i] = np.mean(cutNegDM)/ATR if ATR > 0 else 0
-
-	posMatrix = [posDmiVector]
-	for i in range(depth):
-		relativeTimeFrame = 2**(i+1)
-		resamplVector = hotResampler(
-			baseVector=posDmiVector,
-			relativeTimeFrame=relativeTimeFrame,
-			resamplMode='end'
-		)
-		posMatrix.append(resamplVector)
-
-	negMatrix = [negDmiVector]
-	for i in range(depth):
-		relativeTimeFrame = 2**(i+1)
-		resamplVector = hotResampler(
-			baseVector=negDmiVector,
-			relativeTimeFrame=relativeTimeFrame,
-			resamplMode='end'
-		)
-		negMatrix.append(resamplVector)
-
-	for i in range(firstIndex, lenth):
-		
-		real_i = i+1
-		multi = volMulti[i]
-		window = int(baseWindow*multi) if int(baseWindow*multi) > 2 else 2
-		address = int(np.log2(multi)) if (multi < 2**depth) else int(np.log2(2**depth))
-
-		currentPreCutPositive = posMatrix[address][real_i-window:real_i]
-		currentPreCutNegative = negMatrix[address][real_i-window:real_i]
-		pastPreCutPositive = posMatrix[address][i-window:i]
-		pastPreCutNegative = negMatrix[address][i-window:i]
-
-		currentCutPosDI = concentrator(preCutWindow=currentPreCutPositive, numberMissing=address)
-		currentCutNegDI = concentrator(preCutWindow=currentPreCutNegative, numberMissing=address)
-		pastCutPosDI = concentrator(preCutWindow=pastPreCutPositive, numberMissing=address)
-		pastCutNegDI = concentrator(preCutWindow=pastPreCutNegative, numberMissing=address)
-
-		currentCutDXI = 100*np.abs(currentCutPosDI - currentCutNegDI)/(currentCutPosDI + currentCutNegDI)
-		pastCutDXI = 100*np.abs(pastCutPosDI - pastCutNegDI)/(pastCutPosDI + pastCutNegDI)
-		
-		currentADX = np.mean(currentCutDXI)
-		pastADX = np.mean(pastCutDXI)
-
-		adxVector[i] = currentADX
-		adxDiffVector[i] = currentADX - pastADX
-	
-	return posDmiVector, negDmiVector, adxVector, adxDiffVector
-
-@njit(cache=True)
 def adaptive_correlation(
 		secondaryVector: npt.NDArray[np.float64],
 		primaryVector: npt.NDArray[np.float64],
@@ -361,7 +234,7 @@ def adaptive_correlation(
 
 	lenth = len(primaryVector)
 	model = np.empty(lenth, dtype=np.float64)
-	firstIndex = baseWindow*int(np.max(volMulti))
+	firstIndex = baseWindow*int(np.nanmax(volMulti))
 
 	secondaryMatrix = [secondaryVector]
 	for i in range(depth):
@@ -384,11 +257,10 @@ def adaptive_correlation(
 		primaryMatrix.append(resamplVector)
 
 	for i in range(firstIndex, lenth):
-
 		real_i = i+1
-		multi = volMulti[i] if volMulti[i] > 1.0 else 1.0
+		multi = volMulti[i] if volMulti[i] > 0.50 else 0.50
 		window = int(baseWindow*multi)
-		address = int(np.log2(multi)) if (multi < 2**depth) else int(np.log2(2**depth))
+		address = int(np.log2(multi)) if multi >= 1 else 0
 
 		preCutSecondary = secondaryMatrix[address][real_i-window:real_i]
 		preCutPrimary = primaryMatrix[address][real_i-window:real_i]
@@ -428,7 +300,7 @@ def adaptive_roc(
 	) -> npt.NDArray[np.float64]:
 	lenth = len(closeVector)
 	rocVector = np.empty(lenth, dtype=np.float64)
-	firstIndex = baseWindow*int(np.max(volMulti))
+	firstIndex = baseWindow*int(np.nanmax(volMulti))
 
 	closeMatrix = [closeVector]
 	for i in range(depth):
@@ -442,9 +314,9 @@ def adaptive_roc(
 
 	for i in range(firstIndex, lenth):
 		real_i = i+1
-		multi = volMulti[i]
-		window = int(baseWindow*multi) if int(baseWindow*multi) > 2 else 2
-		address = int(np.log2(multi)) if (multi < 2**depth) else int(np.log2(2**depth))
+		multi = volMulti[i] if volMulti[i] > 0.50 else 0.50
+		window = int(baseWindow*multi)
+		address = int(np.log2(multi)) if multi >= 1 else 0
 
 		preCutClose = closeMatrix[address][real_i-window:real_i]
 		cutClose = concentrator(preCutWindow=preCutClose, numberMissing=address)
@@ -462,7 +334,7 @@ def adaptive_volume(
 	) -> npt.NDArray[np.float64]:
 	lenth = len(volumeVector)
 	sumVector = np.empty(lenth, dtype=np.float64)
-	firstIndex = baseWindow*int(np.max(volMulti))
+	firstIndex = baseWindow*int(np.nanmax(volMulti))
 
 	volumeMatrix = [volumeVector]
 	for i in range(depth):
@@ -476,9 +348,9 @@ def adaptive_volume(
 
 	for i in range(firstIndex, lenth):
 		real_i = i+1
-		multi = volMulti[i]
-		window = int(baseWindow*multi) if int(baseWindow*multi) > 2 else 2
-		address = int(np.log2(multi)) if (multi < 2**depth) else int(np.log2(2**depth))
+		multi = volMulti[i] if volMulti[i] > 0.50 else 0.50
+		window = int(baseWindow*multi)
+		address = int(np.log2(multi)) if multi >= 1 else 0
 
 		preCutVolume = volumeMatrix[address][real_i-window:real_i]
 		cutVolume = concentrator(preCutWindow=preCutVolume, numberMissing=address)
@@ -488,73 +360,6 @@ def adaptive_volume(
 	return sumVector
 
 #end indicators
-
-#start multi_volativity
-@njit(cache=True)
-def multi_volativity(
-		highVector: npt.NDArray[np.float64],
-		lowVector: npt.NDArray[np.float64],
-		baseVolativity: float,
-		baseWindow: int = 200,
-		depth: int = 0
-	) -> npt.NDArray[np.float64]:
-	
-	lenth = len(highVector)
-	volMultiVector = np.empty(lenth, dtype=np.float64)
-	firstIndex = baseWindow*(depth+1)
-	window = baseWindow
-
-	maxMulti = 2**(depth+1)
-	minMulti = 0.5
-
-	highMatrix = [highVector]
-	for i in range(depth):
-		relativeTimeFrame = 2**(i+1)
-		resamplVector = hotResampler(
-			baseVector=highVector,
-			relativeTimeFrame=relativeTimeFrame,
-			resamplMode='max'
-		)
-		highMatrix.append(resamplVector)
-
-	lowMatrix = [lowVector]
-	for i in range(depth):
-		relativeTimeFrame = 2**(i+1)
-		resamplVector = hotResampler(
-			baseVector=lowVector,
-			relativeTimeFrame=relativeTimeFrame,
-			resamplMode='min'
-		)
-		lowMatrix.append(resamplVector)
-
-	for i in range(firstIndex, lenth):
-		real_i = i+1
-
-		tempVectorValues = np.empty(0, dtype=np.float64)
-		for address in range(depth+1):
-
-			preCutHigh = highMatrix[address][real_i-window:real_i]
-			preCutLow = lowMatrix[address][real_i-window:real_i]
-
-			cutHigh = concentrator(preCutWindow=preCutHigh, numberMissing=address)
-			cutLow = concentrator(preCutWindow=preCutLow, numberMissing=address)
-
-			cutTrueRange = 100*(cutHigh/cutLow - 1)
-			localATR = np.mean(cutTrueRange)
-			targetATR = localATR*(1/(2**address))**(0.5)
-
-			tempVectorValues = np.append(tempVectorValues, targetATR)
-
-		volMultiVector[i] = baseVolativity/np.mean(tempVectorValues)
-
-	for i in range(len(volMultiVector)):
-		value = volMultiVector[i]
-		value = value if value < maxMulti else maxMulti
-		value = value if value > minMulti else minMulti
-		volMultiVector[i] = value
-
-	return volMultiVector
-#end multi_volativity
 
 def volativityTuning(
 		dataFrame: pl.DataFrame,

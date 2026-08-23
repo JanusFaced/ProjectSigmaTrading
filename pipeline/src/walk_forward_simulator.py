@@ -35,56 +35,66 @@ def walkForward(
 		trainDataFrame = originalDataFrame[indexes['startTrain']:indexes['endTrain']]
 		testDataFrame = originalDataFrame[indexes['startTest']:indexes['endTest']]
 
-		tempParametrs = copy.deepcopy(parametrs)
+		
+		if len(parametrs) > 0:
+			tempParametrs = copy.deepcopy(parametrs)
+			for gen in range(generation):
 
-		for gen in range(generation):
+				combiPars = {}
+				for namePar, configPar in tempParametrs.items():
+					minValue = configPar['min']
+					maxValue = configPar['max']
+					splitValue = configPar['split']
+					step = (maxValue - minValue)/(splitValue - 1)
+					combiPars[namePar] = [minValue + i*step for i in range(splitValue)]
 
-			combiPars = {}
-			for namePar, configPar in tempParametrs.items():
-				minValue = configPar['min']
-				maxValue = configPar['max']
-				splitValue = configPar['split']
-				step = (maxValue - minValue)/(splitValue - 1)
-				combiPars[namePar] = [minValue + i*step for i in range(splitValue)]
+				keys = list(combiPars.keys())
+				value_lists = [combiPars[k] for k in keys]
 
-			keys = list(combiPars.keys())
-			value_lists = [combiPars[k] for k in keys]
+				optiList = []
+				parsList = []
+				statParsList = []
+				for combo in product(*value_lists):
+					params = dict(zip(keys, combo))
 
-			optiList = []
-			parsList = []
-			statParsList = []
-			for combo in product(*value_lists):
-				params = dict(zip(keys, combo))
+					backtestDataFrame, statsParams = algorithm(
+						dataFrame=trainDataFrame,
+						inputMessage=inputMessage,
+						params=params,
+						statsParams=None
+					)
+					report = coreBacktester(backtestDataFrame, inputMessage["testMode"])
+					analystReport = backTestAnalyst(
+						inputMessage=inputMessage,
+						report=report,
+						analystMode=True
+					)
+					optiList.append(analystReport['optiMetric'])
+					parsList.append(params)
+					statParsList.append(statsParams)
 
-				backtestDataFrame, statsParams = algorithm(
-					dataFrame=trainDataFrame,
-					inputMessage=inputMessage,
-					params=params,
-					statsParams=None
-				)
-				report = coreBacktester(backtestDataFrame, inputMessage["testMode"])
-				analystReport = backTestAnalyst(
-					inputMessage=inputMessage,
-					report=report,
-					analystMode=True
-				)
-				optiList.append(analystReport['optiMetric'])
-				parsList.append(params)
-				statParsList.append(statsParams)
+				bestResult = max(optiList)
+				indexBestPars = optiList.index(bestResult)
+				bestPars = parsList[indexBestPars]
+				bestStatsParams = statParsList[indexBestPars]
 
-			bestResult = max(optiList)
-			indexBestPars = optiList.index(bestResult)
-			bestPars = parsList[indexBestPars]
-			bestStatsParams = statParsList[indexBestPars]
+				for namePar, valuePar in bestPars.items():
+					minValue = tempParametrs[namePar]['min']
+					maxValue = tempParametrs[namePar]['max']
+					splitValue = tempParametrs[namePar]['split']
+					step = (maxValue - minValue)/(splitValue - 1)
 
-			for namePar, valuePar in bestPars.items():
-				minValue = tempParametrs[namePar]['min']
-				maxValue = tempParametrs[namePar]['max']
-				splitValue = tempParametrs[namePar]['split']
-				step = (maxValue - minValue)/(splitValue - 1)
+					tempParametrs[namePar]['max'] = valuePar + step if valuePar != maxValue else maxValue
+					tempParametrs[namePar]['min'] = valuePar - step if valuePar != minValue else minValue
 
-				tempParametrs[namePar]['max'] = valuePar + step if valuePar != maxValue else maxValue
-				tempParametrs[namePar]['min'] = valuePar - step if valuePar != minValue else minValue
+		else:
+			_, statsParams = algorithm(
+				dataFrame=trainDataFrame,
+				inputMessage=inputMessage,
+				params=parametrs,
+				statsParams=None
+			)
+			bestPars, bestStatsParams = parametrs, statsParams
 
 		tempDataFrame, _ = algorithm(
 			dataFrame=testDataFrame,
