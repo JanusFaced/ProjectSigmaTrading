@@ -37,8 +37,9 @@ def main(inputMessage: dict[str, Any]) -> None:
 		pl.col('TR').rolling_mean(window_size=currentVolativityWindow).alias('ATR'),
 		pl.col('TR').rolling_mean(window_size=targetVolativityWindow).alias('slowATR'),
 	]).with_columns([
-		(pl.col('slowATR')/pl.col('ATR')).fill_null(1.0).clip(0.1, 16).alias('volMulti'),
+		(pl.col('slowATR')/pl.col('ATR')).fill_null(minMulti).clip(minMulti, maxMulti).alias('volMulti'),
 	])
+	
 	signalDiff = adaptive_roc(
 		closeVector=dataFrame['close'].to_numpy(),
 		volMulti=dataFrame['volMulti'].to_numpy(),
@@ -75,31 +76,25 @@ def main(inputMessage: dict[str, Any]) -> None:
 	]).with_columns([
 		(pl.lit(multiModel)*pl.col('model')).alias('pModel'),
 		(pl.lit(-multiModel)*pl.col('model')).alias('nModel'),
-	]).with_columns([
 		(pl.lit(-multiMaxLoss)*pl.col('ATR')).alias('maxLoss'),
 		(pl.lit(multiMaxProfit)*pl.col('ATR')).alias('maxProfit'),
 	]).with_columns(
 		pl.when(
 			(pl.col('signalDiff') > pl.col('pModel')) & (pl.col('pModel') > pl.col('signalDiff').shift(1)) &
-			(pl.col('close') > pl.col('trendMoving')) &
-			(maxMulti > pl.col('volMulti')) & (pl.col('volMulti') > minMulti)
+			(pl.col('close') > pl.col('trendMoving'))
 		).then(pl.lit(-1))
 		.when(
-			(
-				(pl.col('signalDiff') < pl.col('pModel')) & (pl.col('pModel') < pl.col('signalDiff').shift(1))
-			) | ((pl.col('volMulti') > maxMulti) & (minMulti > pl.col('volMulti')))		).then(pl.lit(1))
+			(pl.col('signalDiff') < pl.col('pModel')) & (pl.col('pModel') < pl.col('signalDiff').shift(1))
+		).then(pl.lit(1))
 		.otherwise(pl.lit(0))
 		.alias('long_signal'),
 
 		pl.when(
-			(
-				(pl.col('signalDiff') > pl.col('nModel')) & (pl.col('nModel') > pl.col('signalDiff').shift(1))
-			) | ((pl.col('volMulti') > maxMulti) & (minMulti > pl.col('volMulti')))
+			(pl.col('signalDiff') > pl.col('nModel')) & (pl.col('nModel') > pl.col('signalDiff').shift(1))
 		).then(pl.lit(-1))
 		.when(
 			(pl.col('signalDiff') < pl.col('nModel')) & (pl.col('nModel') < pl.col('signalDiff').shift(1)) &
-			(pl.col('close') < pl.col('trendMoving')) &
-			(maxMulti > pl.col('volMulti')) & (pl.col('volMulti') > minMulti)
+			(pl.col('close') < pl.col('trendMoving'))
 		).then(pl.lit(1))
 		.otherwise(pl.lit(0))
 		.alias('short_signal'),

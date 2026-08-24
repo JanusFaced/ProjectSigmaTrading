@@ -19,27 +19,28 @@ def build_tasks(
 	]
 
 	testMode = 'reinvest' #cumul/reinvest
+	portfolioMode = 'reinvest' #cumul/reinvest
 
 	listTimeFrame = [
 		'4h',
-		'3h',
-		'2h',
-		'1h',
-		'48min',
-		'45min',
-		'36min',
-		'30min',
-		'24min',
+#		'3h',
+#		'2h',
+#		'1h',
+#		'48min',
+#		'45min',
+#		'36min',
+#		'30min',
+#		'24min',
 	]
 	listSymbol = [
-#		'BTC',
+		'BTC',
 		'ETH',
-#		'BNB',
-#		'XRP',
-#		'SOL',
-#		'TRX',
-#		'ADA',
-#		'LINK',
+		'BNB',
+		'XRP',
+		'SOL',
+		'TRX',
+		'ADA',
+		'LINK',
 #		'HYPE',
 #		'RE',
 #		'BOT',
@@ -47,38 +48,36 @@ def build_tasks(
 	listTypeMarket = ['futures']
 	listNameExchange = ['binance']
 	listStrategy = [
-#		'opt_moving:I',
-#		'opt_cross_ma:I',
-#		'opt_trend:I',
-#		'opt_stochastic:I',
-#		'opt_bollinger:I',
-#		'opt_keltner:I',
-#		'opt_envelopes:I',
-#		'opt_modeling:I',
-#		'opt_lrcurve:I',
-#		'opt_lrchannel:I',
-#		'opt_correlation:II',
+		'opt_moving:I',
+		'opt_cross_ma:I',
+		'opt_trend:I',
+		'opt_stochastic:I',
+		'opt_bollinger:I',
+		'opt_keltner:I',
+		'opt_envelopes:I',
+		'opt_modeling:I',
+		'opt_lrcurve:I',
+		'opt_lrchannel:I',
+		'opt_correlation:II',
 
-#		'ada_moving:I',
-#		'ada_trend:I',
-#		'ada_modeling:I',
-#		'ada_lrcurve:I',
-#		'ada_lrchannel:I',
-#		'ada_correlation:II',
+		'ada_moving:I',
+		'ada_trend:I',
+		'ada_modeling:I',
+		'ada_lrcurve:I',
+		'ada_lrchannel:I',
+		'ada_correlation:II',
 
-		'stats_stochastic:I',
-
-#		'moving:I',
-#		'cross_ma:I',
-#		'trend:I',
-#		'stochastic:I',
-#		'bollinger:I',
-#		'keltner:I',
-#		'envelopes:I',
-#		'modeling:I',
-#		'lrcurve:I',
-#		'lrchannel:I',
-#		'correlation:II',
+		'moving:I',
+		'cross_ma:I',
+		'trend:I',
+		'stochastic:I',
+		'bollinger:I',
+		'keltner:I',
+		'envelopes:I',
+		'modeling:I',
+		'lrcurve:I',
+		'lrchannel:I',
+		'correlation:II',
 
 	]
 	listFactor = [
@@ -142,6 +141,7 @@ def build_tasks(
 		portfolioList.append(
 			{
 				'portfolioName': portfolioName,
+				'portfolioMode': portfolioMode,
 				'assetsList': assetsList,
 			}
 		)

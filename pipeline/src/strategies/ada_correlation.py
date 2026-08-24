@@ -36,7 +36,7 @@ def main(inputMessage: dict[str, Any]) -> None:
 		pl.col('TR').rolling_mean(window_size=currentVolativityWindow).alias('ATR'),
 		pl.col('TR').rolling_mean(window_size=targetVolativityWindow).alias('slowATR'),
 	]).with_columns([
-		(pl.col('slowATR')/pl.col('ATR')).fill_null(1.0).clip(0.1, 16).alias('volMulti'),
+		(pl.col('slowATR')/pl.col('ATR')).fill_null(minMulti).clip(minMulti, maxMulti).alias('volMulti'),
 	])
 
 	model = adaptive_correlation(
@@ -65,26 +65,20 @@ def main(inputMessage: dict[str, Any]) -> None:
 	]).with_columns(
 		pl.when(
 			(pl.col('close') > pl.col('model')) & (pl.col('model') > pl.col('close').shift(1)) &
-			(pl.col('close') > pl.col('trendMoving')) &
-			(maxMulti > pl.col('volMulti')) & (pl.col('volMulti') > minMulti)
+			(pl.col('close') > pl.col('trendMoving'))
 		).then(pl.lit(-1))
 		.when(
-			(
-				(pl.col('close') < pl.col('model')) & (pl.col('model') < pl.col('close').shift(1))
-			) | ((pl.col('volMulti') > maxMulti) & (minMulti > pl.col('volMulti')))
+			(pl.col('close') < pl.col('model')) & (pl.col('model') < pl.col('close').shift(1))
 		).then(pl.lit(1))
 		.otherwise(pl.lit(0))
 		.alias('long_signal'),
 
 		pl.when(
-			(
-				(pl.col('close') > pl.col('model')) & (pl.col('model') > pl.col('close').shift(1))
-			) | ((pl.col('volMulti') > maxMulti) & (minMulti > pl.col('volMulti')))
+			(pl.col('close') > pl.col('model')) & (pl.col('model') > pl.col('close').shift(1))
 		).then(pl.lit(-1))
 		.when(
 			(pl.col('close') < pl.col('model')) & (pl.col('model') < pl.col('close').shift(1)) &
-			(pl.col('close') < pl.col('trendMoving')) &
-			(maxMulti > pl.col('volMulti')) & (pl.col('volMulti') > minMulti)
+			(pl.col('close') < pl.col('trendMoving'))
 		).then(pl.lit(1))
 		.otherwise(pl.lit(0))
 		.alias('short_signal'),
