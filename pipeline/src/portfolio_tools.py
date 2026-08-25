@@ -21,7 +21,7 @@ def getEquity(assetsList: dict) -> tuple[pl.DataFrame, list]:
 		firstName = splitNameStrategy[0]
 		lastName = splitNameStrategy[1]
 
-		if lastName == 'I':
+		if lastName in ['N', 'I']:
 			asset['strategy'] = firstName
 
 		elif lastName == 'II':
@@ -38,11 +38,21 @@ def getEquity(assetsList: dict) -> tuple[pl.DataFrame, list]:
 		type = asset['type']
 		nameExchange = asset['nameExchange']
 
-		columnName = f"{strategy}_{symbol}_{timeFrame}_{type}_{nameExchange}"
+		if strategy == 'hold':
+			columnName = f"{nameExchange}_{symbol}_{type}".lower()
+		else:
+			columnName = f"{strategy}_{symbol}_{timeFrame}_{type}_{nameExchange}"
+		
 		name_equity = f"equity_{columnName}"
 
 		try:
-			equityDataframe = db.execute(f'SELECT * FROM pg."{name_equity}"').pl()
+
+			if strategy == 'hold':
+				equityDataframe = db.execute(f"SELECT * FROM pg.{columnName}").pl()
+				equityDataframe = equityDataframe[['datetime', 'close']].rename({"close": columnName})
+
+			else:
+				equityDataframe = db.execute(f'SELECT * FROM pg."{name_equity}"').pl()
 
 			equityDataframe = equityDataframe.sort("datetime").group_by_dynamic(
 				index_column="datetime",
@@ -80,7 +90,8 @@ def portfolioLogic(
 		columnNames: list,
 		period_rebalance: int,
 		start_depo: float,
-		portfolioMode: str = 'cumul'
+		portfolioMode: str,
+		modeReBalance: str
 	) -> pl.DataFrame:
 
 	fullLenth = len(portfolioDF)
@@ -107,7 +118,8 @@ def portfolioLogic(
 		columnNames=columnNames,
 		listOfIndexes=listOfIndexes,
 		portfolioMode=portfolioMode,
-		start_depo=start_depo
+		start_depo=start_depo,
+		modeReBalance=modeReBalance
 	)
 
 	finalPortfolioDF = portfolioDF.with_columns(pl.sum_horizontal(columnNames).alias("hotDeposite"))
@@ -151,7 +163,7 @@ def makeIndexes(
 		startIndex = index
 		endIndex = index + period_rebalance
 
-		if endIndex < fullLenth:
+		if endIndex < (fullLenth-1):
 			listOfIndexes.append({
 				'start': startIndex,
 				'end': endIndex,
@@ -172,7 +184,8 @@ def portfolioManager(
 		columnNames: int,
 		listOfIndexes: list,
 		portfolioMode: str,
-		start_depo: float
+		start_depo: float,
+		modeReBalance: str
 	) -> pl.DataFrame:
 
 	listOfDataframes = []
@@ -213,7 +226,7 @@ def portfolioManager(
 		assetWeights = reBalancer(
 			tempDF=tempDF,
 			columnNames=columnNames,
-			modeWork='profit'
+			modeReBalance=modeReBalance
 		)
 
 		listOfDataframes.append(tempDF)
@@ -274,21 +287,44 @@ def portfolioAnalyst(
 def reBalancer(
 		tempDF: pl.DataFrame,
 		columnNames: list,
-		modeWork: str
+		modeReBalance: str
 	) -> dict:
 
-	if modeWork == 'simple':
+	def optFunProfit(x: float) -> float:
+		t = 2.00
+		g = 0.10
+		m = 0.03
+		y = g/((x-t)**2 + g) + m
+		return y
+
+	if modeReBalance == 'simple':
 		assetWeights = {col: 1/len(columnNames) for col in columnNames}
 
-	elif modeWork == 'profit':
+	elif modeReBalance == 'profit':
 		vectorsDict = {col: tempDF[col].to_numpy() for col in columnNames}
-		meanDict = {col: 1/((vectorsDict[col][-1]/vectorsDict[col][0]) + 0.001) for col in columnNames}
+		meanDict = {col: vectorsDict[col][-1]/vectorsDict[col][0] for col in columnNames}
 		totalMean = sum(meanDict.values())
 		assetWeights = {col: meanDict[col]/totalMean for col in columnNames}
 
-	elif modeWork == 'sigma':
-		stdDict = {col: 1/(np.std(vectorsDict[col]) + 0.001) for col in columnNames}
+	elif modeReBalance == 'sigma':
+		vectorsDict = {col: tempDF[col].to_numpy() for col in columnNames}
+		stdDict = {col: np.std(vectorsDict[col]) for col in columnNames}
 		totalSigma = sum(stdDict.values())
 		assetWeights = {col: stdDict[col]/totalSigma for col in columnNames}
+
+	elif modeReBalance == 'sharp':
+		vectorsDict = {col: tempDF[col].to_numpy() for col in columnNames}
+		profitDict = {col: vectorsDict[col][-1]/vectorsDict[col][0] for col in columnNames}
+		stdDict = {col: np.std(vectorsDict[col]) for col in columnNames}
+		sharpDict = {col: profitDict[col]/(stdDict[col]+0.00001) for col in columnNames}
+		totalSigma = sum(sharpDict.values())
+		assetWeights = {col: sharpDict[col]/totalSigma for col in columnNames}
+
+	elif modeReBalance == 'fun_profit':
+		vectorsDict = {col: tempDF[col].to_numpy() for col in columnNames}
+		profitDict = {col: vectorsDict[col][-1]/vectorsDict[col][0] for col in columnNames}
+		functionDict = {col: optFunProfit(profitDict[col]) for col in columnNames}
+		totalMean = sum(functionDict.values())
+		assetWeights = {col: functionDict[col]/totalMean for col in columnNames}
 
 	return assetWeights

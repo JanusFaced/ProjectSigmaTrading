@@ -31,6 +31,8 @@ def build_tasks(
 #		'36min',
 #		'30min',
 #		'24min',
+#		'20min',
+#		'15min',
 	]
 	listSymbol = [
 		'BTC',
@@ -48,6 +50,7 @@ def build_tasks(
 	listTypeMarket = ['futures']
 	listNameExchange = ['binance']
 	listStrategy = [
+#		'hold:N',
 		'opt_moving:I',
 		'opt_cross_ma:I',
 		'opt_trend:I',
@@ -59,26 +62,6 @@ def build_tasks(
 		'opt_lrcurve:I',
 		'opt_lrchannel:I',
 		'opt_correlation:II',
-
-		'ada_moving:I',
-		'ada_trend:I',
-		'ada_modeling:I',
-		'ada_lrcurve:I',
-		'ada_lrchannel:I',
-		'ada_correlation:II',
-
-		'moving:I',
-		'cross_ma:I',
-		'trend:I',
-		'stochastic:I',
-		'bollinger:I',
-		'keltner:I',
-		'envelopes:I',
-		'modeling:I',
-		'lrcurve:I',
-		'lrchannel:I',
-		'correlation:II',
-
 	]
 	listFactor = [
 		'BTC',
@@ -96,47 +79,64 @@ def build_tasks(
 		assetsList = []
 		for nameExchange in listNameExchange:
 			for typeMarket in listTypeMarket:
-				for timeFrame in listTimeFrame:
+				for strategy in listStrategy:
 					for symbol in listSymbol:
-						for strategy in listStrategy:
-							splitNameStrategy = strategy.split(":")
+						splitNameStrategy = strategy.split(":")
 
-							if splitNameStrategy[1] == "I":
+						if (splitNameStrategy[1] == "N"):
+							if mode == 'portfolio':
 								assetsList.append({
-										'mode': mode,
-										'testMode': testMode,
-										'nameExchange': nameExchange,
-										'symbol': symbol,
-										'type': typeMarket,
-										'timeFrame': timeFrame,
-										'strategy': strategy,
-										'factor': 'None',
-										'typeFactor': 'None',
-										'factorExchange': 'None'
-									})
+									'mode': mode,
+									'testMode': testMode,
+									'nameExchange': nameExchange,
+									'symbol': symbol,
+									'type': typeMarket,
+									'timeFrame': '1d',
+									'strategy': strategy,
+									'factor': 'None',
+									'typeFactor': 'None',
+									'factorExchange': 'None'
+								})
 
-							elif splitNameStrategy[1] == "II":
-								for factor in listFactor:
-									for typeFactor in listTypeFactor:
-										for factorExchange in listFactorExchange:
+						else:
+							for timeFrame in listTimeFrame:
 
-											logicSymbol = True if (symbol == factor) else False
-											logicType = True if (typeMarket == typeFactor) else False
-											logicExchange = True if (nameExchange == factorExchange) else False
+								if splitNameStrategy[1] == "I":
+									assetsList.append({
+											'mode': mode,
+											'testMode': testMode,
+											'nameExchange': nameExchange,
+											'symbol': symbol,
+											'type': typeMarket,
+											'timeFrame': timeFrame,
+											'strategy': strategy,
+											'factor': 'None',
+											'typeFactor': 'None',
+											'factorExchange': 'None'
+										})
 
-											if not(logicSymbol and logicType and logicExchange):
-												assetsList.append({
-													'mode': mode,
-													'testMode': testMode,
-													'nameExchange': nameExchange,
-													'symbol': symbol,
-													'type': typeMarket,
-													'timeFrame': timeFrame,
-													'strategy': strategy,
-													'factor': factor,
-													'typeFactor': typeFactor,
-													'factorExchange': factorExchange
-												})
+								elif splitNameStrategy[1] == "II":
+									for factor in listFactor:
+										for typeFactor in listTypeFactor:
+											for factorExchange in listFactorExchange:
+
+												logicSymbol = True if (symbol == factor) else False
+												logicType = True if (typeMarket == typeFactor) else False
+												logicExchange = True if (nameExchange == factorExchange) else False
+
+												if not(logicSymbol and logicType and logicExchange):
+													assetsList.append({
+														'mode': mode,
+														'testMode': testMode,
+														'nameExchange': nameExchange,
+														'symbol': symbol,
+														'type': typeMarket,
+														'timeFrame': timeFrame,
+														'strategy': strategy,
+														'factor': factor,
+														'typeFactor': typeFactor,
+														'factorExchange': factorExchange
+													})
 
 		portfolioList.append(
 			{

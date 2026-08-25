@@ -5,14 +5,6 @@ from strategies import (
 	opt_stochastic, opt_bollinger, opt_keltner,
 	opt_envelopes, opt_modeling, opt_correlation,
 	opt_lrcurve, opt_lrchannel,
-
-	ada_moving, ada_trend, ada_modeling,
-	ada_correlation, ada_lrcurve, ada_lrchannel,
-
-	moving, cross_ma, trend,
-	stochastic, bollinger, keltner,
-	envelopes, modeling, correlation,
-	lrcurve, lrchannel
 )
 import trading_simulator
 import imitation_connector
@@ -71,42 +63,6 @@ def main(inputMessage: dict) -> None:
 		opt_lrcurve.main(inputMessage)
 	elif firstName == "opt_lrchannel":
 		opt_lrchannel.main(inputMessage)
-
-	elif firstName == "ada_moving":
-		ada_moving.main(inputMessage)
-	elif firstName == "ada_trend":
-		ada_trend.main(inputMessage)
-	elif firstName == "ada_modeling":
-		ada_modeling.main(inputMessage)
-	elif firstName == "ada_correlation":
-		ada_correlation.main(inputMessage)
-	elif firstName == "ada_lrcurve":
-		ada_lrcurve.main(inputMessage)
-	elif firstName == "ada_lrchannel":
-		ada_lrchannel.main(inputMessage)
-		
-	elif firstName == "moving":
-		moving.main(inputMessage)
-	elif firstName == "cross_ma":
-		cross_ma.main(inputMessage)
-	elif firstName == "trend":
-		trend.main(inputMessage)
-	elif firstName == "stochastic":
-		stochastic.main(inputMessage)
-	elif firstName == "bollinger":
-		bollinger.main(inputMessage)
-	elif firstName == "keltner":
-		keltner.main(inputMessage)
-	elif firstName == "envelopes":
-		envelopes.main(inputMessage)
-	elif firstName == "modeling":
-		modeling.main(inputMessage)
-	elif firstName == "correlation":
-		correlation.main(inputMessage)
-	elif firstName == "lrcurve":
-		lrcurve.main(inputMessage)
-	elif firstName == "lrchannel":
-		lrchannel.main(inputMessage)
 
 	if inputMessage['mode'] == 'test':
 		trading_simulator.main(inputMessage)

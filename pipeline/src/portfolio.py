@@ -34,7 +34,8 @@ def main(portfolioParams: dict) -> None:
 		columnNames=columnNames,
 		period_rebalance=30,
 		start_depo=100.00,
-		portfolioMode=portfolioMode
+		portfolioMode=portfolioMode,
+		modeReBalance='sharp'
 	)
 
 	analystReport = portfolioAnalyst(
