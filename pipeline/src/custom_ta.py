@@ -477,4 +477,54 @@ def indicatorTuning(
 
 	return commonDict
 
+@njit(cache=True)
+def hurstCoef(
+		closeVector: npt.NDArray[np.float64],
+		window: int = 200,
+	) -> npt.NDArray[np.float64]:
+
+	length = len(closeVector)
+	hurstVector = np.full(length, np.nan, dtype=np.float64)
+	firstIndex = window
+	eps = 1e-10
+	
+	for i in range(firstIndex, length):
+		real_i = i+1
+		cutPrice = closeVector[real_i-window:real_i]
+
+		x_series = np.diff(np.log(cutPrice))
+		hurst_n = len(x_series)
+
+		x_mean = np.mean(x_series)
+		y_series = np.cumsum(x_series - x_mean)
+		
+		hurst_R = np.max(y_series) - np.min(y_series)
+		hurst_S = np.sqrt(np.sum((x_series - x_mean)**2) / (hurst_n - 1))
+
+		hurstVector[i] = np.log(max(hurst_R, eps)/max(hurst_S, eps))/np.log(hurst_n)
+
+	return hurstVector
+
+@njit(cache=True)
+def kamaInd(
+		closeVector: npt.NDArray[np.float64],
+		scVector: npt.NDArray[np.float64],
+		window: int = 20,
+	) -> npt.NDArray[np.float64]:
+
+	length = len(closeVector)
+	kamaVector = np.full(length, np.nan, dtype=np.float64)
+	firstIndex = window
+	
+	for i in range(firstIndex, length):
+		real_i = i+1
+
+		pastKama = (
+			kamaVector[i-1] if i > firstIndex
+			else np.mean(closeVector[real_i-window:real_i])
+		)
+
+		kamaVector[i] = pastKama + scVector[i]*(closeVector[i] - pastKama)
+
+	return kamaVector
 

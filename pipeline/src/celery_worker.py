@@ -51,22 +51,35 @@ def build_tasks(
 	listNameExchange = ['binance']
 	listStrategy = [
 #		'hold:N',
-		'opt_moving:I',
-		'opt_cross_ma:I',
-		'opt_trend:I',
-		'opt_stochastic:I',
-		'opt_bollinger:I',
-		'opt_keltner:I',
-		'opt_envelopes:I',
-		'opt_modeling:I',
-		'opt_lrcurve:I',
-		'opt_lrchannel:I',
-		'opt_correlation:II',
+#		'opt_moving:I',
+#		'opt_cross_ma:I',
+#		'opt_trend:I',
+#		'opt_stochastic:I',
+#		'opt_bollinger:I',
+#		'opt_keltner:I',
+#		'opt_envelopes:I',
+#		'opt_modeling:I',
+#		'opt_lrcurve:I',
+#		'opt_lrchannel:I',
+#		'opt_correlation:II',
+		'opt_kama:I',
+
+#		'hurst_moving:I',
+#		'hurst_cross_ma:I',
+#		'hurst_trend:I',
+#		'hurst_stochastic:I',
+#		'hurst_bollinger:I',
+#		'hurst_keltner:I',
+#		'hurst_envelopes:I',
+#		'hurst_modeling:I',
+#		'hurst_lrcurve:I',
+#		'hurst_lrchannel:I',
+#		'hurst_correlation:II',
 	]
 	listFactor = [
 		'BTC',
-#		'ETH',
-#		'BNB'
+		'ETH',
+		'BNB'
 #		'RE',
 #		'BOT',
 	]

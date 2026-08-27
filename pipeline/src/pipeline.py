@@ -4,7 +4,12 @@ from strategies import (
 	opt_moving, opt_cross_ma, opt_trend,
 	opt_stochastic, opt_bollinger, opt_keltner,
 	opt_envelopes, opt_modeling, opt_correlation,
-	opt_lrcurve, opt_lrchannel,
+	opt_lrcurve, opt_lrchannel, opt_kama,
+
+	hurst_moving, hurst_cross_ma, hurst_trend,
+	hurst_stochastic, hurst_bollinger, hurst_keltner,
+	hurst_envelopes, hurst_modeling, hurst_correlation,
+	hurst_lrcurve, hurst_lrchannel,
 )
 import trading_simulator
 import imitation_connector
@@ -63,6 +68,31 @@ def main(inputMessage: dict) -> None:
 		opt_lrcurve.main(inputMessage)
 	elif firstName == "opt_lrchannel":
 		opt_lrchannel.main(inputMessage)
+	elif firstName == "opt_kama":
+		opt_kama.main(inputMessage)
+		
+	elif firstName == "hurst_moving":
+		hurst_moving.main(inputMessage)
+	elif firstName == "hurst_cross_ma":
+		hurst_cross_ma.main(inputMessage)
+	elif firstName == "hurst_trend":
+		hurst_trend.main(inputMessage)
+	elif firstName == "hurst_stochastic":
+		hurst_stochastic.main(inputMessage)
+	elif firstName == "hurst_bollinger":
+		hurst_bollinger.main(inputMessage)
+	elif firstName == "hurst_keltner":
+		hurst_keltner.main(inputMessage)
+	elif firstName == "hurst_envelopes":
+		hurst_envelopes.main(inputMessage)
+	elif firstName == "hurst_modeling":
+		hurst_modeling.main(inputMessage)
+	elif firstName == "hurst_correlation":
+		hurst_correlation.main(inputMessage)
+	elif firstName == "hurst_lrcurve":
+		hurst_lrcurve.main(inputMessage)
+	elif firstName == "hurst_lrchannel":
+		hurst_lrchannel.main(inputMessage)
 
 	if inputMessage['mode'] == 'test':
 		trading_simulator.main(inputMessage)

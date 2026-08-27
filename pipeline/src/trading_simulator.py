@@ -56,7 +56,6 @@ def backTester(inputMessage: dict[str, Any]) -> Dict:
 
 	send_list = fastBackTester.coreBacktester(dataFrame, testMode)
 
-	
 	cash_balance_body = send_list['balanceBody']
 	cash_balance_cold = send_list['balanceCold']
 
@@ -65,9 +64,12 @@ def backTester(inputMessage: dict[str, Any]) -> Dict:
 		pl.Series('cash_balance_cold', cash_balance_cold),
 	])
 
-	dataFrame = dataFrame.with_columns([
-		(pl.col('cash_balance_body') + pl.col('cash_balance_cold')).alias('deposite')
-	])
+	nameResult: str = f"{nameExchange}_{symbol}_{type}_{timeFrame}_{strategy}".lower()
+	fileName: str = f'{output_dir}/backtest_custom_{nameResult}.png'
+	plt.plot(dataFrame['datetime'], dataFrame['cash_balance_body'], color='orange')
+	plt.plot(dataFrame['datetime'], dataFrame['cash_balance_cold'], color='blue')
+	plt.savefig(fileName)
+	plt.close()
 
 	'''
 	indicatorName = 'zScoreVolume'
@@ -145,6 +147,23 @@ def backTester(inputMessage: dict[str, Any]) -> Dict:
 	plt.savefig(superName)
 	plt.close()
 	'''
+
+
+	indicatorName = 'ER'
+	tempDF = dataFrame[[indicatorName, 'datetime']]
+	plt.plot(tempDF['datetime'], tempDF[indicatorName], color='orange')
+	superName = str(output_dir) + f'/{indicatorName}_{strategy}_{symbol}_{timeFrame}_{type}_{nameExchange}.png'
+	plt.savefig(superName)
+	plt.close()
+
+	indicatorName = 'signalMoving'
+	tempDF = dataFrame[[indicatorName, 'close', 'datetime']]
+	plt.plot(tempDF['datetime'], tempDF['close'], color='black')
+	plt.plot(tempDF['datetime'], tempDF[indicatorName], color='red')
+	superName = str(output_dir) + f'/{indicatorName}_{strategy}_{symbol}_{timeFrame}_{type}_{nameExchange}.png'
+	plt.savefig(superName)
+	plt.close()
+
 
 	new_name = f"{strategy}_{symbol}_{timeFrame}_{type}_{nameExchange}"
 	equityDataframe = dataFrame[['datetime', 'cash_balance_body']].rename({"cash_balance_body": new_name})
@@ -307,13 +326,6 @@ def backTestAnalyst(
 		logger.info(f'sharp_classic {sharp_classic}')
 		logger.info(f'stable_index {stable_index}')
 		logger.info(f'calmar {calmar}')
-
-		nameResult: str = f"{nameExchange}_{symbol}_{type}_{timeFrame}_{strategy}".lower()
-		fileName: str = f'{output_dir}/backtest_custom_{nameResult}.png'
-		plt.plot(balanceCold)
-		plt.plot(balanceBody)
-		plt.savefig(fileName)
-		plt.close()
 
 		listReport = {
 			"strategy": nameStrategy,
