@@ -149,20 +149,20 @@ def backTester(inputMessage: dict[str, Any]) -> Dict:
 	'''
 
 
-	indicatorName = 'ER'
-	tempDF = dataFrame[[indicatorName, 'datetime']]
-	plt.plot(tempDF['datetime'], tempDF[indicatorName], color='orange')
-	superName = str(output_dir) + f'/{indicatorName}_{strategy}_{symbol}_{timeFrame}_{type}_{nameExchange}.png'
-	plt.savefig(superName)
-	plt.close()
+	#indicatorName = 'ER'
+	#tempDF = dataFrame[[indicatorName, 'datetime']]
+	#plt.plot(tempDF['datetime'], tempDF[indicatorName], color='orange')
+	#superName = str(output_dir) + f'/{indicatorName}_{strategy}_{symbol}_{timeFrame}_{type}_{nameExchange}.png'
+	#plt.savefig(superName)
+	#plt.close()
 
-	indicatorName = 'signalMoving'
-	tempDF = dataFrame[[indicatorName, 'close', 'datetime']]
-	plt.plot(tempDF['datetime'], tempDF['close'], color='black')
-	plt.plot(tempDF['datetime'], tempDF[indicatorName], color='red')
-	superName = str(output_dir) + f'/{indicatorName}_{strategy}_{symbol}_{timeFrame}_{type}_{nameExchange}.png'
-	plt.savefig(superName)
-	plt.close()
+	#indicatorName = 'signalMoving'
+	#tempDF = dataFrame[[indicatorName, 'close', 'datetime']]
+	#plt.plot(tempDF['datetime'], tempDF['close'], color='black')
+	#plt.plot(tempDF['datetime'], tempDF[indicatorName], color='red')
+	#superName = str(output_dir) + f'/{indicatorName}_{strategy}_{symbol}_{timeFrame}_{type}_{nameExchange}.png'
+	#plt.savefig(superName)
+	#plt.close()
 
 
 	new_name = f"{strategy}_{symbol}_{timeFrame}_{type}_{nameExchange}"

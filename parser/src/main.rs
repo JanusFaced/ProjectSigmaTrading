@@ -1,6 +1,7 @@
 use ccxt_exchanges::binance::Binance;
 use ccxt_exchanges::binance::BinanceOptions;
 use ccxt_core::types::default_type::{DefaultType, DefaultSubType};
+use ccxt_core::types::OHLCV;
 use ccxt_rust::prelude::*;
 use std::collections::{HashMap, HashSet};
 use anyhow::{Result, anyhow};
@@ -24,33 +25,23 @@ async fn main() -> Result<()> {
     loop {
         println!(" === Start parsing! === \n");
 
-        let list_symbol = vec!["ETH", "BNB", "SOL", "TRX", "ADA"];
-        //let list_symbol = vec!["XRP", "LINK", "HYPE", "RE", "BOT"];
+        let list_symbol = vec![
+            "BTC", "ETH", "BNB",
+            "XRP", "SOL", "TRX",
+            "ADA", "LINK", "HYPE",
+            "RE", "BOT", "LYTE",
+            "ZEC", "DOGE", "SUI",
+            "NEAR", "AVAX", "LTC",
+            "XMR", "BCH", "FIL",
+        ];
         let list_type_market = vec!["futures"];
         let list_name_exchange = vec!["binance"];
-        
-        let list_factor = vec!["BTC"];
-        let list_type_factor = vec!["futures"];
-        let list_factor_exchange = vec!["binance"];
 
         let mut tasks: Vec<HashMap<String, String>> = Vec::new();
 
         for &name_exchange in &list_name_exchange {
             for &type_market in &list_type_market {
                 for &symbol in &list_symbol {
-                    let mut task = HashMap::new();
-                    task.insert("mode".to_string(), mode.clone());
-                    task.insert("nameExchange".to_string(), name_exchange.to_string());
-                    task.insert("symbol".to_string(), symbol.to_string());
-                    task.insert("type_market".to_string(), type_market.to_string());
-                    tasks.push(task);
-                }
-            }
-        }
-
-        for &name_exchange in &list_factor_exchange {
-            for &type_market in &list_type_factor {
-                for &symbol in &list_factor {
                     let mut task = HashMap::new();
                     task.insert("mode".to_string(), mode.clone());
                     task.insert("nameExchange".to_string(), name_exchange.to_string());
@@ -128,11 +119,28 @@ async fn start_parser(task: &HashMap<String, String>) -> Result<i64> {
     println!("{} | Start parsing {} from {}", name_table, symbol, initial_datetime);
     let mut current_datetime = initial_datetime;
     let mut collected: Vec<(DateTime<Utc>, f64, f64, f64, f64, f64)> = Vec::new();
+    let mut ohlcv_data: Vec<OHLCV> = Vec::new();
+
     loop {
+
         let since = Some(current_datetime.timestamp_millis());
-        let ohlcv_data = exchange
-            .fetch_ohlcv(&ticker, &time_frame, since, Some(limit), None)
-            .await?;
+
+        let mut try_count = 1;
+        loop {
+            match exchange.fetch_ohlcv(&ticker, &time_frame, since, Some(limit), None).await {
+                Ok(data) => {
+                    ohlcv_data = data;
+                    break;
+                }
+                Err(e) => {
+                    println!("Error: {}", e);
+                    println!("Wait {} seconds...", try_count);
+                    sleep(StdDuration::from_secs(try_count)).await;
+                    try_count += 1;
+                    println!("Try again!");
+                }
+            }
+        }
 
         if ohlcv_data.is_empty() {
             println!("⏹️ Данные закончились, выходим из цикла");
@@ -212,40 +220,51 @@ async fn setup_exchange(type_market: &str) -> Result<Binance> {
     };
     
     exchange.set_options(options);
-    exchange.load_markets(false).await?;
-    println!("✅ Рынки загружены!\n");
+    println!("✅ Настройки установлены!\n");
     
     Ok(exchange)
 }
 
 async fn get_initial_datetime(
-        pool: &PgPool,
-        name_table: &str,
-        mode: &str,
-        now_much_more_days: i64,
-    ) -> Result<DateTime<Utc>> {
+    pool: &PgPool,
+    name_table: &str,
+    mode: &str,
+    now_much_more_days: i64,
+) -> Result<DateTime<Utc>> {
 
     let query = format!("SELECT MAX(datetime) FROM {}", name_table);
-    let result: Option<NaiveDateTime> = sqlx::query_scalar(&query)
-        .fetch_optional(pool)
-        .await?;
+    let mut last_date: Option<NaiveDateTime> = None; // изменяем на Option
+    let mut table_exists = false;
 
-    match result {
-        Some(last_date) => {
-            let last_date_utc = DateTime::<Utc>::from_naive_utc_and_offset(last_date, Utc);
-            println!("✅ Таблица есть, последняя дата: {}", last_date_utc);
-            Ok(last_date_utc + ChronoDuration::minutes(1))
+    match sqlx::query_scalar(&query).fetch_optional(pool).await {
+        Ok(Some(data)) => {
+            last_date = Some(data);
+            table_exists = true;
         }
-        None => {
-            println!("⚠️ Таблицы нет, создаём с начальной даты");
-            let start_date = if mode == "test" {
-                Utc.with_ymd_and_hms(2017, 1, 1, 0, 0, 0).unwrap()
-            } else {
-                Utc::now() - ChronoDuration::days(now_much_more_days)
-            };
-            Ok(start_date)
+        Ok(None) => {
+            println!("⚠️ Таблица существует, но пуста");
+            table_exists = true; // таблица существует, но данных нет
+        }
+        Err(e) => {
+            println!("Error: {}", e);
+            table_exists = false;
         }
     }
+
+    let start_date = if table_exists && last_date.is_some() {
+        let last_date_utc = DateTime::<Utc>::from_naive_utc_and_offset(last_date.unwrap(), Utc);
+        println!("✅ Таблица есть, последняя дата: {}", last_date_utc);
+        last_date_utc + ChronoDuration::minutes(1)
+    } else {
+        println!("⚠️ Таблицы нет или она пуста, создаём с начальной даты");
+        if mode == "test" {
+            Utc.with_ymd_and_hms(2017, 1, 1, 0, 0, 0).unwrap()
+        } else {
+            Utc::now() - ChronoDuration::days(now_much_more_days)
+        }
+    };
+
+    Ok(start_date)
 }
 
 fn remove_duplicates_keep_last(candles: &mut Vec<(DateTime<Utc>, f64, f64, f64, f64, f64)>) {

@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import polars as pl
 import os
 from walk_forward_simulator import walkForward
-from custom_ta import hurstCoef
+from custom_ta import kamaInd, hurstCoef
 from pathlib import Path
 from duckDB_setup import get_duckdb
 from logger_setup import get_logger
@@ -60,8 +60,6 @@ def algorithm(
 	dataFrame = dataFrame.with_columns([
 		pl.lit(leverage).alias('leverage'),
 		(pl.col('high')/pl.col('low') - 1).rolling_mean(window_size=trendWindow).alias('ATR'),
-		pl.col('close').rolling_mean(window_size=int(0.5*signalWindow)).alias('fastSignalMoving'),
-		pl.col('close').rolling_mean(window_size=int(1.5*signalWindow)).alias('slowSignalMoving'),
 		pl.col('close').rolling_mean(window_size=trendWindow).alias('trendMoving'),
 	])
 
@@ -70,32 +68,49 @@ def algorithm(
 		(pl.lit(multiMaxProfit)*pl.col('ATR')).alias('maxProfit'),
 	])
 
+	hurstWindow = int(0.5*signalWindow)
+
+	minWindow, maxWindow = int(0.1*signalWindow), int(1.0*signalWindow)
+	fastestCoef, slowestCoef = 2/(minWindow + 1), 2/(maxWindow + 1)
+
 	hurst = hurstCoef(
 		closeVector=dataFrame['close'].to_numpy(),
-		window=2000,
+		window=hurstWindow,
 	)
 
 	dataFrame = dataFrame.with_columns([
 		pl.Series('hurst', hurst),
+	]).with_columns([
+		(pl.col('hurst')*(fastestCoef-slowestCoef)+slowestCoef).alias('SC'),
+	])
+
+	kama = kamaInd(
+		closeVector=dataFrame['close'].to_numpy(),
+		scVector=dataFrame['SC'].to_numpy(),
+		window=int(2*hurstWindow),
+	)
+
+	dataFrame = dataFrame.with_columns([
+		pl.Series('signalMoving', kama),
 	])
 	
 	dataFrame = dataFrame.with_columns(
 		pl.when(
-			(pl.col('fastSignalMoving') > pl.col('slowSignalMoving')) & (pl.col('slowSignalMoving') > pl.col('fastSignalMoving').shift(1)) &
-			(pl.col('close') > pl.col('trendMoving')) & (pl.col('hurst') > 0.50)
+			(pl.col('close') > pl.col('signalMoving')) & (pl.col('signalMoving') > pl.col('close').shift(1)) &
+			(pl.col('close') > pl.col('trendMoving'))
 		).then(pl.lit(-1))
 		.when(
-			(pl.col('fastSignalMoving') < pl.col('slowSignalMoving')) & (pl.col('slowSignalMoving') < pl.col('fastSignalMoving').shift(1))
+			(pl.col('close') < pl.col('signalMoving')) & (pl.col('signalMoving') < pl.col('close').shift(1))
 		).then(pl.lit(1))
 		.otherwise(pl.lit(0))
 		.alias('long_signal'),
 
 		pl.when(
-			(pl.col('fastSignalMoving') > pl.col('slowSignalMoving')) & (pl.col('slowSignalMoving') > pl.col('fastSignalMoving').shift(1))
+			(pl.col('close') > pl.col('signalMoving')) & (pl.col('signalMoving') > pl.col('close').shift(1))
 		).then(pl.lit(-1))
 		.when(
-			(pl.col('fastSignalMoving') < pl.col('slowSignalMoving')) & (pl.col('slowSignalMoving') < pl.col('fastSignalMoving').shift(1)) &
-			(pl.col('close') < pl.col('trendMoving')) & (pl.col('hurst') > 0.50)
+			(pl.col('close') < pl.col('signalMoving')) & (pl.col('signalMoving') < pl.col('close').shift(1)) &
+			(pl.col('close') < pl.col('trendMoving'))
 		).then(pl.lit(1))
 		.otherwise(pl.lit(0))
 		.alias('short_signal'),

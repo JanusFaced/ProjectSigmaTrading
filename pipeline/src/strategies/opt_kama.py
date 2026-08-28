@@ -68,25 +68,24 @@ def algorithm(
 		(pl.lit(multiMaxProfit)*pl.col('ATR')).alias('maxProfit'),
 	])
 
-	minWindow = 0.5*signalWindow
-	maxWindow = 1.5*signalWindow
+	kamaWindow = int(0.5*signalWindow)
 
-	fastestSC = 2 / (minWindow + 1)
-	slowestSC = 2 / (maxWindow + 1)
+	minWindow, maxWindow = int(0.1*signalWindow), int(1.0*signalWindow)
+	fastestCoef, slowestCoef = 2/(minWindow + 1), 2/(maxWindow + 1)
 
 	dataFrame = dataFrame.with_columns([
-		(pl.col('close') - pl.col('close').shift(signalWindow)).abs().alias('clearMove'),
-		(pl.col('close') - pl.col('close').shift(1)).abs().rolling_sum(window_size=signalWindow).alias('cumMove'),
+		(pl.col('close') - pl.col('close').shift(kamaWindow)).abs().alias('clearMove'),
+		(pl.col('close') - pl.col('close').shift(1)).abs().rolling_sum(window_size=kamaWindow).alias('cumMove'),
 	]).with_columns([
-		(pl.col('clearMove')/pl.col('cumMove')).rolling_mean(window_size=signalWindow).alias('ER'),
+		(pl.col('clearMove')/pl.col('cumMove')).rolling_mean(window_size=kamaWindow).alias('ER'),
 	]).with_columns([
-		(pl.col('ER')*(fastestSC-slowestSC)+slowestSC).alias('SC'),
+		(pl.col('ER')*(fastestCoef-slowestCoef)+slowestCoef).alias('SC'),
 	])
 
 	kama = kamaInd(
 		closeVector=dataFrame['close'].to_numpy(),
 		scVector=dataFrame['SC'].to_numpy(),
-		window=int(2*signalWindow),
+		window=int(2*kamaWindow),
 	)
 
 	dataFrame = dataFrame.with_columns([

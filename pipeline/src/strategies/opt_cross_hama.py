@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import polars as pl
 import os
 from walk_forward_simulator import walkForward
-from custom_ta import hurstCoef
+from custom_ta import kamaInd, hurstCoef
 from pathlib import Path
 from duckDB_setup import get_duckdb
 from logger_setup import get_logger
@@ -57,53 +57,71 @@ def algorithm(
 	multiMaxLoss = 1.0
 	multiMaxProfit = 100.0
 
-	multiSigma = 1.0
-
 	dataFrame = dataFrame.with_columns([
 		pl.lit(leverage).alias('leverage'),
 		(pl.col('high')/pl.col('low') - 1).rolling_mean(window_size=trendWindow).alias('ATR'),
-		pl.col('close').rolling_mean(window_size=signalWindow).alias('signalMoving'),
-		pl.col('close').rolling_std(window_size=signalWindow).alias('signalSigma'),
 		pl.col('close').rolling_mean(window_size=trendWindow).alias('trendMoving'),
-	])
-
-	dataFrame = dataFrame.with_columns([
-		(pl.col('signalMoving') + multiSigma*pl.col('signalSigma')).alias('signalMovingUpLine'),
-		(pl.col('signalMoving') - multiSigma*pl.col('signalSigma')).alias('signalMovingDownLine'),
 	])
 
 	dataFrame = dataFrame.with_columns([
 		(pl.lit(-multiMaxLoss)*pl.col('ATR')).alias('maxLoss'),
 		(pl.lit(multiMaxProfit)*pl.col('ATR')).alias('maxProfit'),
 	])
-	
+
+	hurstWindow = int(0.5*signalWindow)
+
+	minWindow, maxWindow = int(0.1*signalWindow), int(1.0*signalWindow)
+	fastMIN, fastMAX = 2/(minWindow + 1), 2/(maxWindow + 1)
+
+	minWindow, maxWindow = int(0.2*signalWindow), int(2.0*signalWindow)
+	slowMIN, slowMAX = 2/(minWindow + 1), 2/(maxWindow + 1)
+
 	hurst = hurstCoef(
 		closeVector=dataFrame['close'].to_numpy(),
-		window=2000,
+		window=hurstWindow,
 	)
 
 	dataFrame = dataFrame.with_columns([
 		pl.Series('hurst', hurst),
+	]).with_columns([
+		(pl.col('hurst')*(fastMIN-fastMAX)+fastMAX).alias('fastCoef'),
+		(pl.col('hurst')*(slowMIN-slowMAX)+slowMAX).alias('slowCoef'),
 	])
 
+	fastKAMA = kamaInd(
+		closeVector=dataFrame['close'].to_numpy(),
+		scVector=dataFrame['fastCoef'].to_numpy(),
+		window=int(2*hurstWindow),
+	)
+
+	slowKAMA = kamaInd(
+		closeVector=dataFrame['close'].to_numpy(),
+		scVector=dataFrame['slowCoef'].to_numpy(),
+		window=int(2*hurstWindow),
+	)
+
+	dataFrame = dataFrame.with_columns([
+		pl.Series('fastSignalMoving', fastKAMA),
+		pl.Series('slowSignalMoving', slowKAMA),
+	])
 	
 	dataFrame = dataFrame.with_columns(
 		pl.when(
-			(pl.col('close') > pl.col('signalMovingUpLine')) & (pl.col('signalMovingUpLine') > pl.col('close').shift(1)) &
-			(pl.col('close') > pl.col('trendMoving')) & (pl.col('hurst') > 0.50)
+			(pl.col('fastSignalMoving') > pl.col('slowSignalMoving')) & (pl.col('slowSignalMoving') > pl.col('fastSignalMoving').shift(1)) &
+			(pl.col('close') > pl.col('trendMoving'))
 		).then(pl.lit(-1))
 		.when(
-			(pl.col('close') < pl.col('signalMovingUpLine')) & (pl.col('signalMovingUpLine') < pl.col('close').shift(1))
+			(pl.col('fastSignalMoving') < pl.col('slowSignalMoving')) & (pl.col('slowSignalMoving') < pl.col('fastSignalMoving').shift(1))
 		).then(pl.lit(1))
 		.otherwise(pl.lit(0))
 		.alias('long_signal'),
 
 		pl.when(
-			(pl.col('close') > pl.col('signalMovingDownLine')) & (pl.col('signalMovingDownLine') > pl.col('close').shift(1))
+			(pl.col('fastSignalMoving') > pl.col('slowSignalMoving')) & (pl.col('slowSignalMoving') > pl.col('fastSignalMoving').shift(1))
 		).then(pl.lit(-1))
 		.when(
-			(pl.col('close') < pl.col('signalMovingDownLine')) & (pl.col('signalMovingDownLine') < pl.col('close').shift(1)) &
-			(pl.col('close') < pl.col('trendMoving')) & (pl.col('hurst') > 0.50)
+			(pl.col('fastSignalMoving') < pl.col('slowSignalMoving')) & (pl.col('slowSignalMoving') < pl.col('fastSignalMoving').shift(1)) &
+			(pl.col('close') < pl.col('trendMoving'))
 		).then(pl.lit(1))
 		.otherwise(pl.lit(0))
 		.alias('short_signal'),

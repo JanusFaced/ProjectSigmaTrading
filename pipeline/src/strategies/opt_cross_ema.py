@@ -3,8 +3,6 @@ import matplotlib.pyplot as plt
 import polars as pl
 import os
 from walk_forward_simulator import walkForward
-from custom_ta import simple_linear_regression
-from custom_ta import hurstCoef
 from pathlib import Path
 from duckDB_setup import get_duckdb
 from logger_setup import get_logger
@@ -58,15 +56,11 @@ def algorithm(
 	multiMaxLoss = 1.0
 	multiMaxProfit = 100.0
 
-	lrcurve = simple_linear_regression(
-		closeVector=dataFrame['close'].to_numpy(),
-		baseWindow=signalWindow
-	)
-
 	dataFrame = dataFrame.with_columns([
 		pl.lit(leverage).alias('leverage'),
 		(pl.col('high')/pl.col('low') - 1).rolling_mean(window_size=trendWindow).alias('ATR'),
-		pl.Series('lrcurve', lrcurve),
+		pl.col('close').ewm_mean(span=int(0.5*signalWindow)).alias('fastSignalMoving'),
+		pl.col('close').ewm_mean(span=int(1.5*signalWindow)).alias('slowSignalMoving'),
 		pl.col('close').rolling_mean(window_size=trendWindow).alias('trendMoving'),
 	])
 
@@ -75,33 +69,23 @@ def algorithm(
 		(pl.lit(multiMaxProfit)*pl.col('ATR')).alias('maxProfit'),
 	])
 	
-	hurst = hurstCoef(
-		closeVector=dataFrame['close'].to_numpy(),
-		window=2000,
-	)
-
-	dataFrame = dataFrame.with_columns([
-		pl.Series('hurst', hurst),
-	])
-
-	
 	dataFrame = dataFrame.with_columns(
 		pl.when(
-			(pl.col('close') > pl.col('lrcurve')) & (pl.col('lrcurve') > pl.col('close').shift(1)) &
-			(pl.col('close') > pl.col('trendMoving')) & (pl.col('hurst') > 0.50)
+			(pl.col('fastSignalMoving') > pl.col('slowSignalMoving')) & (pl.col('slowSignalMoving') > pl.col('fastSignalMoving').shift(1)) &
+			(pl.col('close') > pl.col('trendMoving'))
 		).then(pl.lit(-1))
 		.when(
-			(pl.col('close') < pl.col('lrcurve')) & (pl.col('lrcurve') < pl.col('close').shift(1))
+			(pl.col('fastSignalMoving') < pl.col('slowSignalMoving')) & (pl.col('slowSignalMoving') < pl.col('fastSignalMoving').shift(1))
 		).then(pl.lit(1))
 		.otherwise(pl.lit(0))
 		.alias('long_signal'),
 
 		pl.when(
-			(pl.col('close') > pl.col('lrcurve')) & (pl.col('lrcurve') > pl.col('close').shift(1))
+			(pl.col('fastSignalMoving') > pl.col('slowSignalMoving')) & (pl.col('slowSignalMoving') > pl.col('fastSignalMoving').shift(1))
 		).then(pl.lit(-1))
 		.when(
-			(pl.col('close') < pl.col('lrcurve')) & (pl.col('lrcurve') < pl.col('close').shift(1)) &
-			(pl.col('close') < pl.col('trendMoving')) & (pl.col('hurst') > 0.50)
+			(pl.col('fastSignalMoving') < pl.col('slowSignalMoving')) & (pl.col('slowSignalMoving') < pl.col('fastSignalMoving').shift(1)) &
+			(pl.col('close') < pl.col('trendMoving'))
 		).then(pl.lit(1))
 		.otherwise(pl.lit(0))
 		.alias('short_signal'),

@@ -3,8 +3,6 @@ import matplotlib.pyplot as plt
 import polars as pl
 import os
 from walk_forward_simulator import walkForward
-from custom_ta import simple_correlation
-from custom_ta import hurstCoef
 from pathlib import Path
 from duckDB_setup import get_duckdb
 from logger_setup import get_logger
@@ -61,16 +59,7 @@ def algorithm(
 	dataFrame = dataFrame.with_columns([
 		pl.lit(leverage).alias('leverage'),
 		(pl.col('high')/pl.col('low') - 1).rolling_mean(window_size=trendWindow).alias('ATR'),
-	])
-
-	model = simple_correlation(
-		secondaryVector=dataFrame['close'].to_numpy(),
-		primaryVector=dataFrame['closeFactor'].to_numpy(),
-		baseWindow=signalWindow
-	)
-
-	dataFrame = dataFrame.with_columns([
-		pl.Series('model', model),
+		pl.col('close').ewm_mean(span=signalWindow).alias('signalMoving'),
 		pl.col('close').rolling_mean(window_size=trendWindow).alias('trendMoving'),
 	])
 
@@ -79,33 +68,23 @@ def algorithm(
 		(pl.lit(multiMaxProfit)*pl.col('ATR')).alias('maxProfit'),
 	])
 	
-	hurst = hurstCoef(
-		closeVector=dataFrame['close'].to_numpy(),
-		window=2000,
-	)
-
-	dataFrame = dataFrame.with_columns([
-		pl.Series('hurst', hurst),
-	])
-
-	
 	dataFrame = dataFrame.with_columns(
 		pl.when(
-			(pl.col('close') > pl.col('model')) & (pl.col('model') > pl.col('close').shift(1)) &
-			(pl.col('close') > pl.col('trendMoving')) & (pl.col('hurst') > 0.50)
+			(pl.col('close') > pl.col('signalMoving')) & (pl.col('signalMoving') > pl.col('close').shift(1)) &
+			(pl.col('close') > pl.col('trendMoving'))
 		).then(pl.lit(-1))
 		.when(
-			(pl.col('close') < pl.col('model')) & (pl.col('model') < pl.col('close').shift(1))
+			(pl.col('close') < pl.col('signalMoving')) & (pl.col('signalMoving') < pl.col('close').shift(1))
 		).then(pl.lit(1))
 		.otherwise(pl.lit(0))
 		.alias('long_signal'),
 
 		pl.when(
-			(pl.col('close') > pl.col('model')) & (pl.col('model') > pl.col('close').shift(1))
+			(pl.col('close') > pl.col('signalMoving')) & (pl.col('signalMoving') > pl.col('close').shift(1))
 		).then(pl.lit(-1))
 		.when(
-			(pl.col('close') < pl.col('model')) & (pl.col('model') < pl.col('close').shift(1)) &
-			(pl.col('close') < pl.col('trendMoving')) & (pl.col('hurst') > 0.50)
+			(pl.col('close') < pl.col('signalMoving')) & (pl.col('signalMoving') < pl.col('close').shift(1)) &
+			(pl.col('close') < pl.col('trendMoving'))
 		).then(pl.lit(1))
 		.otherwise(pl.lit(0))
 		.alias('short_signal'),
