@@ -7,7 +7,7 @@ from strategies import (
 	opt_ema, opt_cross_ema,
 	opt_trend, opt_stochastic,
 	opt_bollinger, opt_keltner, opt_envelopes, 
-	opt_lrcurve, opt_lrchannel,
+	opt_lrcurve, opt_cross_curve, opt_lrchannel,
 	opt_modeling, opt_correlation,
 )
 import trading_simulator
@@ -73,6 +73,8 @@ def main(inputMessage: dict) -> None:
 		opt_envelopes.main(inputMessage)
 	elif firstName == "opt_lrcurve":
 		opt_lrcurve.main(inputMessage)
+	elif firstName == "opt_cross_curve":
+		opt_cross_curve.main(inputMessage)
 	elif firstName == "opt_lrchannel":
 		opt_lrchannel.main(inputMessage)
 	elif firstName == "opt_modeling":

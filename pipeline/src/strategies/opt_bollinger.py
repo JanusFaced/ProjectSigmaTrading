@@ -53,8 +53,7 @@ def algorithm(
 
 	leverage = 1
 
-	multiMaxLoss = 1.0
-	multiMaxProfit = 100.0
+	multiMaxLoss = 2.00
 
 	multiSigma = 1.0
 
@@ -64,19 +63,12 @@ def algorithm(
 		pl.col('close').rolling_mean(window_size=signalWindow).alias('signalMoving'),
 		pl.col('close').rolling_std(window_size=signalWindow).alias('signalSigma'),
 		pl.col('close').rolling_mean(window_size=trendWindow).alias('trendMoving'),
-	])
-
-	dataFrame = dataFrame.with_columns([
+	]).with_columns([
 		(pl.col('signalMoving') + multiSigma*pl.col('signalSigma')).alias('signalMovingUpLine'),
 		(pl.col('signalMoving') - multiSigma*pl.col('signalSigma')).alias('signalMovingDownLine'),
-	])
-
-	dataFrame = dataFrame.with_columns([
+	]).with_columns([
 		(pl.lit(-multiMaxLoss)*pl.col('ATR')).alias('maxLoss'),
-		(pl.lit(multiMaxProfit)*pl.col('ATR')).alias('maxProfit'),
-	])
-	
-	dataFrame = dataFrame.with_columns(
+	]).with_columns(
 		pl.when(
 			(pl.col('close') > pl.col('signalMovingUpLine')) & (pl.col('signalMovingUpLine') > pl.col('close').shift(1)) &
 			(pl.col('close') > pl.col('trendMoving'))

@@ -95,9 +95,9 @@ def main(
 	]).drop("parts")
 
 	list_of_combi = [
-		['strategy_name', 'timeframe'],
+#		['strategy_name', 'timeframe'],
 		['strategy_name', 'symbol'],
-		['symbol', 'timeframe']
+#		['symbol', 'timeframe'],
 	]
 	list_of_metrics = [
 		'year_profit',
@@ -129,12 +129,43 @@ def main(
 			pivot = pivot.select([nameY] + sorted_cols)
 
 			cols = [c for c in pivot.columns if c != nameY]
-			pivot = pivot.with_columns(pl.concat_list(cols).list.mean().alias("final_mean"))
+			pivot = pivot.with_columns([
+				pl.concat_list(cols).list.mean().alias("mean"),
+			])
 
-			cols = [c for c in pivot.columns if c not in (nameY, "final_mean")]
+			if metric_name == 'year_profit':
+				add_column = "percent"
+				pivot = pivot.with_columns([
+					pl.concat_list(cols).list.eval(
+						(pl.element() > 0).cast(pl.Int64)
+					).list.mean().alias(add_column),
+				])
+			
+			elif metric_name == 'max_drawdown':
+				add_column = "best"
+				pivot = pivot.with_columns([
+					pl.concat_list(cols).list.max().alias(add_column),
+				])
+
+			elif metric_name == 'sharp':
+				add_column = "stable"
+				pivot = pivot.with_columns([
+					pl.concat_list(cols).list.std().alias(add_column),
+				])
+
+			cols = [c for c in pivot.columns if c not in (nameY, "mean", add_column)]
+
 			col_means = pivot.select([pl.col(c).mean().alias(c) for c in cols]).row(0)
-			overall_mean = pivot.select(pl.col("final_mean").mean()).item()
-			final_row = {nameY: "final_mean", **{c: col_means[i] for i, c in enumerate(cols)}, "final_mean": overall_mean}
+			overall_mean = pivot.select(pl.col("mean").mean()).item()
+			overall_add_mean = pivot.select(pl.col(add_column).mean()).item()
+
+			final_row = {
+				nameY: "mean",
+				**{c: col_means[i] for i, c in enumerate(cols)},
+				"mean": overall_mean,
+				add_column: overall_add_mean,
+			}
+
 			pivot = pl.concat([pivot, pl.DataFrame([final_row])], how="vertical")
 
 			cols = [c for c in pivot.columns if c != nameY]

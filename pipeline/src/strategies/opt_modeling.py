@@ -54,8 +54,7 @@ def algorithm(
 
 	leverage = 1
 
-	multiMaxLoss = 1.0
-	multiMaxProfit = 100.0
+	multiMaxLoss = 2.00
 
 	modelMulti = 0.5
 
@@ -63,9 +62,7 @@ def algorithm(
 		pl.lit(leverage).alias('leverage'),
 		(pl.col('high')/pl.col('low') - 1).rolling_mean(window_size=trendWindow).alias('ATR'),
 		(pl.col('close')/pl.col('close').shift(signalWindow) - 1).alias('signalDiff'),
-	])
-
-	dataFrame = dataFrame.with_columns([
+	]).with_columns([
 		pl.col('signalDiff').abs().alias('secondary'),
 		pl.col('volume').rolling_sum(window_size=signalWindow).alias('primary')
 	])
@@ -79,19 +76,12 @@ def algorithm(
 	dataFrame = dataFrame.with_columns([
 		pl.Series('model', model),
 		pl.col('close').rolling_mean(window_size=trendWindow).alias('trendMoving'),
-	])
-
-	dataFrame = dataFrame.with_columns([
+	]).with_columns([
 		(pl.lit(modelMulti)*pl.col('model')).alias('pModel'),
 		(pl.lit(-modelMulti)*pl.col('model')).alias('nModel'),
-	])
-
-	dataFrame = dataFrame.with_columns([
+	]).with_columns([
 		(pl.lit(-multiMaxLoss)*pl.col('ATR')).alias('maxLoss'),
-		(pl.lit(multiMaxProfit)*pl.col('ATR')).alias('maxProfit'),
-	])
-	
-	dataFrame = dataFrame.with_columns(
+	]).with_columns(
 		pl.when(
 			(pl.col('signalDiff') > pl.col('pModel')) & (pl.col('pModel') > pl.col('signalDiff').shift(1)) &
 			(pl.col('close') > pl.col('trendMoving'))

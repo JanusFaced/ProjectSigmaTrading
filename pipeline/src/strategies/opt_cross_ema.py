@@ -53,8 +53,7 @@ def algorithm(
 
 	leverage = 1
 
-	multiMaxLoss = 1.0
-	multiMaxProfit = 100.0
+	multiMaxLoss = 2.00
 
 	dataFrame = dataFrame.with_columns([
 		pl.lit(leverage).alias('leverage'),
@@ -62,14 +61,9 @@ def algorithm(
 		pl.col('close').ewm_mean(span=int(0.5*signalWindow)).alias('fastSignalMoving'),
 		pl.col('close').ewm_mean(span=int(1.5*signalWindow)).alias('slowSignalMoving'),
 		pl.col('close').rolling_mean(window_size=trendWindow).alias('trendMoving'),
-	])
-
-	dataFrame = dataFrame.with_columns([
+	]).with_columns([
 		(pl.lit(-multiMaxLoss)*pl.col('ATR')).alias('maxLoss'),
-		(pl.lit(multiMaxProfit)*pl.col('ATR')).alias('maxProfit'),
-	])
-	
-	dataFrame = dataFrame.with_columns(
+	]).with_columns(
 		pl.when(
 			(pl.col('fastSignalMoving') > pl.col('slowSignalMoving')) & (pl.col('slowSignalMoving') > pl.col('fastSignalMoving').shift(1)) &
 			(pl.col('close') > pl.col('trendMoving'))

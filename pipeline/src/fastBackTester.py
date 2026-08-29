@@ -116,7 +116,6 @@ def coreBacktester(dataFrame: pl.DataFrame, testMode: str) -> dict:
 		shortSignalVector = dataFrame['short_signal'].to_numpy(),
 		leverageVector = dataFrame['leverage'].to_numpy(),
 		maxLossVector = dataFrame['maxLoss'].to_numpy(),
-		maxProfitVector = dataFrame['maxProfit'].to_numpy(),
 		testMode = testMode,
 	)
 
@@ -150,7 +149,6 @@ def backtest(
 		shortSignalVector: npt.NDArray[np.int64],
 		leverageVector: npt.NDArray[np.int64],
 		maxLossVector: npt.NDArray[np.float64],
-		maxProfitVector: npt.NDArray[np.float64],
 		testMode: int,
 	) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.float64], npt.NDArray[np.float64], npt.NDArray[np.float64], npt.NDArray[np.int64], npt.NDArray[np.float64], npt.NDArray[np.float64], npt.NDArray[np.int64]]:
 
@@ -174,7 +172,8 @@ def backtest(
 	active: float = 0.0
 	currentPosition = start_fiat
 	oldTimePoint: int = 0
-	tempMaxProfit, tempMaxLoss = maxProfitVector[0], maxLossVector[0]
+	tempMaxLoss = maxLossVector[0]
+	solidMaxLoss = maxLossVector[0]
 
 	for i in range(lenthDataFrame):
 		openValue = openVector[i]
@@ -186,14 +185,13 @@ def backtest(
 		shortSignal = shortSignalVector[i]
 		leverage = leverageVector[i]
 		maxLoss = maxLossVector[i]
-		maxProfit = maxProfitVector[i]
 
-		fiat, active, deposit, financeReturn, tradEvent, cold_fiat = imitationEngine.coreEngine(
+		fiat, active, deposit, financeReturn, tradEvent, cold_fiat, tempMaxLoss = imitationEngine.coreEngine(
 			price=closeValue,
 			long_signal=longSignal,
 			short_signal=shortSignal,
-			maxProfit=tempMaxProfit,
-			maxLoss=tempMaxLoss,
+			solidMaxLoss=solidMaxLoss,
+			tempMaxLoss=tempMaxLoss,
 			currentPosition=currentPosition,
 			fiat=fiat,
 			active=active,
@@ -222,7 +220,8 @@ def backtest(
 
 		if tradEvent['open_long'] or tradEvent['open_short']:
 			currentPosition = deposit
-			tempMaxLoss, tempMaxProfit = maxLoss, maxProfit
+			tempMaxLoss = maxLoss
+			solidMaxLoss = maxLoss
 			oldTimePoint = i
 
 		#if True in [tradEvent['close_long'], tradEvent['open_long'], tradEvent['close_short'], tradEvent['open_short']]:
@@ -232,7 +231,7 @@ def backtest(
 		#		logger.info(f"open={openValue} high={highValue} low={lowValue} close={closeValue} volume={volumeValue}")
 		#		logger.info(f"longSignal={longSignal} shortSignal={shortSignal}")
 		#		logger.info(f"fiat={fiat} active={active} deposit={deposit}")
-		#		logger.info(f"maxLoss={maxLoss} maxProfit={maxProfit}")
+		#		logger.info(f"maxLoss={maxLoss} solidMaxLoss={solidMaxLoss}")
 		#		logger.info(f"========================================")
 		#	
 		#		for _ in range(10): time.sleep(1)

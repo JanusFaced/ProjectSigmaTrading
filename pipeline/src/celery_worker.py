@@ -10,48 +10,49 @@ logger = get_logger(__name__)
 global_work_mode = os.getenv('GLOBAL_WORK_MODE')
 
 def build_tasks(
-		listTimeFrame: list = ['8min', '18min', '36min', '48min'],
-		mode: str = 'imitation'
+		listTimeFrame: list = ["8min", "18min", "36min", "48min"],
+		mode: str = "imitation"
 	) -> list:
 
 	listPortfolio = [
-		'standart',
+		"standart",
 	]
 
-	testMode = 'reinvest' #cumul/reinvest
-	portfolioMode = 'reinvest' #cumul/reinvest
+	testMode = "reinvest" #cumul/reinvest
+	portfolioMode = "reinvest" #cumul/reinvest
 
 	listTimeFrame = [
-		'4h',
-#		'3h',
-#		'2h',
-#		'1h',
-#		'48min',
-#		'45min',
-#		'36min',
-#		'30min',
-#		'24min',
-#		'20min',
-#		'15min',
+		"4h",
+#		"3h",
+#		"2h",
+#		"1h",
+#		"48min",
+#		"45min",
+#		"36min",
+#		"30min",
+#		"24min",
+#		"20min",
+#		"15min",
 	]
 	listSymbol = [
 		"BTC",
 		"ETH",
 		"BNB",
-		"XRP",
 		"SOL",
-		"TRX",
 		"ADA",
-		"LINK",
 		"ZEC",
 		"DOGE",
 		"SUI",
 		"NEAR",
 		"AVAX",
-		"LTC",
-		"XMR",
-		"BCH",
 		"FIL",
+		"XRP",
+
+#		"TRX",
+#		"BCH",
+#		"LINK",
+#		"XMR",
+#		"LTC",
 #		"HYPE",
 #		"RE",
 #		"BOT",
@@ -60,34 +61,36 @@ def build_tasks(
 	listTypeMarket = ['futures']
 	listNameExchange = ['binance']
 	listStrategy = [
-#		'hold:N',
-		'opt_moving:I',
-		'opt_cross_ma:I',
-		'opt_kama:I',
-		'opt_cross_kama:I',
-		'opt_hama:I',
-		'opt_cross_hama:I',
-		'opt_ema:I',
-		'opt_cross_ema:I',
-		'opt_trend:I',
-		'opt_stochastic:I',
-		'opt_bollinger:I',
-		'opt_keltner:I',
-		'opt_envelopes:I',
-		'opt_modeling:I',
-		'opt_lrcurve:I',
-		'opt_lrchannel:I',
-		'opt_correlation:II',
+		"opt_cross_ma:I",
+		"opt_cross_kama:I",
+		"opt_cross_hama:I",
+		"opt_cross_ema:I",
+		"opt_cross_curve:I",
+		"opt_trend:I",
+		"opt_stochastic:I",
+		"opt_bollinger:I",
+		"opt_keltner:I",
+		"opt_envelopes:I",
+		"opt_modeling:I",
+
+#		"opt_lrcurve:I",
+#		"opt_moving:I",
+#		"opt_kama:I",
+#		"opt_hama:I",
+#		"opt_ema:I",
+#		"opt_lrchannel:I",
+#		"opt_correlation:II",
+#		"hold:N",
 	]
 	listFactor = [
-		'BTC',
-#		'ETH',
-#		'BNB'
-#		'RE',
-#		'BOT',
+		"BTC",
+#		"ETH",
+#		"BNB"
+#		"RE",
+#		"BOT",
 	]
-	listTypeFactor = ['futures']
-	listFactorExchange = ['binance']
+	listTypeFactor = ["futures"]
+	listFactorExchange = ["binance"]
 
 	portfolioList = []
 	for portfolioName in listPortfolio:

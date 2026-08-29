@@ -53,11 +53,10 @@ def algorithm(
 
 	leverage = 1
 
+	multiMaxLoss = 2.00
+
 	signalUpBoard = 0.80
 	signalDownBoard = 0.20
-
-	multiMaxLoss = 1.0
-	multiMaxProfit = 100.0
 
 	dataFrame = dataFrame.with_columns([
 		pl.lit(leverage).alias('leverage'),
@@ -67,14 +66,9 @@ def algorithm(
 	]).with_columns([
 		((pl.col('close') - pl.col('sMin'))/(pl.col('sMax') - pl.col('sMin'))).alias('signalOscillator'),
 		pl.col('close').rolling_mean(window_size=trendWindow).alias('trendMoving'),
-	])
-
-	dataFrame = dataFrame.with_columns([
+	]).with_columns([
 		(pl.lit(-multiMaxLoss)*pl.col('ATR')).alias('maxLoss'),
-		(pl.lit(multiMaxProfit)*pl.col('ATR')).alias('maxProfit'),
-	])
-
-	dataFrame = dataFrame.with_columns([
+	]).with_columns([
 		pl.when(
 			(pl.col('signalOscillator') > signalUpBoard) & (signalUpBoard > pl.col('signalOscillator').shift(1)) &
 			(pl.col('close') > pl.col('trendMoving'))

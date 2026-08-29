@@ -54,18 +54,14 @@ def algorithm(
 
 	leverage = 1
 
-	multiMaxLoss = 1.0
-	multiMaxProfit = 100.0
+	multiMaxLoss = 2.00
 
 	dataFrame = dataFrame.with_columns([
 		pl.lit(leverage).alias('leverage'),
 		(pl.col('high')/pl.col('low') - 1).rolling_mean(window_size=trendWindow).alias('ATR'),
 		pl.col('close').rolling_mean(window_size=trendWindow).alias('trendMoving'),
-	])
-
-	dataFrame = dataFrame.with_columns([
+	]).with_columns([
 		(pl.lit(-multiMaxLoss)*pl.col('ATR')).alias('maxLoss'),
-		(pl.lit(multiMaxProfit)*pl.col('ATR')).alias('maxProfit'),
 	])
 
 	hurstWindow = int(0.5*signalWindow)
@@ -103,9 +99,7 @@ def algorithm(
 	dataFrame = dataFrame.with_columns([
 		pl.Series('fastSignalMoving', fastKAMA),
 		pl.Series('slowSignalMoving', slowKAMA),
-	])
-	
-	dataFrame = dataFrame.with_columns(
+	]).with_columns(
 		pl.when(
 			(pl.col('fastSignalMoving') > pl.col('slowSignalMoving')) & (pl.col('slowSignalMoving') > pl.col('fastSignalMoving').shift(1)) &
 			(pl.col('close') > pl.col('trendMoving'))

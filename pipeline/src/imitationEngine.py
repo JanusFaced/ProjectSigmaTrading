@@ -11,8 +11,8 @@ def coreEngine(
 		price: float,
 		long_signal: int,
 		short_signal: int,
-		maxProfit: float,
-		maxLoss: float,
+		solidMaxLoss: float,
+		tempMaxLoss: float,
 		currentPosition: float,
 		fiat: float,
 		active: float,
@@ -30,12 +30,18 @@ def coreEngine(
 	elif (long_signal == 1) or (short_signal == -1):
 		signal = 'CLOSE:SIGNAL'
 
-	#if active != 0:
-	#	currentDeposite = fiat + active*price
-	#	currentFinancialReturn = currentDeposite/currentPosition - 1
-	#	if (currentFinancialReturn > maxProfit) or (maxLoss > currentFinancialReturn):
-	#		long_signal, short_signal = 1, -1
-	#		signal = 'CLOSE:STOP'
+	if active != 0:
+		currentDeposite = fiat + active*price
+		currentFinancialReturn = currentDeposite/currentPosition - 1
+
+		deltaLoss = currentFinancialReturn - tempMaxLoss
+
+		if 0 > deltaLoss:
+			long_signal, short_signal = 1, -1
+			signal = 'CLOSE:STOP'
+		
+		elif deltaLoss > abs(solidMaxLoss):
+				tempMaxLoss = currentFinancialReturn - abs(solidMaxLoss)
 
 	tradEvent = {
 		'close_long_signal': False,
@@ -104,4 +110,4 @@ def coreEngine(
 	balance = fiat + active*price
 	financeReturn = balance/currentPosition - 1
 
-	return fiat, active, balance, financeReturn, tradEvent, cold_fiat
+	return fiat, active, balance, financeReturn, tradEvent, cold_fiat, tempMaxLoss

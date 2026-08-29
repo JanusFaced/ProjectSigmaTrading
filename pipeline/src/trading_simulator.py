@@ -148,19 +148,10 @@ def backTester(inputMessage: dict[str, Any]) -> Dict:
 	plt.close()
 	'''
 
-
-	#indicatorName = 'ER'
-	#tempDF = dataFrame[[indicatorName, 'datetime']]
-	#plt.plot(tempDF['datetime'], tempDF[indicatorName], color='orange')
-	#superName = str(output_dir) + f'/{indicatorName}_{strategy}_{symbol}_{timeFrame}_{type}_{nameExchange}.png'
-	#plt.savefig(superName)
-	#plt.close()
-
-	#indicatorName = 'signalMoving'
-	#tempDF = dataFrame[[indicatorName, 'close', 'datetime']]
-	#plt.plot(tempDF['datetime'], tempDF['close'], color='black')
-	#plt.plot(tempDF['datetime'], tempDF[indicatorName], color='red')
-	#superName = str(output_dir) + f'/{indicatorName}_{strategy}_{symbol}_{timeFrame}_{type}_{nameExchange}.png'
+	#tempDF = dataFrame[['maxLoss', 'maxProfit', 'datetime']]
+	#plt.plot(tempDF['datetime'], tempDF['maxLoss'], color='red')
+	#plt.plot(tempDF['datetime'], tempDF['maxProfit'], color='green')
+	#superName = str(output_dir) + f'/ristManadgment_{strategy}_{symbol}_{timeFrame}_{type}_{nameExchange}.png'
 	#plt.savefig(superName)
 	#plt.close()
 

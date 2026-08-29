@@ -69,7 +69,7 @@ def saveBacktests(inputData: dict) -> None:
 		except Exception as e:
 			try:
 				dataBaseSession.rollback()
-			except Exception as e:
+			except:
 				logger.info('rollback is fail!')
 			logger.error(f"Error saving signal! Try again! {tryCount}")
 			tryCount += 1
@@ -106,7 +106,7 @@ def receiveSignals(nameStrategy: str) -> dict:
 		except Exception as e:
 			try:
 				dataBaseSession.rollback()
-			except Exception as e:
+			except:
 				logger.info('rollback is fail!')
 			logger.error(f"Error receiving signal! Try again! {tryCount}")
 			tryCount += 1
@@ -160,7 +160,7 @@ def sendSignals(nameStrategy: str, signalPuck: dict) -> None:
 		except Exception as e:
 			try:
 				dataBaseSession.rollback()
-			except Exception as e:
+			except:
 				logger.info('rollback is fail!')
 			logger.error(f"Error saving signal! Try again! {tryCount}")
 			tryCount += 1
@@ -199,7 +199,7 @@ def sendTrads(nameStrategy: str, signalPuck: dict) -> int:
 		except Exception as e:
 			try:
 				dataBaseSession.rollback()
-			except Exception as e:
+			except:
 				logger.info('rollback is fail!')
 			logger.error(f"Error saving trads! Try again! {tryCount}")
 			tryCount += 1

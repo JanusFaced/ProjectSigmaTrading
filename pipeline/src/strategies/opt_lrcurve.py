@@ -54,8 +54,7 @@ def algorithm(
 
 	leverage = 1
 
-	multiMaxLoss = 1.0
-	multiMaxProfit = 100.0
+	multiMaxLoss = 2.00
 
 	lrcurve = simple_linear_regression(
 		closeVector=dataFrame['close'].to_numpy(),
@@ -67,14 +66,9 @@ def algorithm(
 		(pl.col('high')/pl.col('low') - 1).rolling_mean(window_size=trendWindow).alias('ATR'),
 		pl.Series('lrcurve', lrcurve),
 		pl.col('close').rolling_mean(window_size=trendWindow).alias('trendMoving'),
-	])
-
-	dataFrame = dataFrame.with_columns([
+	]).with_columns([
 		(pl.lit(-multiMaxLoss)*pl.col('ATR')).alias('maxLoss'),
-		(pl.lit(multiMaxProfit)*pl.col('ATR')).alias('maxProfit'),
-	])
-	
-	dataFrame = dataFrame.with_columns(
+	]).with_columns(
 		pl.when(
 			(pl.col('close') > pl.col('lrcurve')) & (pl.col('lrcurve') > pl.col('close').shift(1)) &
 			(pl.col('close') > pl.col('trendMoving'))
