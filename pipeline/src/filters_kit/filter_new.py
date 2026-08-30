@@ -9,7 +9,11 @@ logger = get_logger(__name__)
 output_dir = Path(__file__).parent.parent / "output"
 config_dir = Path(__file__).parent.parent / "config"
 
-def main(listMSGs: dict, target_year_profit: float = 0.0) -> dict:
+def main(
+		listMSGs: dict,
+		validMetrics: dict,
+		save: bool = False,
+	) -> dict:
 	
 	fileName: str = f'{config_dir}/work_strats.json'
 	dataBaseSession = get_session()
@@ -66,7 +70,12 @@ def main(listMSGs: dict, target_year_profit: float = 0.0) -> dict:
 		nameStrategy = f"{msg_strategy}_{msg_symbol}_{msg_timeFrame}_{msg_type}_{msg_nameExchange}"
 
 		for table in tableBacktest:
-			if (nameStrategy == table['strategy']) and (table['year_profit'] > target_year_profit):
+			if (
+					(nameStrategy == table['strategy']) and
+					(table['year_profit'] > validMetrics['target_year_profit']) and
+					(table['max_drawdown'] > validMetrics['target_max_drawdown']) and
+					(table['sharp'] > validMetrics['target_sharp'])
+				):
 
 				newListMSGs.append({
 					'mode': msg["mode"],
@@ -80,7 +89,9 @@ def main(listMSGs: dict, target_year_profit: float = 0.0) -> dict:
 					'factorExchange': msg["factorExchange"]
 				})
 
-	with open(fileName, 'w', encoding='utf-8') as f:
-		json.dump(newListMSGs, f, indent=4, ensure_ascii=False)
-	logger.info(f"{fileName} save!")
+	if save:
+		with open(fileName, 'w', encoding='utf-8') as f:
+			json.dump(newListMSGs, f, indent=4, ensure_ascii=False)
+		logger.info(f"{fileName} save!")
+	
 	return newListMSGs

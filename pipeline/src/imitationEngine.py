@@ -11,6 +11,7 @@ def coreEngine(
 		price: float,
 		long_signal: int,
 		short_signal: int,
+		stepMaxLoss: float,
 		solidMaxLoss: float,
 		tempMaxLoss: float,
 		currentPosition: float,
@@ -41,7 +42,9 @@ def coreEngine(
 			signal = 'CLOSE:STOP'
 		
 		elif deltaLoss > abs(solidMaxLoss):
-				tempMaxLoss = currentFinancialReturn - abs(solidMaxLoss)
+			if (active > 0 and stepMaxLoss > 0) or (active < 0 and stepMaxLoss < 0):
+				tempMaxLoss = tempMaxLoss + abs(stepMaxLoss)
+
 
 	tradEvent = {
 		'close_long_signal': False,

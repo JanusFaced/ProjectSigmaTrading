@@ -116,6 +116,7 @@ def coreBacktester(dataFrame: pl.DataFrame, testMode: str) -> dict:
 		shortSignalVector = dataFrame['short_signal'].to_numpy(),
 		leverageVector = dataFrame['leverage'].to_numpy(),
 		maxLossVector = dataFrame['maxLoss'].to_numpy(),
+		stepMaxLossvector = dataFrame['stepMaxLoss'].to_numpy(),
 		testMode = testMode,
 	)
 
@@ -149,6 +150,7 @@ def backtest(
 		shortSignalVector: npt.NDArray[np.int64],
 		leverageVector: npt.NDArray[np.int64],
 		maxLossVector: npt.NDArray[np.float64],
+		stepMaxLossvector: npt.NDArray[np.float64],
 		testMode: int,
 	) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.float64], npt.NDArray[np.float64], npt.NDArray[np.float64], npt.NDArray[np.int64], npt.NDArray[np.float64], npt.NDArray[np.float64], npt.NDArray[np.int64]]:
 
@@ -184,12 +186,14 @@ def backtest(
 		longSignal = longSignalVector[i]
 		shortSignal = shortSignalVector[i]
 		leverage = leverageVector[i]
-		maxLoss = maxLossVector[i]
+		solidMaxLoss = maxLossVector[i]
+		stepMaxLoss = stepMaxLossvector[i]
 
 		fiat, active, deposit, financeReturn, tradEvent, cold_fiat, tempMaxLoss = imitationEngine.coreEngine(
 			price=closeValue,
 			long_signal=longSignal,
 			short_signal=shortSignal,
+			stepMaxLoss=stepMaxLoss,
 			solidMaxLoss=solidMaxLoss,
 			tempMaxLoss=tempMaxLoss,
 			currentPosition=currentPosition,
@@ -220,8 +224,7 @@ def backtest(
 
 		if tradEvent['open_long'] or tradEvent['open_short']:
 			currentPosition = deposit
-			tempMaxLoss = maxLoss
-			solidMaxLoss = maxLoss
+			tempMaxLoss = solidMaxLoss
 			oldTimePoint = i
 
 		#if True in [tradEvent['close_long'], tradEvent['open_long'], tradEvent['close_short'], tradEvent['open_short']]:
@@ -231,7 +234,7 @@ def backtest(
 		#		logger.info(f"open={openValue} high={highValue} low={lowValue} close={closeValue} volume={volumeValue}")
 		#		logger.info(f"longSignal={longSignal} shortSignal={shortSignal}")
 		#		logger.info(f"fiat={fiat} active={active} deposit={deposit}")
-		#		logger.info(f"maxLoss={maxLoss} solidMaxLoss={solidMaxLoss}")
+		#		logger.info(f"tempMaxLoss={tempMaxLoss} solidMaxLoss={solidMaxLoss}")
 		#		logger.info(f"========================================")
 		#	
 		#		for _ in range(10): time.sleep(1)

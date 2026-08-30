@@ -72,6 +72,9 @@ def algorithm(
 		pl.Series('fast_curve', fast_curve),
 		pl.Series('slow_curve', slow_curve),
 		pl.col('close').rolling_mean(window_size=trendWindow).alias('trendMoving'),
+		pl.col('close').rolling_mean(window_size=signalWindow).alias('guideLine'),
+	]).with_columns([
+		(pl.col('guideLine')/pl.col('guideLine').shift(1) - 1).alias('stepMaxLoss'),
 	]).with_columns([
 		(pl.lit(-multiMaxLoss)*pl.col('ATR')).alias('maxLoss'),
 	]).with_columns(

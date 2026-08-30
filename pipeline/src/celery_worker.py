@@ -2,6 +2,7 @@ from celery_app import app
 import portfolio
 import pipeline
 import makeStats
+from filters_kit import filter_exist, filter_new
 import os
 from logger_setup import get_logger
 
@@ -10,9 +11,15 @@ logger = get_logger(__name__)
 global_work_mode = os.getenv('GLOBAL_WORK_MODE')
 
 def build_tasks(
-		listTimeFrame: list = ["8min", "18min", "36min", "48min"],
+		listTimeFrame: list = ["1h", "2h", "3h", "4h"],
 		mode: str = "imitation"
 	) -> list:
+
+	validMetrics = {
+		"target_year_profit": 7.0,
+		"target_max_drawdown": -95.0,
+		"target_sharp": 0.0,
+	}
 
 	listPortfolio = [
 		"standart",
@@ -21,19 +28,22 @@ def build_tasks(
 	testMode = "reinvest" #cumul/reinvest
 	portfolioMode = "reinvest" #cumul/reinvest
 
-	listTimeFrame = [
-		"4h",
-#		"3h",
-#		"2h",
-#		"1h",
-#		"48min",
-#		"45min",
-#		"36min",
-#		"30min",
-#		"24min",
-#		"20min",
-#		"15min",
-	]
+	if mode != 'imitation':
+
+		listTimeFrame = [
+#			"4h",
+			"3h",
+			"2h",
+			"1h",
+			"48min",
+			"45min",
+			"36min",
+			"30min",
+			"24min",
+			"20min",
+			"15min",
+		]
+
 	listSymbol = [
 		"BTC",
 		"ETH",
@@ -61,8 +71,8 @@ def build_tasks(
 	listTypeMarket = ['futures']
 	listNameExchange = ['binance']
 	listStrategy = [
-		"opt_cross_ma:I",
-		"opt_cross_kama:I",
+#		"opt_cross_ma:I",
+#		"opt_cross_kama:I",
 		"opt_cross_hama:I",
 		"opt_cross_ema:I",
 		"opt_cross_curve:I",
@@ -169,18 +179,35 @@ def build_tasks(
 	if mode == 'portfolio':
 		for i in range(len(portfolioList)):
 			assetsList = portfolioList[i]['assetsList']
+			
 			lenthCombi = len(assetsList)
-			logger.info(f"full lenth combination = {lenthCombi}")
+			logger.info(f" * Full lenth combination = {lenthCombi}")
+
+			assetsList = filter_new.main(
+				listMSGs=assetsList,
+				validMetrics=validMetrics,
+				save=False
+			)
+
+			lenthCombi = len(assetsList)
+			logger.info(f" * After filters lenth combination = {lenthCombi}")
+
+			portfolioList[i]['assetsList'] = assetsList
 
 			tasks_to_run.append({'id': i+1, 'mode': mode, 'params': portfolioList[i]})
 
-	elif mode == 'test':
+	elif mode in ['test', 'imitation', 'real']:
 		for i in range(len(portfolioList)):
 			portfolioName = portfolioList[i]['portfolioName']
 			assetsList = portfolioList[i]['assetsList']
 			
+			if mode in ['imitation', 'real']:
+				assetsList = filter_exist.main(assetsList)
+
 			lenthCombi = len(assetsList)
 			logger.info(f" portfolio {portfolioName}: full lenth combination = {lenthCombi}")
+
+			portfolioList[i]['assetsList'] = assetsList
 
 			for i in range(len(assetsList)):
 				tasks_to_run.append({'id': i+1, 'mode': mode, 'params': assetsList[i]})
@@ -191,6 +218,15 @@ def build_tasks(
 			listStrategy=listStrategy,
 			listSymbol=listSymbol,
 			listFactor=listFactor,
+		)
+
+	elif mode == 'valid':
+		assetsList = portfolioList[0]['assetsList']
+		
+		filter_new.main(
+			listMSGs=assetsList,
+			validMetrics=validMetrics,
+			save=True
 		)
 
 	return tasks_to_run

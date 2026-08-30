@@ -6,34 +6,28 @@ global_work_mode = os.getenv('GLOBAL_WORK_MODE')
 
 if global_work_mode == 'imitation':
     app.conf.beat_schedule = {
-#        'parser-cycle-1min': {
-#            'task': 'celery_worker.run_workflow',
-#            'schedule': timedelta(minutes=1),
-#            'kwargs': {},
-#            'options': {'queue': 'pipeline_parser'},
-#        },
-        'work-cycle-8min': {
+        'work-cycle-1h': {
             'task': 'celery_worker.run_workflow',
-            'schedule': timedelta(minutes=8),
-            'kwargs': {'timeframe': '8min'},
+            'schedule': timedelta(minutes=60),
+            'kwargs': {'timeframe': '1h'},
             'options': {'queue': 'pipeline_work'},
         },
-        'work-cycle-18min': {
+        'work-cycle-2h': {
             'task': 'celery_worker.run_workflow',
-            'schedule': timedelta(minutes=18),
-            'kwargs': {'timeframe': '18min'},
+            'schedule': timedelta(minutes=120),
+            'kwargs': {'timeframe': '2h'},
             'options': {'queue': 'pipeline_work'},
         },
-        'work-cycle-36min': {
+        'work-cycle-3h': {
             'task': 'celery_worker.run_workflow',
-            'schedule': timedelta(minutes=36),
-            'kwargs': {'timeframe': '36min'},
+            'schedule': timedelta(minutes=180),
+            'kwargs': {'timeframe': '3h'},
             'options': {'queue': 'pipeline_work'},
         },
-        'work-cycle-48min': {
+        'work-cycle-4h': {
             'task': 'celery_worker.run_workflow',
-            'schedule': timedelta(minutes=48),
-            'kwargs': {'timeframe': '48min'},
+            'schedule': timedelta(minutes=240),
+            'kwargs': {'timeframe': '4h'},
             'options': {'queue': 'pipeline_work'},
         }
     }

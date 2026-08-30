@@ -79,6 +79,9 @@ def algorithm(
 	]).with_columns([
 		(pl.lit(modelMulti)*pl.col('model')).alias('pModel'),
 		(pl.lit(-modelMulti)*pl.col('model')).alias('nModel'),
+		pl.col('close').rolling_mean(window_size=signalWindow).alias('guideLine'),
+	]).with_columns([
+		(pl.col('guideLine')/pl.col('guideLine').shift(1) - 1).alias('stepMaxLoss'),
 	]).with_columns([
 		(pl.lit(-multiMaxLoss)*pl.col('ATR')).alias('maxLoss'),
 	]).with_columns(

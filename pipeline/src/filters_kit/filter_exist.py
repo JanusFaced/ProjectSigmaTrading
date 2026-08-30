@@ -7,7 +7,7 @@ logger = get_logger(__name__)
 output_dir = Path(__file__).parent.parent / "output"
 config_dir = Path(__file__).parent.parent / "config"
 
-def main(listMSGs: dict, target_year_profit: float = 0.0) -> dict:
+def main(listMSGs: dict) -> dict:
 	fileName: str = f'{config_dir}/work_strats.json'
 	with open(fileName, 'r', encoding='utf-8') as f:
 		saveListMSGs = json.load(f)
