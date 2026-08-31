@@ -29,6 +29,9 @@ def convertorTimeFrame(timeFrame: str) -> int:
 		'45min': 45,
 		'48min': 48,
 		'50min': 50,
+		'60min': 60,
+		'90min': 90,
+
 		'1h': 60,
 		'2h': 120,
 		'3h': 180,
@@ -36,7 +39,8 @@ def convertorTimeFrame(timeFrame: str) -> int:
 		'6h': 360,
 		'8h': 480,
 		'12h': 720,
-		'1d': 1440
+
+		'1d': 1440,
 	}
 
 	return convertor[timeFrame]

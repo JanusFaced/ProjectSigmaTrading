@@ -45,8 +45,15 @@ def walkForward(
 					minValue = configPar['min']
 					maxValue = configPar['max']
 					splitValue = configPar['split']
-					step = (maxValue - minValue)/(splitValue - 1)
-					combiPars[namePar] = [minValue + i*step for i in range(splitValue)]
+					typeValue = configPar['typeData']
+
+					if typeValue == "noFix":
+						step = (maxValue - minValue)/(splitValue - 1)
+						combiPars[namePar] = [minValue + i*step for i in range(splitValue)]
+
+					elif typeValue == "Fix":
+						combiPars[namePar] = [x for x in range(minValue, maxValue+1)]
+
 
 				keys = list(combiPars.keys())
 				value_lists = [combiPars[k] for k in keys]
@@ -82,10 +89,16 @@ def walkForward(
 					minValue = tempParametrs[namePar]['min']
 					maxValue = tempParametrs[namePar]['max']
 					splitValue = tempParametrs[namePar]['split']
-					step = (maxValue - minValue)/(splitValue - 1)
+					typeValue = tempParametrs[namePar]['typeData']
 
-					tempParametrs[namePar]['max'] = valuePar + step if valuePar != maxValue else maxValue
-					tempParametrs[namePar]['min'] = valuePar - step if valuePar != minValue else minValue
+					if typeValue == 'noFix':
+						step = (maxValue - minValue)/(splitValue - 1)
+						tempParametrs[namePar]['max'] = valuePar + step if valuePar != maxValue else maxValue
+						tempParametrs[namePar]['min'] = valuePar - step if valuePar != minValue else minValue
+
+					elif typeValue == 'Fix':
+						tempParametrs[namePar]['max'] = valuePar
+						tempParametrs[namePar]['min'] = valuePar
 
 		else:
 			_, statsParams = algorithm(

@@ -20,7 +20,8 @@ def main(inputMessage: dict[str, Any]) -> None:
 	quantSlippage = 2000
 	generation = 3
 	parametrs = {
-		"baseWindow": {"min": 20, "max": 200, "split": 5},
+		"baseWindow": {"min": 20, "max": 200, "split": 5, "typeData": "noFix"},
+		"multiMaxLoss": {"min": 1.0, "max": 5.0, "split": 5, "typeData": "noFix"},
 	}
 
 	dataFrame = walkForward(
@@ -54,7 +55,7 @@ def algorithm(
 
 	leverage = 1
 
-	multiMaxLoss = 2.00
+	multiMaxLoss = params['multiMaxLoss']
 
 	modelMulti = 0.5
 

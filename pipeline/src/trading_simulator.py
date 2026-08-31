@@ -148,10 +148,9 @@ def backTester(inputMessage: dict[str, Any]) -> Dict:
 	plt.close()
 	'''
 
-	#tempDF = dataFrame[['maxLoss', 'maxProfit', 'datetime']]
-	#plt.plot(tempDF['datetime'], tempDF['maxLoss'], color='red')
-	#plt.plot(tempDF['datetime'], tempDF['maxProfit'], color='green')
-	#superName = str(output_dir) + f'/ristManadgment_{strategy}_{symbol}_{timeFrame}_{type}_{nameExchange}.png'
+	#tempDF = dataFrame[['multiMaxLoss', 'datetime']]
+	#plt.plot(tempDF['datetime'], tempDF['multiMaxLoss'], color='red')
+	#superName = str(output_dir) + f'/directionSwitch_{strategy}_{symbol}_{timeFrame}_{type}_{nameExchange}.png'
 	#plt.savefig(superName)
 	#plt.close()
 

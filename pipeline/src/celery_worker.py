@@ -16,9 +16,9 @@ def build_tasks(
 	) -> list:
 
 	validMetrics = {
-		"target_year_profit": 7.0,
-		"target_max_drawdown": -95.0,
-		"target_sharp": 0.0,
+		"target_year_profit": -100.0,
+		"target_max_drawdown": -100.0,
+		"target_sharp": -100.0,
 	}
 
 	listPortfolio = [
@@ -31,17 +31,7 @@ def build_tasks(
 	if mode != 'imitation':
 
 		listTimeFrame = [
-#			"4h",
-			"3h",
-			"2h",
-			"1h",
-			"48min",
-			"45min",
-			"36min",
-			"30min",
-			"24min",
-			"20min",
-			"15min",
+			"4h",
 		]
 
 	listSymbol = [
@@ -71,8 +61,8 @@ def build_tasks(
 	listTypeMarket = ['futures']
 	listNameExchange = ['binance']
 	listStrategy = [
-#		"opt_cross_ma:I",
-#		"opt_cross_kama:I",
+		"opt_cross_ma:I",
+		"opt_cross_kama:I",
 		"opt_cross_hama:I",
 		"opt_cross_ema:I",
 		"opt_cross_curve:I",
