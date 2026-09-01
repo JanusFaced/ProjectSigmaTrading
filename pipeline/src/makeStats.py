@@ -80,131 +80,133 @@ def main(
 				"sharp": table["sharp"] if table["sharp"] > -1 else -1,
 				"datetime": table["datetime"]
 			})
-	dataframe = pl.from_dicts(newTableBacktest)
 
-	dataframe = dataframe.with_columns([
-		pl.col("strategy")
-		  .map_elements(rsplit_to_parts, return_dtype=pl.List(pl.Utf8))
-		  .alias("parts")
-	]).with_columns([
-		pl.col("parts").list.get(0).alias("strategy_name"),
-		pl.col("parts").list.get(1).alias("symbol"),
-		pl.col("parts").list.get(2).alias("timeframe"),
-		pl.col("parts").list.get(3).alias("strategy_type"),
-		pl.col("parts").list.get(4).alias("exchange"),
-	]).drop("parts")
+	if len(newTableBacktest) > 0:
+		dataframe = pl.from_dicts(newTableBacktest)
 
-	list_of_combi = [
-#		['strategy_name', 'timeframe'],
-		['strategy_name', 'symbol'],
-#		['symbol', 'timeframe'],
-	]
-	list_of_metrics = [
-		'year_profit',
-		'max_drawdown',
-		'sharp',
-	]
+		dataframe = dataframe.with_columns([
+			pl.col("strategy")
+			  .map_elements(rsplit_to_parts, return_dtype=pl.List(pl.Utf8))
+			  .alias("parts")
+		]).with_columns([
+			pl.col("parts").list.get(0).alias("strategy_name"),
+			pl.col("parts").list.get(1).alias("symbol"),
+			pl.col("parts").list.get(2).alias("timeframe"),
+			pl.col("parts").list.get(3).alias("strategy_type"),
+			pl.col("parts").list.get(4).alias("exchange"),
+		]).drop("parts")
 
-	for combi in list_of_combi:
-		for metric_name in list_of_metrics:
-			nameY = combi[0]
-			nameX = combi[1]
+		list_of_combi = [
+	#		['strategy_name', 'timeframe'],
+			['strategy_name', 'symbol'],
+	#		['symbol', 'timeframe'],
+		]
+		list_of_metrics = [
+			'year_profit',
+			'max_drawdown',
+			'sharp',
+		]
 
-			base = (
-				dataframe.group_by([nameY, nameX])
-				.agg(pl.col(metric_name)
-				.mean().alias(metric_name))
-			)
-			pivot = (
-				base.pivot(
-					values=metric_name,
-					index=nameY,
-					columns=nameX,
-					aggregate_function="first"
+		for combi in list_of_combi:
+			for metric_name in list_of_metrics:
+				nameY = combi[0]
+				nameX = combi[1]
+
+				base = (
+					dataframe.group_by([nameY, nameX])
+					.agg(pl.col(metric_name)
+					.mean().alias(metric_name))
 				)
-			)
+				pivot = (
+					base.pivot(
+						values=metric_name,
+						index=nameY,
+						columns=nameX,
+						aggregate_function="first"
+					)
+				)
 
-			cols = [c for c in pivot.columns if c != nameY]
-			sorted_cols = sort_cols_and_rows(cols, nameX)
-			pivot = pivot.select([nameY] + sorted_cols)
+				cols = [c for c in pivot.columns if c != nameY]
+				sorted_cols = sort_cols_and_rows(cols, nameX)
+				pivot = pivot.select([nameY] + sorted_cols)
 
-			cols = [c for c in pivot.columns if c != nameY]
-			pivot = pivot.with_columns([
-				pl.concat_list(cols).list.mean().alias("mean"),
-			])
-
-			if metric_name == 'year_profit':
-				add_column = "percent"
+				cols = [c for c in pivot.columns if c != nameY]
 				pivot = pivot.with_columns([
-					pl.concat_list(cols).list.eval(
-						(pl.element() > 0).cast(pl.Int64)
-					).list.mean().alias(add_column),
-				])
-			
-			elif metric_name == 'max_drawdown':
-				add_column = "best"
-				pivot = pivot.with_columns([
-					pl.concat_list(cols).list.max().alias(add_column),
+					pl.concat_list(cols).list.mean().alias("mean"),
 				])
 
-			elif metric_name == 'sharp':
-				add_column = "stable"
-				pivot = pivot.with_columns([
-					pl.concat_list(cols).list.std().alias(add_column),
-				])
+				if metric_name == 'year_profit':
+					add_column = "percent"
+					pivot = pivot.with_columns([
+						pl.concat_list(cols).list.eval(
+							(pl.element() > 0).cast(pl.Int64)
+						).list.mean().alias(add_column),
+					])
+				
+				elif metric_name == 'max_drawdown':
+					add_column = "best"
+					pivot = pivot.with_columns([
+						pl.concat_list(cols).list.max().alias(add_column),
+					])
 
-			cols = [c for c in pivot.columns if c not in (nameY, "mean", add_column)]
+				elif metric_name == 'sharp':
+					add_column = "stable"
+					pivot = pivot.with_columns([
+						pl.concat_list(cols).list.std().alias(add_column),
+					])
 
-			col_means = pivot.select([pl.col(c).mean().alias(c) for c in cols]).row(0)
-			overall_mean = pivot.select(pl.col("mean").mean()).item()
-			overall_add_mean = pivot.select(pl.col(add_column).mean()).item()
+				cols = [c for c in pivot.columns if c not in (nameY, "mean", add_column)]
 
-			final_row = {
-				nameY: "mean",
-				**{c: col_means[i] for i, c in enumerate(cols)},
-				"mean": overall_mean,
-				add_column: overall_add_mean,
-			}
+				col_means = pivot.select([pl.col(c).mean().alias(c) for c in cols]).row(0)
+				overall_mean = pivot.select(pl.col("mean").mean()).item()
+				overall_add_mean = pivot.select(pl.col(add_column).mean()).item()
 
-			pivot = pl.concat([pivot, pl.DataFrame([final_row])], how="vertical")
+				final_row = {
+					nameY: "mean",
+					**{c: col_means[i] for i, c in enumerate(cols)},
+					"mean": overall_mean,
+					add_column: overall_add_mean,
+				}
 
-			cols = [c for c in pivot.columns if c != nameY]
-			y_labels = pivot.select(nameY).to_series().to_list()
-			y_labels = [str(x) for x in y_labels]
-			x_labels = [str(c) for c in cols]
-			heat = pivot.select(cols).to_numpy()
-			heat = np.array(heat, dtype=float)
+				pivot = pl.concat([pivot, pl.DataFrame([final_row])], how="vertical")
 
-			fig, ax = plt.subplots(figsize=(12, 8))
-			sns.heatmap(
-				heat,
-				ax=ax,
-				xticklabels=x_labels,
-				yticklabels=y_labels,
-				annot=True,
-				fmt=".2f",
-				cmap="RdYlGn",
-				center=0,
-				robust=True,
-				linewidths=0.5,
-				linecolor="white",
-				cbar_kws={"shrink": 0.8, "label": metric_name.replace("_", " ").title()},
-				square=False,
-			)
+				cols = [c for c in pivot.columns if c != nameY]
+				y_labels = pivot.select(nameY).to_series().to_list()
+				y_labels = [str(x) for x in y_labels]
+				x_labels = [str(c) for c in cols]
+				heat = pivot.select(cols).to_numpy()
+				heat = np.array(heat, dtype=float)
 
-			ax.set_xlabel(nameX)
-			ax.set_ylabel(nameY)
-			ax.set_title(metric_name, fontsize=16, fontweight="bold", pad=20)
+				fig, ax = plt.subplots(figsize=(12, 8))
+				sns.heatmap(
+					heat,
+					ax=ax,
+					xticklabels=x_labels,
+					yticklabels=y_labels,
+					annot=True,
+					fmt=".2f",
+					cmap="RdYlGn",
+					center=0,
+					robust=True,
+					linewidths=0.5,
+					linecolor="white",
+					cbar_kws={"shrink": 0.8, "label": metric_name.replace("_", " ").title()},
+					square=False,
+				)
 
-			plt.xticks(rotation=45, ha="right")
-			plt.yticks(rotation=0)
-			plt.tight_layout()
+				ax.set_xlabel(nameX)
+				ax.set_ylabel(nameY)
+				ax.set_title(metric_name, fontsize=16, fontweight="bold", pad=20)
 
-			fileName: str = f'{output_dir}/stats_{nameY}_{nameX}_{metric_name}.png'
-			plt.savefig(fileName, dpi=300, bbox_inches="tight", facecolor="white")
-			plt.close()
+				plt.xticks(rotation=45, ha="right")
+				plt.yticks(rotation=0)
+				plt.tight_layout()
 
-			logger.info(f"pivot {nameY}_{nameX}_{metric_name} is save to {fileName}")
+				fileName: str = f'{output_dir}/stats_{nameY}_{nameX}_{metric_name}.png'
+				plt.savefig(fileName, dpi=300, bbox_inches="tight", facecolor="white")
+				plt.close()
+
+				logger.info(f"pivot {nameY}_{nameX}_{metric_name} is save to {fileName}")
 
 def sort_cols_and_rows(inputList, name):
 
@@ -261,3 +263,32 @@ def sort_cols_and_rows(inputList, name):
 		outputList = inputList
 
 	return outputList
+
+def makeCorrelationMap(
+		portfolioDF: pl.DataFrame,
+		columnNames: list,
+	) -> None:
+
+	dataframe = portfolioDF[columnNames]
+
+	corr_matrix = dataframe.corr().to_numpy()
+
+	plt.figure(figsize=(10, 8))
+	sns.heatmap(
+		corr_matrix,
+		annot=True,
+		fmt='.2f',
+		cmap='coolwarm',
+		vmin=-1, vmax=1,
+		square=True,
+		linewidths=0.5,
+		xticklabels=columnNames,
+		yticklabels=columnNames
+	)
+
+	plt.title('Корреляционная матрица эквити стратегий', fontsize=14)
+	plt.tight_layout()
+
+	fileName: str = f'{output_dir}/correlation.png'
+	plt.savefig(fileName, dpi=300, bbox_inches="tight", facecolor="white")
+	plt.close()

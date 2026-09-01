@@ -78,6 +78,7 @@ def walkForward(
 					)
 					optiList.append(analystReport['optiMetric'])
 					parsList.append(params)
+
 					statParsList.append(statsParams)
 
 				bestResult = max(optiList)

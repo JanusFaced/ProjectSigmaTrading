@@ -1,7 +1,6 @@
 from celery_app import app
 import portfolio
 import pipeline
-import makeStats
 from filters_kit import filter_exist, filter_new
 import os
 from logger_setup import get_logger
@@ -32,6 +31,12 @@ def build_tasks(
 
 		listTimeFrame = [
 			"4h",
+#			"3h",
+#			"2h",
+#			"90min",
+#			"1h",
+#			"45min",
+#			"30min",
 		]
 
 	listSymbol = [
@@ -42,17 +47,18 @@ def build_tasks(
 		"ADA",
 		"ZEC",
 		"DOGE",
-		"SUI",
 		"NEAR",
 		"AVAX",
 		"FIL",
 		"XRP",
+		"TRX",
 
-#		"TRX",
-#		"BCH",
-#		"LINK",
-#		"XMR",
-#		"LTC",
+		"BCH",
+		"LINK",
+		"XMR",
+		"LTC",
+
+#		"SUI",
 #		"HYPE",
 #		"RE",
 #		"BOT",
@@ -73,12 +79,13 @@ def build_tasks(
 		"opt_envelopes:I",
 		"opt_modeling:I",
 
-#		"opt_lrcurve:I",
-#		"opt_moving:I",
-#		"opt_kama:I",
-#		"opt_hama:I",
-#		"opt_ema:I",
-#		"opt_lrchannel:I",
+		"opt_lrcurve:I",
+		"opt_moving:I",
+		"opt_kama:I",
+		"opt_hama:I",
+		"opt_ema:I",
+		"opt_lrchannel:I",
+
 #		"opt_correlation:II",
 #		"hold:N",
 	]
@@ -161,23 +168,28 @@ def build_tasks(
 			{
 				'portfolioName': portfolioName,
 				'portfolioMode': portfolioMode,
+				'listTimeFrame': listTimeFrame,
+				'listStrategy': listStrategy,
+				'listSymbol': listSymbol,
+				'listFactor': listFactor,
 				'assetsList': assetsList,
 			}
 		)
 
 	tasks_to_run: list = []
 	if mode == 'portfolio':
+
 		for i in range(len(portfolioList)):
 			assetsList = portfolioList[i]['assetsList']
 			
 			lenthCombi = len(assetsList)
 			logger.info(f" * Full lenth combination = {lenthCombi}")
 
-			assetsList = filter_new.main(
-				listMSGs=assetsList,
-				validMetrics=validMetrics,
-				save=False
-			)
+			#assetsList = filter_new.main(
+			#	listMSGs=assetsList,
+			#	validMetrics=validMetrics,
+			#	save=False
+			#)
 
 			lenthCombi = len(assetsList)
 			logger.info(f" * After filters lenth combination = {lenthCombi}")
@@ -201,14 +213,6 @@ def build_tasks(
 
 			for i in range(len(assetsList)):
 				tasks_to_run.append({'id': i+1, 'mode': mode, 'params': assetsList[i]})
-
-	elif mode == 'stats':
-		makeStats.main(
-			listTimeFrame=listTimeFrame,
-			listStrategy=listStrategy,
-			listSymbol=listSymbol,
-			listFactor=listFactor,
-		)
 
 	elif mode == 'valid':
 		assetsList = portfolioList[0]['assetsList']
@@ -247,7 +251,7 @@ def run_portfolio(item_id: int, mode: str, params: dict) -> None:
 		logger.error(f"❌ Ошибка в задаче {item_id}: {e}")
 		raise
 
-if global_work_mode in ['portfolio', 'test', 'stats']:
+if global_work_mode in ['portfolio', 'test']:
 	def startBackTests() -> None:
 		logger.info(f"Пользователь создает задачи для бэктеста!")
 		tasks = build_tasks(mode=global_work_mode)

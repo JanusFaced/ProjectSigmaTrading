@@ -3,6 +3,7 @@ import polars as pl
 import numpy as np
 import sys
 import os
+import makeStats
 from portfolio_tools import getEquity, portfolioLogic, portfolioAnalyst
 from logger_setup import get_logger
 from pathlib import Path
@@ -13,9 +14,27 @@ output_dir = Path(__file__).parent / "output"
 def main(portfolioParams: dict) -> None:
 	portfolioName = portfolioParams['portfolioName']
 	portfolioMode = portfolioParams['portfolioMode']
+
+	listTimeFrame = portfolioParams['listTimeFrame']
+	listStrategy = portfolioParams['listStrategy']
+	listSymbol = portfolioParams['listSymbol']
+	listFactor = portfolioParams['listFactor']
+
 	assetsList = portfolioParams['assetsList']
 
+	makeStats.main(
+		listTimeFrame=listTimeFrame,
+		listStrategy=listStrategy,
+		listSymbol=listSymbol,
+		listFactor=listFactor,
+	)
+
 	portfolioDF, columnNames = getEquity(assetsList)
+
+	makeStats.makeCorrelationMap(
+		portfolioDF=portfolioDF,
+		columnNames=columnNames,
+	)
 
 	'''
 	for col in columnNames:
@@ -32,10 +51,10 @@ def main(portfolioParams: dict) -> None:
 	portfolioDF = portfolioLogic(
 		portfolioDF=portfolioDF,
 		columnNames=columnNames,
-		period_rebalance=30,
+		period_rebalance=365,
 		start_depo=100.00,
 		portfolioMode=portfolioMode,
-		modeReBalance='sharp'
+		modeReBalance='sharp' #simple profit sigma sharp fun_profit
 	)
 
 	analystReport = portfolioAnalyst(

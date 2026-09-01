@@ -75,12 +75,22 @@ def getEquity(assetsList: dict) -> tuple[pl.DataFrame, list]:
 		except Exception as e:
 			logger.error(f' >< ERROR. Equty {name_equity} NOT get!...')
 			logger.error(f'error: {e}')
-		
+
 	portfolioDF = portfolioDF.sort("datetime")
 	columnNames = [x for x in portfolioDF.columns if x != "datetime"]
-	
+
 	for col in columnNames:
 		portfolioDF = portfolioDF.with_columns(pl.col(col).fill_null(strategy="forward"))
+
+	mask = pl.all_horizontal([pl.col(col).is_not_null() for col in columnNames])
+
+	first_valid_idx = portfolioDF.with_columns(
+		mask.alias("all_not_null")
+	).select(
+		pl.col("all_not_null").arg_true().first()
+	).item()
+
+	portfolioDF = portfolioDF.slice(first_valid_idx)
 
 	close_duckdb()
 	return portfolioDF, columnNames

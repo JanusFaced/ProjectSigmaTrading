@@ -39,6 +39,14 @@ def preAnalyst(
 		else:
 			win_loss = 0.00
 
+		#profit_factor
+		if winCount > 0 or lossCount > 0:
+			sumProfit = np.sum(posDeltaTrads)
+			sumLoss = np.abs(np.sum(negDeltaTrads))
+			profit_factor = round(sumProfit/sumLoss, 2) if sumLoss > 0 else 0
+		else:
+			profit_factor = 0
+
 		#average_profit_size and max_profit_size
 		if winCount > 0:
 			average_profit_size = 100*round(np.mean(posDeltaTrads), 2)
@@ -76,6 +84,7 @@ def preAnalyst(
 		winCount = 0
 		lossCount = 0
 		win_loss = 0
+		profit_factor = 0
 		average_profit_size = 0
 		max_profit_size = 0
 		average_loss_size = 0
@@ -88,6 +97,7 @@ def preAnalyst(
 		'trads': trads,
 		'freqTrads': freq_trads,
 		'winrate': win_loss,
+		'profitFactor': profit_factor,
 		'averageProfitSize': average_profit_size,
 		'maxProfitSize': max_profit_size,
 		'averageLossSize': average_loss_size,
