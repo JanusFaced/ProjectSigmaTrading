@@ -196,7 +196,6 @@ def main(
 
 				ax.set_xlabel(nameX)
 				ax.set_ylabel(nameY)
-				ax.set_title(metric_name, fontsize=16, fontweight="bold", pad=20)
 
 				plt.xticks(rotation=45, ha="right")
 				plt.yticks(rotation=0)
@@ -269,26 +268,104 @@ def makeCorrelationMap(
 		columnNames: list,
 	) -> None:
 
-	dataframe = portfolioDF[columnNames]
+	parsed = [parse_column_name(col) for col in columnNames]
 
-	corr_matrix = dataframe.corr().to_numpy()
+	algoColumnNames = []
+	assetColumnNames = []
+	timeframeColumnNames = []
+	for cell in parsed:
 
-	plt.figure(figsize=(10, 8))
-	sns.heatmap(
-		corr_matrix,
-		annot=True,
-		fmt='.2f',
-		cmap='coolwarm',
-		vmin=-1, vmax=1,
-		square=True,
-		linewidths=0.5,
-		xticklabels=columnNames,
-		yticklabels=columnNames
-	)
+		algorithm = cell['algorithm']
+		asset = cell['asset']
+		timeframe = cell['timeframe']
 
-	plt.title('Корреляционная матрица эквити стратегий', fontsize=14)
-	plt.tight_layout()
+		if not(algorithm in algoColumnNames):
+			algoColumnNames.append(algorithm)
+		
+		if not(asset in assetColumnNames):
+			assetColumnNames.append(asset)
+		
+		if not(timeframe in timeframeColumnNames):
+			timeframeColumnNames.append(timeframe)
 
-	fileName: str = f'{output_dir}/correlation.png'
-	plt.savefig(fileName, dpi=300, bbox_inches="tight", facecolor="white")
-	plt.close()
+	columns = {
+		"algorithm": algoColumnNames,
+		"asset": assetColumnNames,
+		"timeframe": timeframeColumnNames,
+	}
+
+	for nameTargetColumn in ["algorithm", "asset", "timeframe"]:
+
+		targetColumn = columns[nameTargetColumn]
+		lenthTargetColumn = len(targetColumn)
+
+		sum_matrix = np.zeros((lenthTargetColumn, lenthTargetColumn))
+		count_matrix = np.zeros((lenthTargetColumn, lenthTargetColumn))
+
+		for colNameZero in columnNames:
+			parserColNameZero = parse_column_name(colNameZero)
+			nameFromColumnsZero = parserColNameZero[nameTargetColumn]
+			indexZero = targetColumn.index(nameFromColumnsZero)
+
+			for colNameOne in columnNames:
+				parserColNameOne = parse_column_name(colNameOne)
+				nameFromColumnsOne = parserColNameOne[nameTargetColumn]
+				indexOne = targetColumn.index(nameFromColumnsOne)
+
+				if indexZero <= indexOne:
+
+					zeroVector = portfolioDF[colNameZero].to_numpy()
+					oneVector = portfolioDF[colNameOne].to_numpy()
+
+					tempCorrMatrix = np.corrcoef(zeroVector, oneVector)
+					valueCorr = tempCorrMatrix[0][1]
+
+					sum_matrix[indexZero][indexOne] += valueCorr
+					count_matrix[indexZero][indexOne] += 1
+
+				elif indexZero > indexOne:
+					sum_matrix[indexZero][indexOne] = sum_matrix[indexOne][indexZero]
+					count_matrix[indexZero][indexOne] = count_matrix[indexOne][indexZero]
+
+		corr_matrix = ((sum_matrix / count_matrix)*100).round().astype(int)
+
+		plt.figure(figsize=(10, 8))
+		sns.heatmap(
+			corr_matrix,
+			annot=True,
+			fmt='d',
+			cmap='coolwarm',
+			vmin=-100, vmax=100,
+			square=True,
+			linewidths=0.5,
+			xticklabels=targetColumn,
+			yticklabels=targetColumn
+		)
+
+		plt.tight_layout()
+
+		fileName: str = f'{output_dir}/correlation_{nameTargetColumn}.png'
+		plt.savefig(fileName, dpi=300, bbox_inches="tight", facecolor="white")
+		plt.close()
+
+		logger.info(f' + Make correlation_{nameTargetColumn} + ')
+
+def parse_column_name(col_name: str) -> dict:
+	parts = col_name.split('_')
+	
+	asset_idx = None
+	for i, part in enumerate(parts):
+		if part.isupper() and len(part) >= 2:
+			if i + 1 < len(parts) and any(x in parts[i+1] for x in ['h', 'm', 'd']):
+				asset_idx = i
+				break
+	
+	if asset_idx is None:
+		raise ValueError(f"Не найден актив: {col_name}")
+	
+	return {
+		'algorithm': '_'.join(parts[:asset_idx]),
+		'asset': parts[asset_idx],
+		'timeframe': parts[asset_idx + 1],
+		'full_name': col_name
+	}

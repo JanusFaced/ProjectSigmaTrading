@@ -31,12 +31,8 @@ def build_tasks(
 
 		listTimeFrame = [
 			"4h",
-#			"3h",
-#			"2h",
-#			"90min",
 #			"1h",
-#			"45min",
-#			"30min",
+#			"15min",
 		]
 
 	listSymbol = [
@@ -53,11 +49,10 @@ def build_tasks(
 		"XRP",
 		"TRX",
 
-		"BCH",
-		"LINK",
-		"XMR",
-		"LTC",
-
+#		"BCH",
+#		"LTC",
+#		"LINK",
+#		"XMR",
 #		"SUI",
 #		"HYPE",
 #		"RE",
@@ -67,26 +62,14 @@ def build_tasks(
 	listTypeMarket = ['futures']
 	listNameExchange = ['binance']
 	listStrategy = [
-		"opt_cross_ma:I",
-		"opt_cross_kama:I",
-		"opt_cross_hama:I",
-		"opt_cross_ema:I",
-		"opt_cross_curve:I",
-		"opt_trend:I",
-		"opt_stochastic:I",
-		"opt_bollinger:I",
-		"opt_keltner:I",
-		"opt_envelopes:I",
-		"opt_modeling:I",
-
-		"opt_lrcurve:I",
-		"opt_moving:I",
-		"opt_kama:I",
-		"opt_hama:I",
-		"opt_ema:I",
-		"opt_lrchannel:I",
-
-#		"opt_correlation:II",
+		"trend_cross_hama:I",
+		"trend_roc:I",
+		"trend_envelopes:I",
+		"line_hama:I",
+		"contr_trend:I",
+		"contr_envelopes:I",
+		"contr_hamacd:I",
+		"corr_regression:II",
 #		"hold:N",
 	]
 	listFactor = [

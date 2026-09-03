@@ -59,38 +59,35 @@ def algorithm(
 	dataFrame = dataFrame.with_columns([
 		pl.lit(leverage).alias('leverage'),
 		(pl.col('high')/pl.col('low') - 1).rolling_mean(window_size=trendWindow).alias('ATR'),
-		pl.col('close').rolling_mean(window_size=signalWindow).alias('signalMoving'),
-		(pl.col('high')-pl.col('low')).rolling_std(window_size=signalWindow).alias('signalATR'),
+		( 100*(pl.col('close')/pl.col('close').shift(signalWindow) - 1) ).alias('indicator'),
 		pl.col('close').rolling_mean(window_size=trendWindow).alias('trendMoving'),
-	]).with_columns([
-		(pl.col('signalMoving') + pl.col('signalATR')).alias('signalMovingUpLine'),
-		(pl.col('signalMoving') - pl.col('signalATR')).alias('signalMovingDownLine'),
 		pl.col('close').rolling_mean(window_size=signalWindow).alias('guideLine'),
 	]).with_columns([
+		pl.col('indicator').rolling_mean(window_size=signalWindow).alias('signal'),
 		(pl.col('guideLine')/pl.col('guideLine').shift(1) - 1).alias('stepMaxLoss'),
 	]).with_columns([
 		(pl.lit(-multiMaxLoss)*pl.col('ATR')).alias('maxLoss'),
-	]).with_columns(
+	]).with_columns([
 		pl.when(
-			(pl.col('close') > pl.col('signalMovingUpLine')) & (pl.col('signalMovingUpLine') > pl.col('close').shift(1)) &
+			(pl.col('indicator') > pl.col('signal')) & (pl.col('signal') > pl.col('indicator').shift(1)) &
 			(pl.col('close') > pl.col('trendMoving'))
 		).then(pl.lit(-1))
 		.when(
-			(pl.col('close') < pl.col('signalMovingUpLine')) & (pl.col('signalMovingUpLine') < pl.col('close').shift(1))
+			(pl.col('indicator') < pl.col('signal')) & (pl.col('signal') < pl.col('indicator').shift(1))
 		).then(pl.lit(1))
 		.otherwise(pl.lit(0))
 		.alias('long_signal'),
 
 		pl.when(
-			(pl.col('close') > pl.col('signalMovingDownLine')) & (pl.col('signalMovingDownLine') > pl.col('close').shift(1))
+			(pl.col('indicator') > pl.col('signal')) & (pl.col('signal') > pl.col('indicator').shift(1))
 		).then(pl.lit(-1))
 		.when(
-			(pl.col('close') < pl.col('signalMovingDownLine')) & (pl.col('signalMovingDownLine') < pl.col('close').shift(1)) &
+			(pl.col('indicator') < pl.col('signal')) & (pl.col('signal') < pl.col('indicator').shift(1)) &
 			(pl.col('close') < pl.col('trendMoving'))
 		).then(pl.lit(1))
 		.otherwise(pl.lit(0))
 		.alias('short_signal'),
-	)
+	])
 
 	statsParams = {}
 	return dataFrame, statsParams
