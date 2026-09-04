@@ -11,112 +11,27 @@ from logger_setup import get_logger
 logger = get_logger(__name__)
 output_dir = Path(__file__).parent.parent / "output"
 
-#start technical functions
-@njit(cache=True)
-def hotResampler(
-		baseVector: npt.NDArray[np.float64],
-		relativeTimeFrame: int,
-		resamplMode: str
-	) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.float64], npt.NDArray[np.float64], npt.NDArray[np.float64]]:
-	
-	lenth = len(baseVector)
-
-	finalVector = np.empty(lenth, dtype=np.float64)
-
-	tempStart = 0
-	tempMax = 0
-	tempMin = 0
-	tempEnd = 0
-	tempSum = 0
-	counter = 0
-	for i in range(len(baseVector)):
-
-		startIndex = 0
-		endIndex = relativeTimeFrame-1
-		pastIndex = len(baseVector)-1
-		timeToEnd = pastIndex - i
-
-		if resamplMode == 'start':
-			if counter == startIndex:
-				preTempStart = baseVector[i]
-			elif counter == endIndex:
-				tempStart = preTempStart if (timeToEnd >= relativeTimeFrame) else tempStart
-			finalVector[i] = tempStart
- 
-		elif resamplMode == 'max':
-			if counter == startIndex:
-				preTempMax = baseVector[i]
-			elif endIndex >= counter > startIndex:
-				preTempMax = preTempMax if preTempMax > baseVector[i] else baseVector[i]
-			if counter == endIndex:
-				tempMax = preTempMax if (timeToEnd >= relativeTimeFrame) else tempMax
-			finalVector[i] = tempMax
-
-		elif resamplMode == 'min':
-			if counter == startIndex:
-				preTempMin = baseVector[i]
-			elif endIndex >= counter > startIndex:
-				preTempMin = preTempMin if preTempMin < baseVector[i] else baseVector[i]
-			if counter == endIndex:
-				tempMin = preTempMin if (timeToEnd >= relativeTimeFrame) else tempMin
-			finalVector[i] = tempMin
-
-		elif resamplMode == 'end':
-			if counter == endIndex:
-				tempEnd = baseVector[i] if (timeToEnd >= relativeTimeFrame) else tempEnd
-			finalVector[i] = tempEnd
-
-		elif resamplMode == 'sum':
-			if counter == startIndex:
-				preTempSum = baseVector[i]
-			elif endIndex >= counter > startIndex:
-				preTempSum += baseVector[i]
-			if counter == endIndex:
-				tempSum = preTempSum if (timeToEnd >= relativeTimeFrame) else tempSum
-			finalVector[i] = tempSum
-
-		counter += 1
-		if counter == relativeTimeFrame:
-			counter = 0
-	
-	return finalVector
-
-@njit(cache=True)
-def concentrator(
-		preCutWindow: npt.NDArray[np.float64],
-		numberMissing: int
-	) -> npt.NDArray[np.float64]:
-	cutWindow = np.empty(0, dtype=np.float64)
-	counter = 0
-	for i in range(len(preCutWindow)):
-		if counter == numberMissing:
-			cutWindow = np.append(cutWindow, preCutWindow[i])
-		counter += 1
-		if counter == numberMissing+1:
-			counter = 0
-	return cutWindow
-
 @njit(cache=True)
 def linearRegression(cutClose: npt.NDArray[np.float64]) -> np.float64:
-	lenth = len(cutClose)
-	if lenth < 2:
-		lastValue = cutClose[0] if lenth == 1 else 0.0
+	length = len(cutClose)
+	if length < 2:
+		lastValue = cutClose[0] if length == 1 else 0.0
 	else:
-		sum_x = lenth*(lenth + 1) / 2
-		sum_x2 = lenth*(lenth + 1) * (2*lenth + 1)/6
+		sum_x = length*(length + 1) / 2
+		sum_x2 = length*(length + 1) * (2*length + 1)/6
 		sum_y = 0.0
 		sum_xy = 0.0
-		for i in range(lenth):
+		for i in range(length):
 			xi = i + 1
 			sum_y += cutClose[i]
 			sum_xy += xi*cutClose[i]
-		denominator = lenth*sum_x2 - sum_x*sum_x
+		denominator = length*sum_x2 - sum_x*sum_x
 		if denominator == 0:
 			lastValue = cutClose[-1]
 		else:
-			parametr_b = (lenth * sum_xy - sum_x * sum_y) / denominator
-			parametr_a = (sum_y - parametr_b * sum_x) / lenth
-			lastValue = parametr_a + parametr_b*lenth
+			parametr_b = (length * sum_xy - sum_x * sum_y) / denominator
+			parametr_a = (sum_y - parametr_b * sum_x) / length
+			lastValue = parametr_a + parametr_b*length
 	return lastValue
 
 @njit(cache=True)
@@ -124,86 +39,27 @@ def lr_correlation(
 		cutPrimary: npt.NDArray[np.float64],
 		сutSecondary: npt.NDArray[np.float64]
 	) -> np.float64:
-	lenth = len(cutPrimary)
-	if lenth < 2:
-		lastValue = сutSecondary[0] if lenth == 1 else 0.0
+	length = len(cutPrimary)
+	if length < 2:
+		lastValue = сutSecondary[0] if length == 1 else 0.0
 	else:
 		sum_x = 0.0
 		sum_y = 0.0
 		sum_xy = 0.0
 		sum_x2 = 0.0
-		for i in range(lenth):
+		for i in range(length):
 			sum_x += cutPrimary[i]
 			sum_y += сutSecondary[i]
 			sum_xy += cutPrimary[i]*сutSecondary[i]
 			sum_x2 += cutPrimary[i]*cutPrimary[i]
-		denominator = lenth*sum_x2 - sum_x*sum_x
+		denominator = length*sum_x2 - sum_x*sum_x
 		if denominator == 0:
 			lastValue = сutSecondary[-1]
 		else:
-			b = (lenth*sum_xy - sum_x*sum_y)/denominator
-			a = (sum_y - b*sum_x)/lenth
+			b = (length*sum_xy - sum_x*sum_y)/denominator
+			a = (sum_y - b*sum_x)/length
 			lastValue = a + b*cutPrimary[-1]
 	return lastValue
-
-#end technical functions
-
-#start indicators
-@njit(cache=True)
-def adaptive_moving(
-		closeVector: npt.NDArray[np.float64],
-		volMulti: npt.NDArray[np.float64],
-		baseWindow: int = 20,
-		multiple: float = 1.00,
-		baseLineMode: str = "MA",
-		depth: int = 0
-	) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.float64], npt.NDArray[np.float64], npt.NDArray[np.float64]]:
-
-	lenth = len(closeVector)
-	upLineVector = np.empty(lenth, dtype=np.float64)
-	movingVector = np.empty(lenth, dtype=np.float64)
-	downLineVector = np.empty(lenth, dtype=np.float64)
-	movingDiffVector = np.empty(lenth, dtype=np.float64)
-	firstIndex = baseWindow*int(np.nanmax(volMulti))
-
-	matrix = [closeVector]
-	for i in range(depth):
-		relativeTimeFrame = 2**(i+1)
-		resamplVector = hotResampler(
-			baseVector=closeVector,
-			relativeTimeFrame=relativeTimeFrame,
-			resamplMode='end'
-		)
-		matrix.append(resamplVector)
-
-	for i in range(firstIndex, lenth):
-		real_i = i+1
-		multi = volMulti[i] if volMulti[i] > 0.50 else 0.50
-		window = int(baseWindow*multi)
-		address = int(np.log2(multi)) if multi >= 1 else 0
-
-		currentPreCutWindow = matrix[address][real_i-window:real_i]
-		pastPreCutWindow = matrix[address][i-window:i]
-		
-		currentCutWindow = concentrator(preCutWindow=currentPreCutWindow, numberMissing=address)
-		pastCutWindow = concentrator(preCutWindow=pastPreCutWindow, numberMissing=address)
-
-		if baseLineMode == "MA":
-			currentLine = np.mean(currentCutWindow) if len(currentCutWindow) > 2 else 0
-			pastLine = np.mean(pastCutWindow) if len(pastCutWindow) > 2 else 0
-
-		elif baseLineMode == "LR":
-			currentLine = linearRegression(currentCutWindow) if len(currentCutWindow) > 2 else 0
-			pastLine = linearRegression(pastCutWindow) if len(pastCutWindow) > 2 else 0
-
-		movingVector[i] = currentLine
-		movingDiffVector[i] = currentLine - pastLine
-
-		sigma = np.std(currentCutWindow) if len(currentCutWindow) > 2 else 0
-		upLineVector[i] = currentLine + multiple*sigma
-		downLineVector[i] = currentLine - multiple*sigma
-
-	return upLineVector, movingVector, downLineVector, movingDiffVector
 
 @njit(cache=True)
 def simple_linear_regression(
@@ -211,11 +67,11 @@ def simple_linear_regression(
 		baseWindow: int = 20,
 	) -> npt.NDArray[np.float64]:
 
-	lenth = len(closeVector)
-	curveVector = np.empty(lenth, dtype=np.float64)
+	length = len(closeVector)
+	curveVector = np.full(length, np.nan, dtype=np.float64)
 	firstIndex = baseWindow
 
-	for i in range(firstIndex, lenth):
+	for i in range(firstIndex, length):
 		real_i = i+1
 		window = baseWindow
 		cutWindow = closeVector[real_i-window:real_i]
@@ -224,65 +80,16 @@ def simple_linear_regression(
 	return curveVector
 
 @njit(cache=True)
-def adaptive_correlation(
-		secondaryVector: npt.NDArray[np.float64],
-		primaryVector: npt.NDArray[np.float64],
-		volMulti: npt.NDArray[np.float64],
-		baseWindow: int = 20,
-		depth: int = 0
-	) -> npt.NDArray[np.float64]:
-
-	lenth = len(primaryVector)
-	model = np.empty(lenth, dtype=np.float64)
-	firstIndex = baseWindow*int(np.nanmax(volMulti))
-
-	secondaryMatrix = [secondaryVector]
-	for i in range(depth):
-		relativeTimeFrame = 2**(i+1)
-		resamplVector = hotResampler(
-			baseVector=secondaryVector,
-			relativeTimeFrame=relativeTimeFrame,
-			resamplMode='end'
-		)
-		secondaryMatrix.append(resamplVector)
-
-	primaryMatrix = [primaryVector]
-	for i in range(depth):
-		relativeTimeFrame = 2**(i+1)
-		resamplVector = hotResampler(
-			baseVector=primaryVector,
-			relativeTimeFrame=relativeTimeFrame,
-			resamplMode='end'
-		)
-		primaryMatrix.append(resamplVector)
-
-	for i in range(firstIndex, lenth):
-		real_i = i+1
-		multi = volMulti[i] if volMulti[i] > 0.50 else 0.50
-		window = int(baseWindow*multi)
-		address = int(np.log2(multi)) if multi >= 1 else 0
-
-		preCutSecondary = secondaryMatrix[address][real_i-window:real_i]
-		preCutPrimary = primaryMatrix[address][real_i-window:real_i]
-
-		cutSecondary = concentrator(preCutWindow=preCutSecondary, numberMissing=address)
-		cutPrimary = concentrator(preCutWindow=preCutPrimary, numberMissing=address)
-
-		model[i] = lr_correlation(cutPrimary, cutSecondary)
-	
-	return model
-
-@njit(cache=True)
 def simple_correlation(
 		secondaryVector: npt.NDArray[np.float64],
 		primaryVector: npt.NDArray[np.float64],
 		baseWindow: int = 20
 	) -> npt.NDArray[np.float64]:
 
-	lenth = len(primaryVector)
-	model = np.empty(lenth, dtype=np.float64)
+	length = len(primaryVector)
+	model = np.full(length, np.nan, dtype=np.float64)
 	firstIndex = baseWindow
-	for i in range(firstIndex, lenth):
+	for i in range(firstIndex, length):
 		real_i = i+1
 		window = baseWindow
 		cutSecondary = secondaryVector[real_i-window:real_i]
@@ -292,190 +99,39 @@ def simple_correlation(
 	return model
 
 @njit(cache=True)
-def adaptive_roc(
-		closeVector: npt.NDArray[np.float64],
-		volMulti: npt.NDArray[np.float64],
-		baseWindow: int = 20,
-		depth: int = 0
-	) -> npt.NDArray[np.float64]:
-	lenth = len(closeVector)
-	rocVector = np.empty(lenth, dtype=np.float64)
-	firstIndex = baseWindow*int(np.nanmax(volMulti))
-
-	closeMatrix = [closeVector]
-	for i in range(depth):
-		relativeTimeFrame = 2**(i+1)
-		resamplVector = hotResampler(
-			baseVector=closeVector,
-			relativeTimeFrame=relativeTimeFrame,
-			resamplMode='end'
-		)
-		closeMatrix.append(resamplVector)
-
-	for i in range(firstIndex, lenth):
-		real_i = i+1
-		multi = volMulti[i] if volMulti[i] > 0.50 else 0.50
-		window = int(baseWindow*multi)
-		address = int(np.log2(multi)) if multi >= 1 else 0
-
-		preCutClose = closeMatrix[address][real_i-window:real_i]
-		cutClose = concentrator(preCutWindow=preCutClose, numberMissing=address)
-
-		rocVector[i] = (cutClose[-1] - cutClose[0])/cutClose[0]
-	
-	return rocVector
+def normalize(cutWindow):
+	maxValue = np.max(cutWindow)
+	minValue = np.min(cutWindow)
+	return (cutWindow - minValue)/(maxValue - minValue)
 
 @njit(cache=True)
-def adaptive_volume(
-		volumeVector: npt.NDArray[np.float64],
-		volMulti: npt.NDArray[np.float64],
-		baseWindow: int = 20,
-		depth: int = 0
+def correlation_pirson(
+		secondaryVector: npt.NDArray[np.float64],
+		primaryVector: npt.NDArray[np.float64],
+		baseWindow: int = 20
 	) -> npt.NDArray[np.float64]:
-	lenth = len(volumeVector)
-	sumVector = np.empty(lenth, dtype=np.float64)
-	firstIndex = baseWindow*int(np.nanmax(volMulti))
 
-	volumeMatrix = [volumeVector]
-	for i in range(depth):
-		relativeTimeFrame = 2**(i+1)
-		resamplVector = hotResampler(
-			baseVector=volumeVector,
-			relativeTimeFrame=relativeTimeFrame,
-			resamplMode='sum'
-		)
-		volumeMatrix.append(resamplVector)
-
-	for i in range(firstIndex, lenth):
+	length = len(primaryVector)
+	corrVector = np.full(length, np.nan, dtype=np.float64)
+	spreadVector = np.full(length, np.nan, dtype=np.float64)
+	firstIndex = baseWindow
+	for i in range(firstIndex, length):
 		real_i = i+1
-		multi = volMulti[i] if volMulti[i] > 0.50 else 0.50
-		window = int(baseWindow*multi)
-		address = int(np.log2(multi)) if multi >= 1 else 0
+		window = baseWindow
+		cutPrimary = primaryVector[real_i-window:real_i]
+		cutSecondary = secondaryVector[real_i-window:real_i]
 
-		preCutVolume = volumeMatrix[address][real_i-window:real_i]
-		cutVolume = concentrator(preCutWindow=preCutVolume, numberMissing=address)
-		
-		sumVector[i] = np.sum(cutVolume)
+		corr = np.corrcoef(cutPrimary, cutSecondary)[0][1]
+
+		normCutPrimary = normalize(cutPrimary)
+		normCutSecondary = normalize(cutSecondary)
+
+		spread = normCutPrimary[-1] - normCutSecondary[-1]
+
+		corrVector[i] = corr
+		spreadVector[i] = spread
 	
-	return sumVector
-
-#end indicators
-
-def volativityTuning(
-		dataFrame: pl.DataFrame,
-		inputMessage: dict,
-	) -> dict:
-	timeFrame = inputMessage['timeFrame']
-	numberTimeFrame = convertorTimeFrame(timeFrame)
-	dataFrame = dataFrame.with_columns((pl.col('high')/pl.col('low')-1).alias('statTR'))
-	historyATR = float(np.nanmean(dataFrame['statTR'].to_numpy()))
-	volParams = {
-		'historyATR': historyATR,
-	}
-	return volParams
-
-def indicatorTuning(
-		dataFrame: pl.DataFrame,
-		inputMessage: dict,
-		indicatorName: str,
-		financialReturnName: str,
-		divided: int = 100,
-		profit_loss: float = 2.71,
-		rangeIndicator: dict = {'max': 1.00, 'min': 0.00},
-		degree: int = 5,
-	) -> tuple[dict, dict]:
-
-	maxValueInd, minValueInd = rangeIndicator['max'], rangeIndicator['min']
-	target_for_long = profit_loss/(profit_loss+1)
-	target_for_short = 1/(profit_loss+1)
-
-	fullRangeInd = (maxValueInd - minValueInd)
-	bin_width = fullRangeInd/divided
-	n_bins = max(int(np.ceil((maxValueInd - minValueInd) / bin_width)), 1)
-
-	tempDF = dataFrame.select([indicatorName, financialReturnName]).drop_nulls().with_columns(
-		((pl.col(indicatorName) - minValueInd) / bin_width).floor().clip(0, n_bins - 1).cast(pl.Int32).alias("bin")
-	)
-
-	aggDataFrame = tempDF.group_by("bin", maintain_order=True).agg([
-		pl.len().alias("count"),
-		pl.col(financialReturnName).std().alias("std_y"),
-		pl.col(financialReturnName).mean().alias("mean_y"),
-	])
-
-	allRangeBins = pl.DataFrame({"bin": list(range(0, divided))})
-
-	aggDF = allRangeBins.join(aggDataFrame, on=["bin"], how="left").with_columns([
-		(pl.col('bin')*bin_width + minValueInd).alias("real_x"),
-	]).with_columns([
-		(pl.col("mean_y") + pl.col("std_y")).alias("up_y"),
-		(pl.col("mean_y") - pl.col("std_y")).alias("down_y"),
-	])
-
-	for nameYaxis in ['up_y', 'mean_y', 'down_y']:
-		x_axis, y_axis, cnt_axis = aggDF["real_x"].to_numpy(), aggDF[nameYaxis].to_numpy(), aggDF["count"].to_numpy()
-		x_scaled = 2*(x_axis - minValueInd)/(maxValueInd - minValueInd) - 1
-
-		mask = np.isfinite(x_scaled) & np.isfinite(y_axis) & np.isfinite(cnt_axis) & (cnt_axis > 0)
-		x_axis, y_axis, cnt_axis = x_scaled[mask], y_axis[mask], cnt_axis[mask]
-
-		cnt_axis = np.log1p(cnt_axis)
-
-		coeffs = np.polyfit(x_axis, y_axis, degree, w=cnt_axis)
-		polyModel = np.poly1d(coeffs)
-
-		y_fit = polyModel(x_scaled)
-		aggDF = aggDF.with_columns(pl.Series(f"{nameYaxis}_line", y_fit))
-
-	aggDF = aggDF.with_columns([
-		pl.when(
-			pl.col("up_y_line") < pl.col("mean_y_line")
-		).then(pl.col("mean_y_line")).otherwise(pl.col("up_y_line")).alias("up_y_line"),
-		pl.when(
-			pl.col("down_y_line") > pl.col("mean_y_line")).then(pl.col("mean_y_line")
-		).otherwise(pl.col("down_y_line")).alias("down_y_line"),
-	]).with_columns([
-		(pl.col("up_y_line") - 0).alias("positivePotential"),
-		(0 - pl.col("down_y_line")).alias("negativePotential"),
-	]).with_columns([
-		(pl.col('positivePotential')/(pl.col('positivePotential') + pl.col('negativePotential'))).alias('potentialMove'),
-	])
-
-	commonDict = {}
-	for direction in ['long', 'short']:
-		target = target_for_long if direction == 'long' else target_for_short
-		cond = (pl.col("potentialMove") > target) if direction == "long" else (pl.col("potentialMove") < target)
-
-		workDF = aggDF.with_row_count("i").select(["i", "real_x", "potentialMove"]).with_columns(
-			cond.alias("hit")
-		)
-
-		workDF = workDF.with_columns(
-			pl.when(pl.col("hit") & ~pl.col("hit").shift(1, fill_value=False))
-			.then(1)
-			.otherwise(0)
-			.alias("new_run")
-		).with_columns(
-			pl.when(pl.col("hit"))
-			.then(pl.col("new_run").cum_sum())
-			.otherwise(None)
-			.alias("run_key")
-		)
-
-		outData = workDF.drop_nulls("run_key").group_by("run_key").agg(
-			pl.first("i").alias("start"),
-			pl.last("i").alias("end"),
-			pl.first("real_x").alias("x_start"),
-			pl.last("real_x").alias("x_end"),
-		).sort("start").select(["x_start", "x_end"]).to_dicts()
-
-		commonDict[direction] = [{'start': d['x_start'], 'end': d['x_end']} for d in outData]
-
-	commonDict['long'] = [{'start': maxValueInd, 'end': maxValueInd}] if len(commonDict['long']) == 0 else commonDict['long']
-	commonDict['short'] = [{'start': minValueInd, 'end': minValueInd}] if len(commonDict['short']) == 0 else commonDict['short']
-	commonDict['long'][-1]['end'], commonDict['short'][0]['start'] = maxValueInd, minValueInd
-
-	return commonDict
+	return corrVector, spreadVector
 
 @njit(cache=True)
 def hurstCoef(
@@ -491,16 +147,12 @@ def hurstCoef(
 	for i in range(firstIndex, length):
 		real_i = i+1
 		cutPrice = closeVector[real_i-window:real_i]
-
 		x_series = np.diff(np.log(cutPrice))
 		hurst_n = len(x_series)
-
 		x_mean = np.mean(x_series)
 		y_series = np.cumsum(x_series - x_mean)
-		
 		hurst_R = np.max(y_series) - np.min(y_series)
 		hurst_S = np.sqrt(np.sum((x_series - x_mean)**2) / (hurst_n - 1))
-
 		hurstVector[i] = np.log(max(hurst_R, eps)/max(hurst_S, eps))/np.log(hurst_n)
 
 	return hurstVector
@@ -518,13 +170,15 @@ def kamaInd(
 	
 	for i in range(firstIndex, length):
 		real_i = i+1
-
 		pastKama = (
 			kamaVector[i-1] if i > firstIndex
 			else np.mean(closeVector[real_i-window:real_i])
 		)
-
 		kamaVector[i] = pastKama + scVector[i]*(closeVector[i] - pastKama)
 
 	return kamaVector
+
+
+
+
 

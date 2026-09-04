@@ -51,10 +51,10 @@ def main(portfolioParams: dict) -> None:
 	portfolioDF = portfolioLogic(
 		portfolioDF=portfolioDF,
 		columnNames=columnNames,
-		period_rebalance=365,
+		period_rebalance=360,
 		start_depo=100.00,
 		portfolioMode=portfolioMode,
-		modeReBalance='sharp' #simple profit sigma sharp fun_profit
+		modeReBalance='profit_zero' #simple profit_zero sharp_zero pf_zero
 	)
 
 	analystReport = portfolioAnalyst(

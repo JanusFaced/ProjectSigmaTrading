@@ -9,6 +9,7 @@ from strategies import (
 	contr_envelopes,
 	contr_hamacd,
 	corr_regression,
+	corr_pirson,
 )
 import trading_simulator
 import imitation_connector
@@ -61,7 +62,9 @@ def main(inputMessage: dict) -> None:
 		contr_hamacd.main(inputMessage)
 	elif firstName == "corr_regression":
 		corr_regression.main(inputMessage)
-
+	elif firstName == "corr_pirson":
+		corr_pirson.main(inputMessage)
+		
 	if inputMessage['mode'] == 'test':
 		trading_simulator.main(inputMessage)
 	elif inputMessage['mode'] == 'imitation':

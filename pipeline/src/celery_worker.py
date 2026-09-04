@@ -36,16 +36,16 @@ def build_tasks(
 		]
 
 	listSymbol = [
-		"BTC",
+#		"BTC",
 		"ETH",
 		"BNB",
 		"SOL",
-		"ADA",
-		"ZEC",
-		"DOGE",
-		"NEAR",
-		"AVAX",
-		"FIL",
+#		"ADA",
+#		"ZEC",
+#		"DOGE",
+#		"NEAR",
+#		"AVAX",
+#		"FIL",
 		"XRP",
 		"TRX",
 
@@ -62,14 +62,15 @@ def build_tasks(
 	listTypeMarket = ['futures']
 	listNameExchange = ['binance']
 	listStrategy = [
-		"trend_cross_hama:I",
-		"trend_roc:I",
-		"trend_envelopes:I",
-		"line_hama:I",
-		"contr_trend:I",
-		"contr_envelopes:I",
-		"contr_hamacd:I",
-		"corr_regression:II",
+#		"trend_cross_hama:I",
+#		"trend_roc:I",
+#		"trend_envelopes:I",
+#		"line_hama:I",
+#		"contr_trend:I",
+#		"contr_envelopes:I",
+#		"contr_hamacd:I",
+#		"corr_regression:II",
+		"corr_pirson:II",
 #		"hold:N",
 	]
 	listFactor = [

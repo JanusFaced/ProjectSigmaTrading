@@ -241,6 +241,18 @@ def portfolioManager(
 
 		listOfDataframes.append(tempDF)
 
+		logger.info(f"----------------------------------------------------")
+		logger.info(f"start = {cell['start']} | end = {cell['end']}")
+		listAssetWeights = [assetWeights[col] for col in columnNames]
+		minWeight = round(np.min(listAssetWeights), 7)
+		meanWeight = round(np.mean(listAssetWeights), 7)
+		maxWeight = round(np.max(listAssetWeights), 7)
+		sumWeight = round(np.sum(listAssetWeights), 7)
+		logger.info(f"min = {minWeight} | mean = {meanWeight} | max = {maxWeight} | sum = {sumWeight}")
+
+		if not( minWeight > 0) | (sumWeight > 1):
+			raise ValueError(f"exist negative weigths or summa of weigth over one!")
+
 	finalDataFrame = pl.concat(listOfDataframes)
 	return finalDataFrame
 
@@ -300,41 +312,37 @@ def reBalancer(
 		modeReBalance: str
 	) -> dict:
 
-	def optFunProfit(x: float) -> float:
-		t = 2.00
-		g = 0.10
-		m = 0.03
-		y = g/((x-t)**2 + g) + m
-		return y
-
 	if modeReBalance == 'simple':
 		assetWeights = {col: 1/len(columnNames) for col in columnNames}
 
-	elif modeReBalance == 'profit':
+	elif modeReBalance == 'profit_zero':
 		vectorsDict = {col: tempDF[col].to_numpy() for col in columnNames}
 		meanDict = {col: vectorsDict[col][-1]/vectorsDict[col][0] for col in columnNames}
-		totalMean = sum(meanDict.values())
-		assetWeights = {col: meanDict[col]/totalMean for col in columnNames}
+		stdValue = np.mean([meanDict[col] for col in columnNames])
+		meanDict = {col: value**np.e if value > 1 else stdValue/100 for col, value in meanDict.items()}
+		totalValue = sum(meanDict.values())
+		assetWeights = {col: meanDict[col]/totalValue for col in columnNames}
 
-	elif modeReBalance == 'sigma':
-		vectorsDict = {col: tempDF[col].to_numpy() for col in columnNames}
-		stdDict = {col: np.std(vectorsDict[col]) for col in columnNames}
-		totalSigma = sum(stdDict.values())
-		assetWeights = {col: stdDict[col]/totalSigma for col in columnNames}
-
-	elif modeReBalance == 'sharp':
+	elif modeReBalance == 'sharp_zero':
 		vectorsDict = {col: tempDF[col].to_numpy() for col in columnNames}
 		profitDict = {col: vectorsDict[col][-1]/vectorsDict[col][0] for col in columnNames}
 		stdDict = {col: np.std(vectorsDict[col]) for col in columnNames}
 		sharpDict = {col: profitDict[col]/(stdDict[col]+0.00001) for col in columnNames}
+		stdValue = np.mean([sharpDict[col] for col in columnNames])
+		sharpDict = {col: sharpDict[col] if profitDict[col] > 1 else stdValue/100 for col in columnNames}
 		totalSigma = sum(sharpDict.values())
 		assetWeights = {col: sharpDict[col]/totalSigma for col in columnNames}
 
-	elif modeReBalance == 'fun_profit':
+	elif modeReBalance == 'pf_zero':
 		vectorsDict = {col: tempDF[col].to_numpy() for col in columnNames}
 		profitDict = {col: vectorsDict[col][-1]/vectorsDict[col][0] for col in columnNames}
-		functionDict = {col: optFunProfit(profitDict[col]) for col in columnNames}
-		totalMean = sum(functionDict.values())
-		assetWeights = {col: functionDict[col]/totalMean for col in columnNames}
+		diffsDict = {col: (vectorsDict[col][1:]/vectorsDict[col][:-1] - 1) for col in columnNames}
+		posDict = {col: np.sum(diffsDict[col][diffsDict[col] > 0]) for col in columnNames}
+		negDict = {col: np.sum(np.abs(diffsDict[col][diffsDict[col] < 0])) for col in columnNames}
+		pfDict = {col: posDict[col]/(negDict[col]+0.00001) for col in columnNames}
+		stdValue = np.mean([pfDict[col] for col in columnNames])
+		pfDict = {col: pfDict[col]**(np.e) if profitDict[col] > 1 else stdValue/100 for col in columnNames}
+		totalPF = sum(pfDict.values())
+		assetWeights = {col: pfDict[col]/totalPF for col in columnNames}
 
 	return assetWeights
