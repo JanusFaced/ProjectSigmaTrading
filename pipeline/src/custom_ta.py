@@ -99,13 +99,25 @@ def simple_correlation(
 	return model
 
 @njit(cache=True)
-def normalize(cutWindow):
-	maxValue = np.max(cutWindow)
-	minValue = np.min(cutWindow)
-	return (cutWindow - minValue)/(maxValue - minValue)
+def covertToStatic(vector: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:
+	diff = vector[1:] - vector[:-1]
+	trend = np.mean(diff)
+	clearDiff = diff - trend
+	vector = np.concatenate((
+		np.array([vector[0]]),
+		np.cumsum(clearDiff) + vector[0]
+	))
+	return vector
 
 @njit(cache=True)
-def correlation_pirson(
+def zScoreNormalize(vector: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:
+	mean = np.mean(vector)
+	std = np.std(vector)
+	vector = (vector - mean)/std
+	return vector
+
+@njit(cache=True)
+def correlationPirson(
 		secondaryVector: npt.NDArray[np.float64],
 		primaryVector: npt.NDArray[np.float64],
 		baseWindow: int = 20
@@ -113,25 +125,47 @@ def correlation_pirson(
 
 	length = len(primaryVector)
 	corrVector = np.full(length, np.nan, dtype=np.float64)
-	spreadVector = np.full(length, np.nan, dtype=np.float64)
 	firstIndex = baseWindow
+
 	for i in range(firstIndex, length):
 		real_i = i+1
 		window = baseWindow
 		cutPrimary = primaryVector[real_i-window:real_i]
 		cutSecondary = secondaryVector[real_i-window:real_i]
 
-		corr = np.corrcoef(cutPrimary, cutSecondary)[0][1]
+		staticPrimary = covertToStatic(cutPrimary)
+		staticSecondary = covertToStatic(cutSecondary)
 
-		normCutPrimary = normalize(cutPrimary)
-		normCutSecondary = normalize(cutSecondary)
-
-		spread = normCutPrimary[-1] - normCutSecondary[-1]
-
-		corrVector[i] = corr
-		spreadVector[i] = spread
+		corrVector[i] = np.corrcoef(staticPrimary, staticSecondary)[0][1]
 	
-	return corrVector, spreadVector
+	return corrVector
+
+@njit(cache=True)
+def spreadMaker(
+		secondaryVector: npt.NDArray[np.float64],
+		primaryVector: npt.NDArray[np.float64],
+		baseWindow: int = 20
+	) -> npt.NDArray[np.float64]:
+
+	length = len(primaryVector)
+	spreadVector = np.full(length, np.nan, dtype=np.float64)
+	firstIndex = baseWindow
+
+	for i in range(firstIndex, length):
+		real_i = i+1
+		window = baseWindow
+		cutPrimary = primaryVector[real_i-window:real_i]
+		cutSecondary = secondaryVector[real_i-window:real_i]
+
+		normPrimary = zScoreNormalize(cutPrimary)
+		normSecondary = zScoreNormalize(cutSecondary)
+
+		normPrimary = normPrimary - normPrimary[0]
+		normSecondary = normSecondary - normSecondary[0]
+
+		spreadVector[i] = normSecondary[-1] - normPrimary[-1]
+	
+	return spreadVector
 
 @njit(cache=True)
 def hurstCoef(

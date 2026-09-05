@@ -71,20 +71,21 @@ def backTester(inputMessage: dict[str, Any]) -> Dict:
 	plt.savefig(fileName)
 	plt.close()
 
+	'''
+	tempDF = dataFrame[['correlation', 'spread', 'maxBoard', 'minBoard', 'datetime']]
 
-	tempDF = dataFrame[['correlation', 'datetime']]
 	plt.plot(tempDF['datetime'], tempDF['correlation'], color='blue')
 	superName = str(output_dir) + f'/correlation_{strategy}_{symbol}_{timeFrame}_{type}_{nameExchange}.png'
 	plt.savefig(superName)
 	plt.close()
 
-	tempDF = dataFrame[['spread', 'maxBoard', 'minBoard', 'datetime']]
 	plt.plot(tempDF['datetime'], tempDF['maxBoard'], color='red')
 	plt.plot(tempDF['datetime'], tempDF['spread'], color='black')
 	plt.plot(tempDF['datetime'], tempDF['minBoard'], color='green')
 	superName = str(output_dir) + f'/spread_{strategy}_{symbol}_{timeFrame}_{type}_{nameExchange}.png'
 	plt.savefig(superName)
 	plt.close()
+	'''
 
 
 	new_name = f"{strategy}_{symbol}_{timeFrame}_{type}_{nameExchange}"
