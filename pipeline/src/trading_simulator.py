@@ -71,22 +71,24 @@ def backTester(inputMessage: dict[str, Any]) -> Dict:
 	plt.savefig(fileName)
 	plt.close()
 
-	'''
-	tempDF = dataFrame[['correlation', 'spread', 'maxBoard', 'minBoard', 'datetime']]
-
-	plt.plot(tempDF['datetime'], tempDF['correlation'], color='blue')
-	superName = str(output_dir) + f'/correlation_{strategy}_{symbol}_{timeFrame}_{type}_{nameExchange}.png'
+	'''	
+	#signalTrend
+	tempDF = dataFrame[['signalTrend', 'datetime']].tail(1000)
+	plt.plot(tempDF['datetime'], tempDF['signalTrend'], color='black')
+	superName = str(output_dir) + f'/pattern_{strategy}_{symbol}_{timeFrame}_{type}_{nameExchange}.png'
 	plt.savefig(superName)
 	plt.close()
 
-	plt.plot(tempDF['datetime'], tempDF['maxBoard'], color='red')
-	plt.plot(tempDF['datetime'], tempDF['spread'], color='black')
-	plt.plot(tempDF['datetime'], tempDF['minBoard'], color='green')
-	superName = str(output_dir) + f'/spread_{strategy}_{symbol}_{timeFrame}_{type}_{nameExchange}.png'
+
+	#channels
+	tempDF = dataFrame[['upLine', 'close', 'downLine', 'datetime']].tail(1000)
+	plt.plot(tempDF['datetime'], tempDF['upLine'], color='green')
+	plt.plot(tempDF['datetime'], tempDF['close'], color='black')
+	plt.plot(tempDF['datetime'], tempDF['downLine'], color='red')
+	superName = str(output_dir) + f'/zzChannel_{strategy}_{symbol}_{timeFrame}_{type}_{nameExchange}.png'
 	plt.savefig(superName)
 	plt.close()
 	'''
-
 
 	new_name = f"{strategy}_{symbol}_{timeFrame}_{type}_{nameExchange}"
 	equityDataframe = dataFrame[['datetime', 'cash_balance_body']].rename({"cash_balance_body": new_name})

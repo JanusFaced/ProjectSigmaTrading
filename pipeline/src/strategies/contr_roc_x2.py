@@ -3,7 +3,6 @@ import matplotlib.pyplot as plt
 import polars as pl
 import os
 from walk_forward_simulator import walkForward
-from custom_ta import spreadMaker
 from pathlib import Path
 from duckDB_setup import get_duckdb
 from logger_setup import get_logger
@@ -53,51 +52,37 @@ def algorithm(
 	signalWindow = 1*baseWindow
 	trendWindow = 10*baseWindow
 
-	leverage = 1
+	leverage = 2
 
 	multiMaxLoss = params['multiMaxLoss']
 
 	dataFrame = dataFrame.with_columns([
 		pl.lit(leverage).alias('leverage'),
 		(pl.col('high')/pl.col('low') - 1).rolling_mean(window_size=trendWindow).alias('ATR'),
-	])
-
-	spread = spreadMaker(
-		secondaryVector=dataFrame['close'].to_numpy(),
-		primaryVector=dataFrame['closeFactor'].to_numpy(),
-		baseWindow=signalWindow
-	)
-
-	dataFrame = dataFrame.with_columns([
-		pl.Series('spread', spread),
+		( 100*(pl.col('close')/pl.col('close').shift(signalWindow) - 1) ).alias('indicator'),
 		pl.col('close').rolling_mean(window_size=trendWindow).alias('trendMoving'),
 		pl.col('close').rolling_mean(window_size=signalWindow).alias('guideLine'),
 	]).with_columns([
+		pl.col('indicator').rolling_mean(window_size=signalWindow).alias('signal'),
 		(pl.col('guideLine')/pl.col('guideLine').shift(1) - 1).alias('stepMaxLoss'),
 	]).with_columns([
-		pl.col('spread').rolling_mean(window_size=signalWindow).alias('averageSpread'),
 		(pl.lit(-multiMaxLoss)*pl.col('ATR')).alias('maxLoss'),
 	]).with_columns([
-		(pl.col('spread') - pl.col('averageSpread')).abs().rolling_mean(window_size=signalWindow).alias('deltaSpread'),
-	]).with_columns([
-		( pl.col('deltaSpread') + pl.col('deltaSpread') ).alias('maxBoard'),
-		( pl.col('deltaSpread') - pl.col('deltaSpread') ).alias('minBoard'),
-	]).with_columns([
 		pl.when(
-			(pl.col('spread') > pl.col('maxBoard')) & (pl.col('maxBoard') > pl.col('spread').shift(1)) &
+			(pl.col('indicator') > pl.col('signal')) & (pl.col('signal') > pl.col('indicator').shift(1)) &
 			(pl.col('close') > pl.col('trendMoving'))
 		).then(pl.lit(-1))
 		.when(
-			(pl.col('spread') < pl.col('maxBoard')) & (pl.col('maxBoard') < pl.col('spread').shift(1))
+			(pl.col('indicator') < pl.col('signal')) & (pl.col('signal') < pl.col('indicator').shift(1))
 		).then(pl.lit(1))
 		.otherwise(pl.lit(0))
 		.alias('long_signal'),
 
 		pl.when(
-			(pl.col('spread') > pl.col('minBoard')) & (pl.col('minBoard') > pl.col('spread').shift(1))
+			(pl.col('indicator') > pl.col('signal')) & (pl.col('signal') > pl.col('indicator').shift(1))
 		).then(pl.lit(-1))
 		.when(
-			(pl.col('spread') < pl.col('minBoard')) & (pl.col('minBoard') < pl.col('spread').shift(1)) &
+			(pl.col('indicator') < pl.col('signal')) & (pl.col('signal') < pl.col('indicator').shift(1)) &
 			(pl.col('close') < pl.col('trendMoving'))
 		).then(pl.lit(1))
 		.otherwise(pl.lit(0))

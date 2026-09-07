@@ -53,7 +53,7 @@ def algorithm(
 	signalWindow = 1*baseWindow
 	trendWindow = 10*baseWindow
 
-	leverage = 1
+	leverage = 3
 
 	multiMaxLoss = params['multiMaxLoss']
 

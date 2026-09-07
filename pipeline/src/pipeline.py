@@ -2,14 +2,44 @@ import polars as pl
 import dataFrameDownloader
 from strategies import (
 	trend_cross_hama,
+	trend_cross_hama_x2,
+	trend_cross_hama_x3,
 	trend_roc,
-	trend_envelopes, 
+	trend_roc_x2,
+	trend_roc_x3,
+	trend_envelopes,
+	trend_envelopes_x2,
+	trend_envelopes_x3,
+	trend_pattern_soldiers,
+	trend_pattern_soldiers_x2,
+	trend_pattern_soldiers_x3,
+	trend_zigzag_pinbar,
+	trend_zigzag_pinbar_x2,
+	trend_zigzag_pinbar_x3,
+	trend_zzchannel_pinbar,
+	trend_zzchannel_pinbar_x2,
+	trend_zzchannel_pinbar_x3,
 	line_hama,
-	contr_trend,
+	line_hama_x2,
+	line_hama_x3,
+	contr_roc,
+	contr_roc_x2,
+	contr_roc_x3,
 	contr_envelopes,
+	contr_envelopes_x2,
+	contr_envelopes_x3,
 	contr_hamacd,
+	contr_hamacd_x2,
+	contr_hamacd_x3,
+	contr_pattern_star,
+	contr_pattern_star_x2,
+	contr_pattern_star_x3,
 	corr_regression,
+	corr_regression_x2,
+	corr_regression_x3,
 	corr_pirson,
+	corr_pirson_x2,
+	corr_pirson_x3,
 )
 import trading_simulator
 import imitation_connector
@@ -48,18 +78,72 @@ def main(inputMessage: dict) -> None:
 
 	if firstName == "trend_cross_hama":
 		trend_cross_hama.main(inputMessage)
+	elif firstName == "trend_cross_hama_x2":
+		trend_cross_hama_x2.main(inputMessage)
+	elif firstName == "trend_cross_hama_x3":
+		trend_cross_hama_x3.main(inputMessage)
 	elif firstName == "trend_roc":
 		trend_roc.main(inputMessage)
+	elif firstName == "trend_roc_x2":
+		trend_roc_x2.main(inputMessage)
+	elif firstName == "trend_roc_x3":
+		trend_roc_x3.main(inputMessage)
 	elif firstName == "trend_envelopes":
 		trend_envelopes.main(inputMessage)
+	elif firstName == "trend_envelopes_x2":
+		trend_envelopes_x2.main(inputMessage)
+	elif firstName == "trend_envelopes_x3":
+		trend_envelopes_x3.main(inputMessage)
+	elif firstName == "trend_pattern_soldiers":
+		trend_pattern_soldiers.main(inputMessage)
+	elif firstName == "trend_pattern_soldiers_x2":
+		trend_pattern_soldiers_x2.main(inputMessage)
+	elif firstName == "trend_pattern_soldiers_x3":
+		trend_pattern_soldiers_x3.main(inputMessage)
+	elif firstName == "trend_zigzag_pinbar":
+		trend_zigzag_pinbar.main(inputMessage)
+	elif firstName == "trend_zigzag_pinbar_x2":
+		trend_zigzag_pinbar_x2.main(inputMessage)
+	elif firstName == "trend_zigzag_pinbar_x3":
+		trend_zigzag_pinbar_x3.main(inputMessage)
+	elif firstName == "trend_zzchannel_pinbar":
+		trend_zzchannel_pinbar.main(inputMessage)
+	elif firstName == "trend_zzchannel_pinbar_x2":
+		trend_zzchannel_pinbar_x2.main(inputMessage)
+	elif firstName == "trend_zzchannel_pinbar_x3":
+		trend_zzchannel_pinbar_x3.main(inputMessage)
 	elif firstName == "line_hama":
 		line_hama.main(inputMessage)
-	elif firstName == "contr_trend":
-		contr_trend.main(inputMessage)
+	elif firstName == "line_hama_x2":
+		line_hama_x2.main(inputMessage)
+	elif firstName == "line_hama_x3":
+		line_hama_x3.main(inputMessage)
+	elif firstName == "contr_roc":
+		contr_roc.main(inputMessage)
+	elif firstName == "contr_roc_x2":
+		contr_roc_x2.main(inputMessage)
+	elif firstName == "contr_roc_x3":
+		contr_roc_x3.main(inputMessage)
 	elif firstName == "contr_envelopes":
 		contr_envelopes.main(inputMessage)
+	elif firstName == "contr_envelopes_x2":
+		contr_envelopes_x2.main(inputMessage)
+	elif firstName == "contr_envelopes_x3":
+		contr_envelopes_x3.main(inputMessage)
 	elif firstName == "contr_hamacd":
 		contr_hamacd.main(inputMessage)
+	elif firstName == "contr_hamacd_x2":
+		contr_hamacd_x2.main(inputMessage)
+	elif firstName == "contr_hamacd_x3":
+		contr_hamacd_x3.main(inputMessage)
+	elif firstName == "contr_pattern_star":
+		contr_pattern_star.main(inputMessage)
+	elif firstName == "contr_pattern_star_x2":
+		contr_pattern_star_x2.main(inputMessage)
+	elif firstName == "contr_pattern_star_x3":
+		contr_pattern_star_x3.main(inputMessage)
+
+
 	elif firstName == "corr_regression":
 		corr_regression.main(inputMessage)
 	elif firstName == "corr_pirson":
