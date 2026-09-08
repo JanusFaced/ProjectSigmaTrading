@@ -63,10 +63,12 @@ def main(portfolioParams: dict) -> None:
 	)
 
 	logger.info(" <-[ PORTFOLIO ANALYST ]-> ")
-	logger.info(f" @ year_profit  : {analystReport['year_profit']} %")
-	logger.info(f" @ max_drawdown : {analystReport['max_drawdown']} %")
-	logger.info(f" @ sharp        : {analystReport['sharp']} ")
-	logger.info(f" @ calmar       : {analystReport['calmar']} ")
+	logger.info(f" @ year_profit   : {analystReport['year_profit']} %")
+	logger.info(f" @ max_drawdown  : {analystReport['max_drawdown']} %")
+	logger.info(f" @ sharp         : {analystReport['sharp']} ")
+	logger.info(f" @ calmar        : {analystReport['calmar']} ")
+	logger.info(f" @ profit_factor : {analystReport['profit_factor']} ")
+	logger.info(f" @ profit_days   : {analystReport['profit_days']} days/year")
 	
 	plt.plot(portfolioDF['datetime'], portfolioDF['hotDeposite'], color='orange')
 	plt.plot(portfolioDF['datetime'], portfolioDF['coldDeposite'], color='blue')

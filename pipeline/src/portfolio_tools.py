@@ -287,10 +287,24 @@ def portfolioAnalyst(
 
 	calmar = year_profit/max_drawdown
 
+	diffBalance = balance[1:] - balance[:-1]
+	posDiffBalance = diffBalance[diffBalance > 0]
+	negDiffBalance = diffBalance[diffBalance < 0]
+
+	amountProfitDays = len(posDiffBalance)
+	amountLossDays = len(negDiffBalance)
+	ratioEffectiveDays = yearSize*amountProfitDays/(amountProfitDays+amountLossDays)
+
+	sumProfit = np.sum(posDiffBalance)
+	sumLoss = np.sum(negDiffBalance)
+	profitFactor = sumProfit/np.abs(sumLoss)
+
 	year_profit = float(round(100*year_profit, 2))
 	max_drawdown = float(round(-100*max_drawdown, 2))
 	sharp = float(round(sharp, 2))
 	calmar = float(round(calmar, 2))
+	profit_days = float(round(ratioEffectiveDays, 2))
+	profit_factor = float(round(profitFactor, 2))
 
 	optiMetric = (
 		year_profit
@@ -301,6 +315,8 @@ def portfolioAnalyst(
 		"max_drawdown": max_drawdown,
 		"sharp": sharp,
 		"calmar": calmar,
+		"profit_days": profit_days,
+		"profit_factor": profit_factor,
 		"optiMetric": optiMetric
 	}
 

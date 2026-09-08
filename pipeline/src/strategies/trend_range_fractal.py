@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import polars as pl
 import os
 from walk_forward_simulator import walkForward
+from custom_ta import pattern_fractal, rangeChannel
 from pathlib import Path
 from duckDB_setup import get_duckdb
 from logger_setup import get_logger
@@ -56,38 +57,53 @@ def algorithm(
 
 	multiMaxLoss = params['multiMaxLoss']
 
+	pattern = pattern_fractal(
+		openVector=dataFrame['open'].to_numpy(),
+		highVector=dataFrame['high'].to_numpy(),
+		lowVector=dataFrame['low'].to_numpy(),
+		closeVector=dataFrame['close'].to_numpy(),
+		window=signalWindow,
+	)
+
+	upLine, downLine = rangeChannel(
+		highVector=dataFrame['high'].to_numpy(),
+		lowVector=dataFrame['low'].to_numpy(),
+		pattern=pattern,
+		window=signalWindow,
+	)
+
 	dataFrame = dataFrame.with_columns([
 		pl.lit(leverage).alias('leverage'),
+		pl.Series('upLine', upLine),
+		pl.Series('downLine', downLine),
 		(pl.col('high')/pl.col('low') - 1).rolling_mean(window_size=trendWindow).alias('ATR'),
-		( 100*(pl.col('close')/pl.col('close').shift(signalWindow) - 1) ).alias('indicator'),
 		pl.col('close').rolling_mean(window_size=trendWindow).alias('trendMoving'),
 		pl.col('close').rolling_mean(window_size=signalWindow).alias('guideLine'),
 	]).with_columns([
-		pl.col('indicator').rolling_mean(window_size=signalWindow).alias('signal'),
 		(pl.col('guideLine')/pl.col('guideLine').shift(1) - 1).alias('stepMaxLoss'),
 	]).with_columns([
 		(pl.lit(-multiMaxLoss)*pl.col('ATR')).alias('maxLoss'),
-	]).with_columns([
+	]).with_columns(
 		pl.when(
-			(pl.col('indicator') > pl.col('signal')) & (pl.col('signal') > pl.col('indicator').shift(1)) &
+			(pl.col('close') > pl.col('upLine')) & (pl.col('upLine') > pl.col('close').shift(1)) &
 			(pl.col('close') > pl.col('trendMoving'))
 		).then(pl.lit(-1))
 		.when(
-			(pl.col('indicator') < pl.col('signal')) & (pl.col('signal') < pl.col('indicator').shift(1))
+			(pl.col('close') < pl.col('upLine')) & (pl.col('upLine') < pl.col('close').shift(1))
 		).then(pl.lit(1))
 		.otherwise(pl.lit(0))
 		.alias('long_signal'),
 
 		pl.when(
-			(pl.col('indicator') > pl.col('signal')) & (pl.col('signal') > pl.col('indicator').shift(1))
+			(pl.col('close') > pl.col('downLine')) & (pl.col('downLine') > pl.col('close').shift(1))
 		).then(pl.lit(-1))
 		.when(
-			(pl.col('indicator') < pl.col('signal')) & (pl.col('signal') < pl.col('indicator').shift(1)) &
+			(pl.col('close') < pl.col('downLine')) & (pl.col('downLine') < pl.col('close').shift(1)) &
 			(pl.col('close') < pl.col('trendMoving'))
 		).then(pl.lit(1))
 		.otherwise(pl.lit(0))
 		.alias('short_signal'),
-	])
+	)
 
 	statsParams = {}
 	return dataFrame, statsParams

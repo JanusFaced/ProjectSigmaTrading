@@ -71,21 +71,21 @@ def backTester(inputMessage: dict[str, Any]) -> Dict:
 	plt.savefig(fileName)
 	plt.close()
 
-	'''	
-	#signalTrend
-	tempDF = dataFrame[['signalTrend', 'datetime']].tail(1000)
-	plt.plot(tempDF['datetime'], tempDF['signalTrend'], color='black')
-	superName = str(output_dir) + f'/pattern_{strategy}_{symbol}_{timeFrame}_{type}_{nameExchange}.png'
+	'''
+	#deltaSVG
+	tempDF = dataFrame[['deltaSVG', 'datetime']].tail(1000)
+	plt.plot(tempDF['datetime'], tempDF['deltaSVG'], color='black')
+	superName = str(output_dir) + f'/deltaSVG_{strategy}_{symbol}_{timeFrame}_{type}_{nameExchange}.png'
 	plt.savefig(superName)
 	plt.close()
 
 
-	#channels
+	#SVG
 	tempDF = dataFrame[['upLine', 'close', 'downLine', 'datetime']].tail(1000)
 	plt.plot(tempDF['datetime'], tempDF['upLine'], color='green')
 	plt.plot(tempDF['datetime'], tempDF['close'], color='black')
 	plt.plot(tempDF['datetime'], tempDF['downLine'], color='red')
-	superName = str(output_dir) + f'/zzChannel_{strategy}_{symbol}_{timeFrame}_{type}_{nameExchange}.png'
+	superName = str(output_dir) + f'/SVG_{strategy}_{symbol}_{timeFrame}_{type}_{nameExchange}.png'
 	plt.savefig(superName)
 	plt.close()
 	'''

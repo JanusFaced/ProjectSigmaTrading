@@ -24,7 +24,8 @@ async fn main() -> Result<()> {
 
     loop {
         println!(" === Start parsing! === \n");
-
+        
+        /*
         let list_symbol = vec![
             "BTC", "ETH", "BNB",
             "XRP", "SOL", "TRX",
@@ -34,6 +35,18 @@ async fn main() -> Result<()> {
             "NEAR", "AVAX", "LTC",
             "XMR", "BCH", "FIL",
         ];
+        */
+
+        let list_symbol = vec![
+            //"XLM", "UNI", "SUSHI",
+            //"DOT", "ICP", "ARB",
+            //"POL", "ATOM", "ALGO",
+            //"DASH",
+            "VET", "CRV",
+            "CAKE", "OP", "CHZ",
+            "MANA", "SAND", "COMP",
+        ];
+
         let list_type_market = vec!["futures"];
         let list_name_exchange = vec!["binance"];
 

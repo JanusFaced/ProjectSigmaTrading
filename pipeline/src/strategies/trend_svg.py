@@ -1,0 +1,108 @@
+from typing import Any
+import matplotlib.pyplot as plt
+import polars as pl
+import os
+from walk_forward_simulator import walkForward
+from custom_ta import structure_svg
+from pathlib import Path
+from duckDB_setup import get_duckdb
+from logger_setup import get_logger
+
+logger = get_logger(__name__)
+output_dir = Path(__file__).parent.parent / "output"
+
+def main(inputMessage: dict[str, Any]) -> None:
+	db = get_duckdb()
+	dataFrame = db.execute("SELECT * FROM temp_analyst").pl()
+	db.execute("DROP TABLE IF EXISTS temp_analyst")
+
+	train_size, test_size = 1000, 300
+	quantSlippage = 2000
+	generation = 3
+	parametrs = {
+		"baseWindow": {"min": 20, "max": 200, "split": 5, "typeData": "noFix"},
+		"multiMaxLoss": {"min": 1.0, "max": 5.0, "split": 5, "typeData": "noFix"},
+	}
+
+	dataFrame = walkForward(
+		algorithm=algorithm,
+		train_size=train_size,
+		test_size=test_size,
+		inputMessage=inputMessage,
+		originalDataFrame=dataFrame,
+		parametrs=parametrs,
+		quantSlippage=quantSlippage,
+		generation=generation
+	)
+
+	db.execute("CREATE OR REPLACE TEMP TABLE temp_trading AS SELECT * FROM dataFrame")
+
+def algorithm(
+		dataFrame: pl.DataFrame,
+		inputMessage: dict,
+		params: dict,
+		statsParams: dict
+	) -> pl.DataFrame:
+
+	nameExchange = inputMessage['nameExchange']
+	symbol = inputMessage['symbol']
+	type = inputMessage['type']
+	timeFrame = inputMessage['timeFrame']
+
+	baseWindow = int(params['baseWindow'])
+	signalWindow = 1*baseWindow
+	trendWindow = 10*baseWindow
+
+	leverage = 1
+
+	multiMaxLoss = params['multiMaxLoss']
+
+	upLine, downLine = structure_svg(
+		openVector=dataFrame['open'].to_numpy(),
+		highVector=dataFrame['high'].to_numpy(),
+		lowVector=dataFrame['low'].to_numpy(),
+		closeVector=dataFrame['close'].to_numpy(),
+		window=signalWindow,
+	)
+
+	dataFrame = dataFrame.with_columns([
+		pl.lit(leverage).alias('leverage'),
+		pl.Series('upLine', upLine),
+		pl.Series('downLine', downLine),
+		(pl.col('high')/pl.col('low') - 1).rolling_mean(window_size=trendWindow).alias('ATR'),
+		pl.col('close').rolling_mean(window_size=trendWindow).alias('trendMoving'),
+		pl.col('close').rolling_mean(window_size=signalWindow).alias('guideLine'),
+	]).with_columns([
+		(pl.col('upLine') - pl.col('downLine')).alias('deltaSVG'),
+		(pl.col('guideLine')/pl.col('guideLine').shift(1) - 1).alias('stepMaxLoss'),
+	]).with_columns([
+		(pl.lit(-multiMaxLoss)*pl.col('ATR')).alias('maxLoss'),
+	]).with_columns(
+		pl.when(
+			(pl.col('deltaSVG') > 0) & (pl.col('close') > pl.col('upLine')) &
+			(pl.col('close') > pl.col('trendMoving'))
+		).then(pl.lit(-1))
+		.when(
+			(pl.col('deltaSVG') > 0) & (pl.col('close') < pl.col('upLine'))
+		).then(pl.lit(1))
+		.otherwise(pl.lit(0))
+		.alias('long_signal'),
+
+		pl.when(
+			(pl.col('deltaSVG') > 0) & (pl.col('close') > pl.col('downLine'))
+		).then(pl.lit(-1))
+		.when(
+			(pl.col('deltaSVG') > 0) & (pl.col('close') < pl.col('downLine')) &
+			(pl.col('close') < pl.col('trendMoving'))
+		).then(pl.lit(1))
+		.otherwise(pl.lit(0))
+		.alias('short_signal'),
+	)
+
+	statsParams = {}
+	return dataFrame, statsParams
+
+
+
+
+

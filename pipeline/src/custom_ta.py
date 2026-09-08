@@ -529,3 +529,98 @@ def zzChannel(
 
 	return zzUpLine, zzDownLine
 
+@njit(cache=True)
+def rangeChannel(
+		highVector: npt.NDArray[np.float64],
+		lowVector: npt.NDArray[np.float64],
+		pattern: npt.NDArray[np.float64],
+		window: int = 20,
+	) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]]:
+
+	length = len(pattern)
+	upLine = np.full(length, np.nan, dtype=np.float64)
+	downLine = np.full(length, np.nan, dtype=np.float64)
+	firstIndex = window
+
+	points = {
+		"oldUpFractal0": {"value": highVector[1], "point": 1,},
+		"oldDownFractal0": {"value": lowVector[1], "point": 1,},
+		"oldUpFractal1": {"value": highVector[0], "point": 0,},
+		"oldDownFractal1": {"value": lowVector[0], "point": 0,},
+	}
+
+	for i in range(firstIndex, length):
+
+		currentUpFractalValue = highVector[i] if pattern[i] == 1 else -100
+		currentDownFractalValue = lowVector[i] if pattern[i] == -1 else -100
+
+		currentUpFractalPoint = i if pattern[i] == 1 else -100
+		currentDownFractalPoint = i if pattern[i] == -1 else -100
+
+		if currentUpFractalValue > 0.00:
+			points["oldUpFractal1"]["value"] = points["oldUpFractal0"]["value"]
+			points["oldUpFractal0"]["value"] = currentUpFractalValue
+
+			points["oldUpFractal1"]["point"] = points["oldUpFractal0"]["point"]
+			points["oldUpFractal0"]["point"] = currentUpFractalPoint
+
+		if currentDownFractalValue > 0.00:
+			points["oldDownFractal1"]["value"] = points["oldDownFractal0"]["value"]
+			points["oldDownFractal0"]["value"] = currentDownFractalValue
+
+			points["oldDownFractal1"]["point"] = points["oldDownFractal0"]["point"]
+			points["oldDownFractal0"]["point"] = currentDownFractalPoint
+
+		upLine[i] = points["oldUpFractal0"]["value"]
+		downLine[i] = points["oldDownFractal0"]["value"]
+
+	return upLine, downLine
+
+@njit(cache=True)
+def structure_svg(
+		openVector: npt.NDArray[np.float64],
+		highVector: npt.NDArray[np.float64],
+		lowVector: npt.NDArray[np.float64],
+		closeVector: npt.NDArray[np.float64],
+		window: int = 20,
+	) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]]:
+
+	length = len(closeVector)
+	structureUpLine = np.full(length, np.nan, dtype=np.float64)
+	structureDownLine = np.full(length, np.nan, dtype=np.float64)
+	firstIndex = window
+	baseWindow = 20
+	convertor = int(window/baseWindow)
+
+	for i in range(firstIndex, length):
+		real_i = i+1
+
+		start_i_0 = i
+		end_i_0 = start_i_0 + 1 - convertor
+		
+		start_i_1 = end_i_0 - 1
+		end_i_1 = start_i_1 + 1 - convertor
+		
+		start_i_2 = end_i_1 - 1
+		end_i_2 = start_i_2 + 1 - convertor
+
+		colorCandle0 = closeVector[start_i_0] - openVector[end_i_0]
+		colorCandle1 = closeVector[start_i_1] - openVector[end_i_1]
+		colorCandle2 = closeVector[start_i_2] - openVector[end_i_2]
+
+		sizeCandle0 = np.abs(colorCandle0)
+		sizeCandle1 = np.abs(colorCandle1)
+		sizeCandle2 = np.abs(colorCandle2)
+
+		high0 = np.max(highVector[end_i_0:start_i_0+1])
+		high1 = np.max(highVector[end_i_1:start_i_1+1])
+		high2 = np.max(highVector[end_i_2:start_i_2+1])
+
+		low0 = np.min(lowVector[end_i_0:start_i_0+1])
+		low1 = np.min(lowVector[end_i_1:start_i_1+1])
+		low2 = np.min(lowVector[end_i_2:start_i_2+1])
+
+		structureUpLine[i] = low0 if (colorCandle1 > 0) else low2 if (colorCandle1 < 0) else 0.00
+		structureDownLine[i] = high2 if (colorCandle1 > 0) else high0 if (colorCandle1 < 0) else 0.00
+
+	return structureUpLine, structureDownLine

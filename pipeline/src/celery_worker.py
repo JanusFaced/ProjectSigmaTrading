@@ -35,21 +35,21 @@ def build_tasks(
 
 	listSymbol = [
 		"BTC",
-#		"ETH",
-#		"BNB",
-#		"SOL",
-#		"ADA",
-#		"ZEC",
-#		"DOGE",
-#		"NEAR",
-#		"AVAX",
-#		"FIL",
-#		"XRP",
-#		"TRX",
+		"ETH",
+		"BNB",
+		"SOL",
+		"ADA",
+		"ZEC",
+		"DOGE",
+		"NEAR",
+		"AVAX",
+		"FIL",
+		"XRP",
+		"TRX",
 
 #		"BCH",
-#		"LTC",
 #		"LINK",
+#		"LTC",
 #		"XMR",
 #		"SUI",
 #		"HYPE",
@@ -66,8 +66,9 @@ def build_tasks(
 		"trend_pattern_soldiers:I",
 		"trend_zigzag_pinbar:I",
 		"trend_zzchannel_pinbar:I",
+		"trend_range_fractal:I",
+		"trend_svg:I",
 		"line_hama:I",
-		"contr_roc:I",
 		"contr_envelopes:I",
 		"contr_hamacd:I",
 		"contr_pattern_star:I",
@@ -172,11 +173,11 @@ def build_tasks(
 			lenthCombi = len(assetsList)
 			logger.info(f" * Full lenth combination = {lenthCombi}")
 
-			#assetsList = filter_new.main(
-			#	listMSGs=assetsList,
-			#	validMetrics=validMetrics,
-			#	save=False
-			#)
+			assetsList = filter_new.main(
+				listMSGs=assetsList,
+				validMetrics=validMetrics,
+				save=False
+			)
 
 			lenthCombi = len(assetsList)
 			logger.info(f" * After filters lenth combination = {lenthCombi}")

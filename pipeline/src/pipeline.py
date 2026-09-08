@@ -7,8 +7,9 @@ from strategies import (
 	trend_pattern_soldiers,
 	trend_zigzag_pinbar,
 	trend_zzchannel_pinbar,
+	trend_range_fractal,
+	trend_svg,
 	line_hama,
-	contr_roc,
 	contr_envelopes,
 	contr_hamacd,
 	contr_pattern_star,
@@ -64,10 +65,12 @@ def main(inputMessage: dict) -> None:
 		trend_zigzag_pinbar.main(inputMessage)
 	elif firstName == "trend_zzchannel_pinbar":
 		trend_zzchannel_pinbar.main(inputMessage)
+	elif firstName == "trend_range_fractal":
+		trend_range_fractal.main(inputMessage)
+	elif firstName == "trend_svg":
+		trend_svg.main(inputMessage)	
 	elif firstName == "line_hama":
 		line_hama.main(inputMessage)
-	elif firstName == "contr_roc":
-		contr_roc.main(inputMessage)
 	elif firstName == "contr_envelopes":
 		contr_envelopes.main(inputMessage)
 	elif firstName == "contr_hamacd":
