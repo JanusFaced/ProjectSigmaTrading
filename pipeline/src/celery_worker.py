@@ -34,19 +34,37 @@ def build_tasks(
 		]
 
 	listSymbol = [
-		"BTC",
+		"VET",
+		"AVAX",
 		"ETH",
 		"BNB",
+		"DOGE",
 		"SOL",
 		"ADA",
-		"ZEC",
-		"DOGE",
-		"NEAR",
-		"AVAX",
 		"FIL",
+		"NEAR",
+		"ZEC",
+		"BTC",
 		"XRP",
-		"TRX",
+		"DOT",
 
+#		"TRX",
+#		"ALGO",
+#		"DASH",
+#		"MANA",
+#		"SAND",
+#		"ICP",
+#		"CAKE",
+#		"POL",
+#		"ARB",
+#		"OP",
+#		"XLM",
+#		"UNI",
+#		"SUSHI",
+#		"ATOM",
+#		"CRV",
+#		"COMP",
+#		"CHZ",
 #		"BCH",
 #		"LINK",
 #		"LTC",
@@ -60,18 +78,18 @@ def build_tasks(
 	listTypeMarket = ['futures']
 	listNameExchange = ['binance']
 	listStrategy = [
-		"trend_cross_hama:I",
-		"trend_roc:I",
-		"trend_envelopes:I",
-		"trend_pattern_soldiers:I",
-		"trend_zigzag_pinbar:I",
-		"trend_zzchannel_pinbar:I",
-		"trend_range_fractal:I",
-		"trend_svg:I",
-		"line_hama:I",
-		"contr_envelopes:I",
-		"contr_hamacd:I",
-		"contr_pattern_star:I",
+		"trend_cross_hama:I", #1.00
+		"trend_envelopes:I", #0.92
+		"contr_envelopes:I", #0.92
+		"trend_range_fractal:I", #0.92
+		"trend_roc:I", #0.85
+		"trend_zzchannel_pinbar:I", #0.85
+		"line_hama:I", #0.85
+		"contr_hamacd:I", #0.85
+		"trend_pattern_soldiers:I", #0.77
+		"trend_zigzag_pinbar:I", #0.77
+		"contr_pattern_star:I", #0.77
+		"trend_svg:I", #0.77
 
 #		"corr_pirson:II",
 #		"corr_regression:II",

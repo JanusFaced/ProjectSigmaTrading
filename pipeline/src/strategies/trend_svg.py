@@ -73,26 +73,30 @@ def algorithm(
 		pl.col('close').rolling_mean(window_size=trendWindow).alias('trendMoving'),
 		pl.col('close').rolling_mean(window_size=signalWindow).alias('guideLine'),
 	]).with_columns([
+		(pl.col('high') - pl.col('low')).rolling_mean(window_size=signalWindow).alias('special_atr'),
 		(pl.col('upLine') - pl.col('downLine')).alias('deltaSVG'),
+		((pl.col('upLine') + pl.col('downLine'))/2).alias('lineSVG'),
 		(pl.col('guideLine')/pl.col('guideLine').shift(1) - 1).alias('stepMaxLoss'),
 	]).with_columns([
 		(pl.lit(-multiMaxLoss)*pl.col('ATR')).alias('maxLoss'),
 	]).with_columns(
 		pl.when(
-			(pl.col('deltaSVG') > 0) & (pl.col('close') > pl.col('upLine')) &
+			(pl.col('deltaSVG') > pl.col('special_atr')) &
+			(pl.col('close') > pl.col('lineSVG')) &
 			(pl.col('close') > pl.col('trendMoving'))
 		).then(pl.lit(-1))
 		.when(
-			(pl.col('deltaSVG') > 0) & (pl.col('close') < pl.col('upLine'))
+			(pl.col('deltaSVG') > pl.col('special_atr')) & (pl.col('close') < pl.col('lineSVG'))
 		).then(pl.lit(1))
 		.otherwise(pl.lit(0))
 		.alias('long_signal'),
 
 		pl.when(
-			(pl.col('deltaSVG') > 0) & (pl.col('close') > pl.col('downLine'))
+			(pl.col('deltaSVG') > pl.col('special_atr')) & (pl.col('close') > pl.col('lineSVG'))
 		).then(pl.lit(-1))
 		.when(
-			(pl.col('deltaSVG') > 0) & (pl.col('close') < pl.col('downLine')) &
+			(pl.col('deltaSVG') > pl.col('special_atr')) &
+			(pl.col('close') < pl.col('lineSVG')) &
 			(pl.col('close') < pl.col('trendMoving'))
 		).then(pl.lit(1))
 		.otherwise(pl.lit(0))
