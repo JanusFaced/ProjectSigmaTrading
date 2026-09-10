@@ -34,23 +34,31 @@ def build_tasks(
 		]
 
 	listSymbol = [
-		"VET",
+		"SOL",
 		"AVAX",
+		"DOGE",
+		"VET",
+		"ADA",
 		"ETH",
 		"BNB",
-		"DOGE",
-		"SOL",
-		"ADA",
-		"FIL",
-		"NEAR",
 		"ZEC",
 		"BTC",
 		"XRP",
-		"DOT",
+		"FIL",
 
-#		"TRX",
-#		"ALGO",
+#		"NEAR",
 #		"DASH",
+#		"ALGO",
+#		"TRX",
+#		"UNI",
+#		"BCH",
+#		"DOT",
+#		"XLM",
+#		"ATOM",
+#		"LTC",
+#		"XMR",
+#		"LINK",
+#		"SUSHI",
 #		"MANA",
 #		"SAND",
 #		"ICP",
@@ -58,17 +66,9 @@ def build_tasks(
 #		"POL",
 #		"ARB",
 #		"OP",
-#		"XLM",
-#		"UNI",
-#		"SUSHI",
-#		"ATOM",
 #		"CRV",
 #		"COMP",
 #		"CHZ",
-#		"BCH",
-#		"LINK",
-#		"LTC",
-#		"XMR",
 #		"SUI",
 #		"HYPE",
 #		"RE",
@@ -78,22 +78,12 @@ def build_tasks(
 	listTypeMarket = ['futures']
 	listNameExchange = ['binance']
 	listStrategy = [
-		"trend_cross_hama:I", #1.00
-		"trend_envelopes:I", #0.92
-		"contr_envelopes:I", #0.92
-		"trend_range_fractal:I", #0.92
-		"trend_roc:I", #0.85
-		"trend_zzchannel_pinbar:I", #0.85
-		"line_hama:I", #0.85
-		"contr_hamacd:I", #0.85
-		"trend_pattern_soldiers:I", #0.77
-		"trend_zigzag_pinbar:I", #0.77
-		"contr_pattern_star:I", #0.77
-		"trend_svg:I", #0.77
+#		"trend_range_fractal:I",
+#		"trend_envelopes:I",
+#		"trend_cross_hama:I",
 
 #		"corr_pirson:II",
-#		"corr_regression:II",
-#		"hold:N",
+		"hold:N",
 	]
 	listFactor = [
 		"BTC",
@@ -187,15 +177,18 @@ def build_tasks(
 
 		for i in range(len(portfolioList)):
 			assetsList = portfolioList[i]['assetsList']
+			listStrategy = portfolioList[i]['listStrategy']
 			
 			lenthCombi = len(assetsList)
 			logger.info(f" * Full lenth combination = {lenthCombi}")
 
-			assetsList = filter_new.main(
-				listMSGs=assetsList,
-				validMetrics=validMetrics,
-				save=False
-			)
+			if not("hold:N" in listStrategy):
+
+				assetsList = filter_new.main(
+					listMSGs=assetsList,
+					validMetrics=validMetrics,
+					save=False
+				)
 
 			lenthCombi = len(assetsList)
 			logger.info(f" * After filters lenth combination = {lenthCombi}")

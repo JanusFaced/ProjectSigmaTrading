@@ -299,6 +299,8 @@ def pattern_star(
 	baseWindow = 20
 	convertor = int(window/baseWindow)
 
+	multipleSize = 0.50
+
 	for i in range(firstIndex, length):
 		real_i = i+1
 
@@ -319,8 +321,19 @@ def pattern_star(
 		sizeCandle1 = np.abs(colorCandle1)
 		sizeCandle2 = np.abs(colorCandle2)
 
-		buyLogic = (sizeCandle1 < sizeCandle0) and (sizeCandle1 < sizeCandle2) and (colorCandle2 < 0) and (colorCandle0 > 0)
-		sellLogic = (sizeCandle1 < sizeCandle0) and (sizeCandle1 < sizeCandle2) and (colorCandle2 > 0) and (colorCandle0 < 0)
+		buyLogic = (
+			(sizeCandle1 < multipleSize*sizeCandle0) and
+			(sizeCandle1 < multipleSize*sizeCandle2) and
+			(colorCandle2 < 0) and
+			(colorCandle0 > 0)
+		)
+
+		sellLogic = (
+			(sizeCandle1 < multipleSize*sizeCandle0) and
+			(sizeCandle1 < multipleSize*sizeCandle2) and
+			(colorCandle2 > 0) and
+			(colorCandle0 < 0)
+		)
 
 		patternVector[i] = -1 if buyLogic else 1 if sellLogic else 0
 
@@ -428,29 +441,49 @@ def zigzag(
 	zigZagMode = np.full(length, np.nan, dtype=np.float64)
 	firstIndex = window
 
-	oldUpFractal0 = highVector[1]
-	oldDownFractal0 = lowVector[1]
-
-	oldUpFractal1 = highVector[0]
-	oldDownFractal1 = lowVector[0]
+	fractals = {
+		"UpFractal0": {"value": highVector[2], "point": 2,},
+		"DownFractal0": {"value": lowVector[2], "point": 2,},
+		"UpFractal1": {"value": highVector[1], "point": 1,},
+		"DownFractal1": {"value": lowVector[1], "point": 1,},
+		"UpFractal2": {"value": highVector[0], "point": 0,},
+		"DownFractal2": {"value": lowVector[0], "point": 0,},
+	}
 
 	for i in range(firstIndex, length):
 
-		currentUpFractal = highVector[i] if pattern[i] == 1 else -100
-		currentDownFractal = lowVector[i] if pattern[i] == -1 else -100
+		currentUpFractalValue = highVector[i] if pattern[i] == 1 else -100
+		currentDownFractalValue = lowVector[i] if pattern[i] == -1 else -100
 
-		if currentUpFractal > 0.00:
-			oldUpFractal1 = oldUpFractal0
-			oldUpFractal0 = currentUpFractal
+		currentUpFractalPoint = i if pattern[i] == 1 else -100
+		currentDownFractalPoint = i if pattern[i] == -1 else -100
 
-		if currentDownFractal > 0.00:
-			oldDownFractal1 = oldDownFractal0
-			oldDownFractal0 = currentDownFractal
+		if currentUpFractalValue > 0.00:
+			fractals["UpFractal2"]["value"] = fractals["UpFractal1"]["value"]
+			fractals["UpFractal1"]["value"] = fractals["UpFractal0"]["value"]
+			fractals["UpFractal0"]["value"] = currentUpFractalValue
 
-		deltaUp = oldUpFractal0 - oldUpFractal1
-		deltaDown = oldDownFractal0 - oldDownFractal1
+			fractals["UpFractal2"]["point"] = fractals["UpFractal1"]["point"]
+			fractals["UpFractal1"]["point"] = fractals["UpFractal0"]["point"]
+			fractals["UpFractal0"]["point"] = currentUpFractalPoint
 
-		zigZagMode[i] = -1 if ((deltaUp > 0) and (deltaDown > 0 )) else 1 if ((deltaUp < 0) and (deltaDown < 0 )) else 0
+		if currentDownFractalValue > 0.00:
+			fractals["DownFractal2"]["value"] = fractals["DownFractal1"]["value"]
+			fractals["DownFractal1"]["value"] = fractals["DownFractal0"]["value"]
+			fractals["DownFractal0"]["value"] = currentDownFractalValue
+
+			fractals["DownFractal2"]["point"] = fractals["DownFractal1"]["point"]
+			fractals["DownFractal1"]["point"] = fractals["DownFractal0"]["point"]
+			fractals["DownFractal0"]["point"] = currentDownFractalPoint
+
+
+		upLine = fractals["UpFractal0"]["value"] - fractals["UpFractal1"]["value"]
+		downLine = fractals["DownFractal0"]["value"] - fractals["DownFractal1"]["value"]
+
+		buyLogic = (upLine > 0) and (downLine > 0)
+		sellLogic = (upLine < 0) and (downLine < 0)
+
+		zigZagMode[i] = -1 if buyLogic else 1 if sellLogic else 0
 
 	return zigZagMode
 
@@ -463,9 +496,12 @@ def makeLine(
 		xC: int,
 	) -> float:
 
-	b = (y1 - y0) / (x1 - x0)
-	a = y0 - x0*b
-	yC = a + xC*b
+	if (x1 > 0) and (x0 > 0):
+		b = (y1 - y0) / (x1 - x0)
+		a = y0 - x0*b
+		yC = a + xC*b
+	else:
+		yC = y1
 
 	return yC
 
@@ -482,11 +518,20 @@ def zzChannel(
 	zzDownLine = np.full(length, np.nan, dtype=np.float64)
 	firstIndex = window
 
+	fractals = {
+		"UpFractal0": {"value": highVector[2], "point": -1,},
+		"DownFractal0": {"value": lowVector[2], "point": -1,},
+		"UpFractal1": {"value": highVector[1], "point": -1,},
+		"DownFractal1": {"value": lowVector[1], "point": -1,},
+		"UpFractal2": {"value": highVector[0], "point": -1,},
+		"DownFractal2": {"value": lowVector[0], "point": -1,},
+	}
+
 	points = {
-		"oldUpFractal0": {"value": highVector[1], "point": 1,},
-		"oldDownFractal0": {"value": lowVector[1], "point": 1,},
-		"oldUpFractal1": {"value": highVector[0], "point": 0,},
-		"oldDownFractal1": {"value": lowVector[0], "point": 0,},
+		"Up0": {"value": highVector[2], "point": -1,},
+		"Down0": {"value": lowVector[2], "point": -1,},
+		"Up1": {"value": highVector[1], "point": -1,},
+		"Down1": {"value": lowVector[1], "point": -1,},
 	}
 
 	for i in range(firstIndex, length):
@@ -498,32 +543,56 @@ def zzChannel(
 		currentDownFractalPoint = i if pattern[i] == -1 else -100
 
 		if currentUpFractalValue > 0.00:
-			points["oldUpFractal1"]["value"] = points["oldUpFractal0"]["value"]
-			points["oldUpFractal0"]["value"] = currentUpFractalValue
+			fractals["UpFractal2"]["value"] = fractals["UpFractal1"]["value"]
+			fractals["UpFractal1"]["value"] = fractals["UpFractal0"]["value"]
+			fractals["UpFractal0"]["value"] = currentUpFractalValue
 
-			points["oldUpFractal1"]["point"] = points["oldUpFractal0"]["point"]
-			points["oldUpFractal0"]["point"] = currentUpFractalPoint
+			fractals["UpFractal2"]["point"] = fractals["UpFractal1"]["point"]
+			fractals["UpFractal1"]["point"] = fractals["UpFractal0"]["point"]
+			fractals["UpFractal0"]["point"] = currentUpFractalPoint
+
+			if (
+					(fractals["UpFractal1"]["value"] > fractals["UpFractal0"]["value"]) and
+					(fractals["UpFractal1"]["value"] > fractals["UpFractal2"]["value"])
+				):
+				points["Up1"]["value"] = points["Up0"]["value"]
+				points["Up0"]["value"] = fractals["UpFractal1"]["value"]
+
+				points["Up1"]["point"] = points["Up0"]["point"]
+				points["Up0"]["point"] = fractals["UpFractal1"]["point"]
 
 		if currentDownFractalValue > 0.00:
-			points["oldDownFractal1"]["value"] = points["oldDownFractal0"]["value"]
-			points["oldDownFractal0"]["value"] = currentDownFractalValue
+			fractals["DownFractal2"]["value"] = fractals["DownFractal1"]["value"]
+			fractals["DownFractal1"]["value"] = fractals["DownFractal0"]["value"]
+			fractals["DownFractal0"]["value"] = currentDownFractalValue
 
-			points["oldDownFractal1"]["point"] = points["oldDownFractal0"]["point"]
-			points["oldDownFractal0"]["point"] = currentDownFractalPoint
+			fractals["DownFractal2"]["point"] = fractals["DownFractal1"]["point"]
+			fractals["DownFractal1"]["point"] = fractals["DownFractal0"]["point"]
+			fractals["DownFractal0"]["point"] = currentDownFractalPoint
+
+			if (
+					(fractals["DownFractal1"]["value"] > fractals["DownFractal0"]["value"]) and
+					(fractals["DownFractal1"]["value"] > fractals["DownFractal2"]["value"])
+				):
+				points["Down1"]["value"] = points["Down0"]["value"]
+				points["Down0"]["value"] = fractals["DownFractal1"]["value"]
+
+				points["Down1"]["point"] = points["Down0"]["point"]
+				points["Down0"]["point"] = fractals["DownFractal1"]["point"]
 
 		zzUpLine[i] = makeLine(
-			y0=points["oldUpFractal1"]["value"],
-			y1=points["oldUpFractal0"]["value"],
-			x0=points["oldUpFractal1"]["point"],
-			x1=points["oldUpFractal0"]["point"],
+			y0=points["Up1"]["value"],
+			y1=points["Up0"]["value"],
+			x0=points["Up1"]["point"],
+			x1=points["Up0"]["point"],
 			xC=i,
 		)
 		
 		zzDownLine[i] = makeLine(
-			y0=points["oldDownFractal1"]["value"],
-			y1=points["oldDownFractal0"]["value"],
-			x0=points["oldDownFractal1"]["point"],
-			x1=points["oldDownFractal0"]["point"],
+			y0=points["Down1"]["value"],
+			y1=points["Down0"]["value"],
+			x0=points["Down1"]["point"],
+			x1=points["Down0"]["point"],
 			xC=i,
 		)
 
@@ -542,11 +611,20 @@ def rangeChannel(
 	downLine = np.full(length, np.nan, dtype=np.float64)
 	firstIndex = window
 
+	fractals = {
+		"UpFractal0": {"value": highVector[2], "point": -1,},
+		"DownFractal0": {"value": lowVector[2], "point": -1,},
+		"UpFractal1": {"value": highVector[1], "point": -1,},
+		"DownFractal1": {"value": lowVector[1], "point": -1,},
+		"UpFractal2": {"value": highVector[0], "point": -1,},
+		"DownFractal2": {"value": lowVector[0], "point": -1,},
+	}
+
 	points = {
-		"oldUpFractal0": {"value": highVector[1], "point": 1,},
-		"oldDownFractal0": {"value": lowVector[1], "point": 1,},
-		"oldUpFractal1": {"value": highVector[0], "point": 0,},
-		"oldDownFractal1": {"value": lowVector[0], "point": 0,},
+		"Up0": {"value": highVector[2], "point": -1,},
+		"Down0": {"value": lowVector[2], "point": -1,},
+		"Up1": {"value": highVector[1], "point": -1,},
+		"Down1": {"value": lowVector[1], "point": -1,},
 	}
 
 	for i in range(firstIndex, length):
@@ -558,69 +636,44 @@ def rangeChannel(
 		currentDownFractalPoint = i if pattern[i] == -1 else -100
 
 		if currentUpFractalValue > 0.00:
-			points["oldUpFractal1"]["value"] = points["oldUpFractal0"]["value"]
-			points["oldUpFractal0"]["value"] = currentUpFractalValue
+			fractals["UpFractal2"]["value"] = fractals["UpFractal1"]["value"]
+			fractals["UpFractal1"]["value"] = fractals["UpFractal0"]["value"]
+			fractals["UpFractal0"]["value"] = currentUpFractalValue
 
-			points["oldUpFractal1"]["point"] = points["oldUpFractal0"]["point"]
-			points["oldUpFractal0"]["point"] = currentUpFractalPoint
+			fractals["UpFractal2"]["point"] = fractals["UpFractal1"]["point"]
+			fractals["UpFractal1"]["point"] = fractals["UpFractal0"]["point"]
+			fractals["UpFractal0"]["point"] = currentUpFractalPoint
+
+			if (
+					(fractals["UpFractal1"]["value"] > fractals["UpFractal0"]["value"]) and
+					(fractals["UpFractal1"]["value"] > fractals["UpFractal2"]["value"])
+				):
+				points["Up1"]["value"] = points["Up0"]["value"]
+				points["Up0"]["value"] = fractals["UpFractal1"]["value"]
+
+				points["Up1"]["point"] = points["Up0"]["point"]
+				points["Up0"]["point"] = fractals["UpFractal1"]["point"]
 
 		if currentDownFractalValue > 0.00:
-			points["oldDownFractal1"]["value"] = points["oldDownFractal0"]["value"]
-			points["oldDownFractal0"]["value"] = currentDownFractalValue
+			fractals["DownFractal2"]["value"] = fractals["DownFractal1"]["value"]
+			fractals["DownFractal1"]["value"] = fractals["DownFractal0"]["value"]
+			fractals["DownFractal0"]["value"] = currentDownFractalValue
 
-			points["oldDownFractal1"]["point"] = points["oldDownFractal0"]["point"]
-			points["oldDownFractal0"]["point"] = currentDownFractalPoint
+			fractals["DownFractal2"]["point"] = fractals["DownFractal1"]["point"]
+			fractals["DownFractal1"]["point"] = fractals["DownFractal0"]["point"]
+			fractals["DownFractal0"]["point"] = currentDownFractalPoint
 
-		upLine[i] = points["oldUpFractal0"]["value"]
-		downLine[i] = points["oldDownFractal0"]["value"]
+			if (
+					(fractals["DownFractal1"]["value"] > fractals["DownFractal0"]["value"]) and
+					(fractals["DownFractal1"]["value"] > fractals["DownFractal2"]["value"])
+				):
+				points["Down1"]["value"] = points["Down0"]["value"]
+				points["Down0"]["value"] = fractals["DownFractal1"]["value"]
+
+				points["Down1"]["point"] = points["Down0"]["point"]
+				points["Down0"]["point"] = fractals["DownFractal1"]["point"]
+
+		upLine[i] = points["Up0"]["value"]
+		downLine[i] = points["Down0"]["value"]
 
 	return upLine, downLine
-
-@njit(cache=True)
-def structure_svg(
-		openVector: npt.NDArray[np.float64],
-		highVector: npt.NDArray[np.float64],
-		lowVector: npt.NDArray[np.float64],
-		closeVector: npt.NDArray[np.float64],
-		window: int = 20,
-	) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]]:
-
-	length = len(closeVector)
-	structureUpLine = np.full(length, np.nan, dtype=np.float64)
-	structureDownLine = np.full(length, np.nan, dtype=np.float64)
-	firstIndex = window
-	baseWindow = 20
-	convertor = int(window/baseWindow)
-
-	for i in range(firstIndex, length):
-		real_i = i+1
-
-		start_i_0 = i
-		end_i_0 = start_i_0 + 1 - convertor
-		
-		start_i_1 = end_i_0 - 1
-		end_i_1 = start_i_1 + 1 - convertor
-		
-		start_i_2 = end_i_1 - 1
-		end_i_2 = start_i_2 + 1 - convertor
-
-		colorCandle0 = closeVector[start_i_0] - openVector[end_i_0]
-		colorCandle1 = closeVector[start_i_1] - openVector[end_i_1]
-		colorCandle2 = closeVector[start_i_2] - openVector[end_i_2]
-
-		sizeCandle0 = np.abs(colorCandle0)
-		sizeCandle1 = np.abs(colorCandle1)
-		sizeCandle2 = np.abs(colorCandle2)
-
-		high0 = np.max(highVector[end_i_0:start_i_0+1])
-		high1 = np.max(highVector[end_i_1:start_i_1+1])
-		high2 = np.max(highVector[end_i_2:start_i_2+1])
-
-		low0 = np.min(lowVector[end_i_0:start_i_0+1])
-		low1 = np.min(lowVector[end_i_1:start_i_1+1])
-		low2 = np.min(lowVector[end_i_2:start_i_2+1])
-
-		structureUpLine[i] = low0 if (colorCandle1 > 0) else low2 if (colorCandle1 < 0) else 0.00
-		structureDownLine[i] = high2 if (colorCandle1 > 0) else high0 if (colorCandle1 < 0) else 0.00
-
-	return structureUpLine, structureDownLine

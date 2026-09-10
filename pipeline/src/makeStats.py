@@ -317,10 +317,16 @@ def makeCorrelationMap(
 					zeroVector = portfolioDF[colNameZero].to_numpy()
 					oneVector = portfolioDF[colNameOne].to_numpy()
 
-					tempCorrMatrix = np.corrcoef(zeroVector, oneVector)
-					valueCorr = tempCorrMatrix[0][1]
+					windowSize = 30
 
-					sum_matrix[indexZero][indexOne] += valueCorr
+					value_part = int(len(zeroVector)/windowSize)
+
+					zeros = np.array_split(zeroVector, value_part)
+					ones = np.array_split(oneVector, value_part)
+
+					listCorr = [np.corrcoef(a, b)[0][1] for a, b in zip(zeros, ones) if ((np.std(a) != 0) and (np.std(b) != 0))]
+
+					sum_matrix[indexZero][indexOne] += np.mean(listCorr)
 					count_matrix[indexZero][indexOne] += 1
 
 				elif indexZero > indexOne:

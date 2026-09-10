@@ -1,15 +1,13 @@
-import matplotlib.pyplot as plt
 import polars as pl
 import numpy as np
 import sys
 import os
 import makeStats
-from portfolio_tools import getEquity, portfolioLogic, portfolioAnalyst
+from portfolio_tools import getEquity, portfolioLogic, portfolioAnalyst, plotMonteCarlo
 from logger_setup import get_logger
 from pathlib import Path
 
 logger = get_logger(__name__)
-output_dir = Path(__file__).parent / "output"
 
 def main(portfolioParams: dict) -> None:
 	portfolioName = portfolioParams['portfolioName']
@@ -36,18 +34,6 @@ def main(portfolioParams: dict) -> None:
 		columnNames=columnNames,
 	)
 
-	'''
-	for col in columnNames:
-		plt.plot(portfolioDF['datetime'], portfolioDF[col], label=col)
-	plt.legend()
-	plt.xlabel('Datatime')
-	plt.ylabel('Equity')
-	plt.title('Different assets in portfolio')
-	superName = str(output_dir) + f'/assets_{portfolioName}.png'
-	plt.savefig(superName)
-	plt.close()
-	'''
-
 	portfolioDF = portfolioLogic(
 		portfolioDF=portfolioDF,
 		columnNames=columnNames,
@@ -62,19 +48,6 @@ def main(portfolioParams: dict) -> None:
 		portfolioMode=portfolioMode
 	)
 
-	logger.info(" <-[ PORTFOLIO ANALYST ]-> ")
-	logger.info(f" @ year_profit   : {analystReport['year_profit']} %")
-	logger.info(f" @ max_drawdown  : {analystReport['max_drawdown']} %")
-	logger.info(f" @ sharp         : {analystReport['sharp']} ")
-	logger.info(f" @ calmar        : {analystReport['calmar']} ")
-	logger.info(f" @ profit_factor : {analystReport['profit_factor']} ")
-	logger.info(f" @ profit_days   : {analystReport['profit_days']} days/year")
-	
-	plt.plot(portfolioDF['datetime'], portfolioDF['hotDeposite'], color='orange')
-	plt.plot(portfolioDF['datetime'], portfolioDF['coldDeposite'], color='blue')
-	plt.xlabel('Datatime')
-	plt.ylabel('Equity')
-	plt.title('total_equity')
-	superName = str(output_dir) + f'/total_equity_{portfolioName}.png'
-	plt.savefig(superName)
-	plt.close()
+	plotMonteCarlo(portfolioDF, analystReport)
+
+

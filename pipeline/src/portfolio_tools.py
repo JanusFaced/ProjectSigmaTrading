@@ -1,5 +1,7 @@
+import matplotlib.pyplot as plt
 import polars as pl
 import numpy as np
+import numpy.typing as npt
 import sys
 import os
 import time
@@ -38,17 +40,17 @@ def getEquity(assetsList: dict) -> tuple[pl.DataFrame, list]:
 		type = asset['type']
 		nameExchange = asset['nameExchange']
 
-		if strategy == 'hold':
-			columnName = f"{nameExchange}_{symbol}_{type}".lower()
-		else:
-			columnName = f"{strategy}_{symbol}_{timeFrame}_{type}_{nameExchange}"
+		columnName = f"{strategy}_{symbol}_{timeFrame}_{type}_{nameExchange}"
 		
-		name_equity = f"equity_{columnName}"
+		if strategy == 'hold':
+			name_equity = f"{nameExchange}_{symbol}_{type}".lower()
+		else:
+			name_equity = f"equity_{columnName}"
 
 		try:
 
 			if strategy == 'hold':
-				equityDataframe = db.execute(f"SELECT * FROM pg.{columnName}").pl()
+				equityDataframe = db.execute(f"SELECT * FROM pg.{name_equity}").pl()
 				equityDataframe = equityDataframe[['datetime', 'close']].rename({"close": columnName})
 
 			else:
@@ -317,7 +319,7 @@ def portfolioAnalyst(
 		"calmar": calmar,
 		"profit_days": profit_days,
 		"profit_factor": profit_factor,
-		"optiMetric": optiMetric
+		"optiMetric": optiMetric,
 	}
 
 	return analystReport
@@ -362,3 +364,77 @@ def reBalancer(
 		assetWeights = {col: pfDict[col]/totalPF for col in columnNames}
 
 	return assetWeights
+
+
+def plotMonteCarlo(
+		portfolioDF: pl.DataFrame,
+		analystReport: dict
+	) -> None:
+
+	balance = portfolioDF['hotDeposite'].to_numpy() + portfolioDF['coldDeposite'].to_numpy()
+
+	simulations = monte_carlo_chunks(
+		balance=balance,
+		chunk_size=30,
+		n_sims=10
+	)
+
+	for sim in simulations:
+		plt.plot(portfolioDF['datetime'], sim)
+	plt.xlabel('Datetime')
+	plt.ylabel('Equity')
+	plt.title('Different simulations portfolio')
+	superName = str(output_dir) + f'/monte_carlo.png'
+	plt.savefig(superName)
+	plt.close()
+
+
+	logger.info(" <-[ PORTFOLIO ANALYST ]-> ")
+	logger.info(f" @ year_profit   : {analystReport['year_profit']} %")
+	logger.info(f" @ max_drawdown  : {analystReport['max_drawdown']} %")
+	logger.info(f" @ sharp         : {analystReport['sharp']} ")
+	logger.info(f" @ calmar        : {analystReport['calmar']} ")
+	logger.info(f" @ profit_factor : {analystReport['profit_factor']} ")
+	logger.info(f" @ profit_days   : {analystReport['profit_days']} days/year")
+	
+
+	plt.plot(portfolioDF['datetime'], portfolioDF['hotDeposite'], color='orange')
+	plt.plot(portfolioDF['datetime'], portfolioDF['coldDeposite'], color='blue')
+	plt.xlabel('Datetime')
+	plt.ylabel('Equity')
+	plt.title('total_equity')
+	superName = str(output_dir) + f'/total_equity.png'
+	plt.savefig(superName)
+	plt.close()
+
+
+def monte_carlo_chunks(
+		balance: npt.NDArray[np.float64],
+		chunk_size: int,
+		n_sims: int,
+	) -> list:
+
+	rng = np.random.default_rng(None)
+	balance = np.asarray(balance)
+
+	diffBalance = balance[1:]/balance[:-1]
+
+	n = len(balance)
+
+	chunks = [diffBalance[i:i+chunk_size] for i in range(0, n, chunk_size)]
+
+	sims = []
+	for _ in range(n_sims):
+		order = rng.permutation(len(chunks))
+		sim = np.concatenate([chunks[i] for i in order])
+		sims.append(sim)
+
+	finalSims = []
+	for sim in sims:
+		sim = np.cumprod(sim)*balance[0]
+		sim = [balance[0], *sim]
+		finalSims.append(sim)
+
+	return finalSims
+
+

@@ -1,21 +1,9 @@
 import polars as pl
 import dataFrameDownloader
 from strategies import (
-	trend_cross_hama,
-	trend_roc,
-	trend_envelopes,
-	trend_pattern_soldiers,
-	trend_zigzag_pinbar,
-	trend_zzchannel_pinbar,
 	trend_range_fractal,
-	trend_svg,
-	line_hama,
-	contr_envelopes,
-	contr_hamacd,
-	contr_pattern_star,
-
-
-	corr_regression,
+	trend_envelopes,
+	trend_cross_hama,
 	corr_pirson,
 )
 import trading_simulator
@@ -53,34 +41,12 @@ def main(inputMessage: dict) -> None:
 		factorExchange=inputMessage['factorExchange']
 	)
 
-	if firstName == "trend_cross_hama":
-		trend_cross_hama.main(inputMessage)
-	elif firstName == "trend_roc":
-		trend_roc.main(inputMessage)
+	if firstName == "trend_range_fractal":
+		trend_range_fractal.main(inputMessage)
 	elif firstName == "trend_envelopes":
 		trend_envelopes.main(inputMessage)
-	elif firstName == "trend_pattern_soldiers":
-		trend_pattern_soldiers.main(inputMessage)
-	elif firstName == "trend_zigzag_pinbar":
-		trend_zigzag_pinbar.main(inputMessage)
-	elif firstName == "trend_zzchannel_pinbar":
-		trend_zzchannel_pinbar.main(inputMessage)
-	elif firstName == "trend_range_fractal":
-		trend_range_fractal.main(inputMessage)
-	elif firstName == "trend_svg":
-		trend_svg.main(inputMessage)	
-	elif firstName == "line_hama":
-		line_hama.main(inputMessage)
-	elif firstName == "contr_envelopes":
-		contr_envelopes.main(inputMessage)
-	elif firstName == "contr_hamacd":
-		contr_hamacd.main(inputMessage)
-	elif firstName == "contr_pattern_star":
-		contr_pattern_star.main(inputMessage)
-
-
-	elif firstName == "corr_regression":
-		corr_regression.main(inputMessage)
+	elif firstName == "trend_cross_hama":
+		trend_cross_hama.main(inputMessage)
 	elif firstName == "corr_pirson":
 		corr_pirson.main(inputMessage)
 		

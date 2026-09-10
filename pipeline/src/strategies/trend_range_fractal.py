@@ -57,6 +57,9 @@ def algorithm(
 
 	multiMaxLoss = params['multiMaxLoss']
 
+	maxBoard = 1.00 #0.80
+	minBoard = 0.00 #0.20
+
 	pattern = pattern_fractal(
 		openVector=dataFrame['open'].to_numpy(),
 		highVector=dataFrame['high'].to_numpy(),
@@ -80,25 +83,26 @@ def algorithm(
 		pl.col('close').rolling_mean(window_size=trendWindow).alias('trendMoving'),
 		pl.col('close').rolling_mean(window_size=signalWindow).alias('guideLine'),
 	]).with_columns([
+		((pl.col('close') - pl.col('downLine'))/(pl.col('upLine') - pl.col('downLine'))).alias('indicator'),
 		(pl.col('guideLine')/pl.col('guideLine').shift(1) - 1).alias('stepMaxLoss'),
 	]).with_columns([
 		(pl.lit(-multiMaxLoss)*pl.col('ATR')).alias('maxLoss'),
 	]).with_columns(
 		pl.when(
-			(pl.col('close') > pl.col('upLine')) & (pl.col('upLine') > pl.col('close').shift(1)) &
+			(pl.col('indicator') > maxBoard) & (maxBoard > pl.col('indicator').shift(1)) &
 			(pl.col('close') > pl.col('trendMoving'))
 		).then(pl.lit(-1))
 		.when(
-			(pl.col('close') < pl.col('upLine')) & (pl.col('upLine') < pl.col('close').shift(1))
+			(pl.col('indicator') < maxBoard) & (maxBoard < pl.col('indicator').shift(1))
 		).then(pl.lit(1))
 		.otherwise(pl.lit(0))
 		.alias('long_signal'),
 
 		pl.when(
-			(pl.col('close') > pl.col('downLine')) & (pl.col('downLine') > pl.col('close').shift(1))
+			(pl.col('indicator') > minBoard) & (minBoard > pl.col('indicator').shift(1))
 		).then(pl.lit(-1))
 		.when(
-			(pl.col('close') < pl.col('downLine')) & (pl.col('downLine') < pl.col('close').shift(1)) &
+			(pl.col('indicator') < minBoard) & (minBoard < pl.col('indicator').shift(1)) &
 			(pl.col('close') < pl.col('trendMoving'))
 		).then(pl.lit(1))
 		.otherwise(pl.lit(0))
