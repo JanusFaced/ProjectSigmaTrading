@@ -2,7 +2,7 @@ from typing import Any
 import matplotlib.pyplot as plt
 import polars as pl
 import os
-from walk_forward_simulator import walkForward
+from walk_forward_simulator import walkForward, getWorkParams
 from custom_ta import spreadMaker
 from pathlib import Path
 from duckDB_setup import get_duckdb
@@ -16,24 +16,39 @@ def main(inputMessage: dict[str, Any]) -> None:
 	dataFrame = db.execute("SELECT * FROM temp_analyst").pl()
 	db.execute("DROP TABLE IF EXISTS temp_analyst")
 
-	train_size, test_size = 1000, 300
-	quantSlippage = 2000
-	generation = 3
-	parametrs = {
-		"baseWindow": {"min": 20, "max": 200, "split": 5, "typeData": "noFix"},
-		"multiMaxLoss": {"min": 1.0, "max": 5.0, "split": 5, "typeData": "noFix"},
-	}
+	mode = inputMessage['mode']
 
-	dataFrame = walkForward(
-		algorithm=algorithm,
-		train_size=train_size,
-		test_size=test_size,
-		inputMessage=inputMessage,
-		originalDataFrame=dataFrame,
-		parametrs=parametrs,
-		quantSlippage=quantSlippage,
-		generation=generation
-	)
+	if mode == 'test':
+
+		train_size, test_size = 1000, 300
+		quantSlippage = 2000
+		generation = 3
+		parametrs = {
+			"baseWindow": {"min": 20, "max": 200, "split": 5, "typeData": "noFix"},
+			"multiMaxLoss": {"min": 1.0, "max": 5.0, "split": 5, "typeData": "noFix"},
+		}
+
+		dataFrame = walkForward(
+			algorithm=algorithm,
+			train_size=train_size,
+			test_size=test_size,
+			inputMessage=inputMessage,
+			originalDataFrame=dataFrame,
+			parametrs=parametrs,
+			quantSlippage=quantSlippage,
+			generation=generation
+		)
+
+	elif mode in ['imitation', 'real']:
+
+		finalPars, finalStatsParams = getWorkParams(inputMessage=inputMessage)
+
+		dataFrame, _ = algorithm(
+			dataFrame=dataFrame,
+			inputMessage=inputMessage,
+			params=finalPars,
+			statsParams=finalStatsParams,
+		)
 
 	db.execute("CREATE OR REPLACE TEMP TABLE temp_trading AS SELECT * FROM dataFrame")
 

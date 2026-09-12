@@ -4,13 +4,18 @@ import polars as pl
 import numpy as np
 import numpy.typing as npt
 from numba import njit
+import json
 import os
 import copy
 from fastBackTester import coreBacktester
 from trading_simulator import backTestAnalyst
 from logger_setup import get_logger
+from pathlib import Path
 
 logger = get_logger(__name__)
+
+output_dir = Path(__file__).parent / "output"
+config_dir = Path(__file__).parent / "config"
 
 def walkForward(
 		algorithm: Callable[pl.DataFrame, Any],
@@ -127,6 +132,15 @@ def walkForward(
 
 		numberWFcycle += 1
 
+	finalPars = copy.deepcopy(bestPars)
+	finalStatsParams = copy.deepcopy(bestStatsParams)
+
+	saveWorkParams(
+		finalPars=finalPars,
+		finalStatsParams=finalStatsParams,
+		inputMessage=inputMessage
+	)
+
 	return finalDataFrame
 
 @njit(cache=True)
@@ -159,3 +173,49 @@ def makeIndexes(
 			break
 
 	return listIndexes
+
+def saveWorkParams(
+		finalPars: dict,
+		finalStatsParams: dict,
+		inputMessage: str,
+	) -> None:
+
+	strategy = inputMessage['strategy']
+	symbol = inputMessage['symbol']
+	timeFrame = inputMessage['timeFrame']
+	type = inputMessage['type']
+	nameExchange = inputMessage['nameExchange']
+
+	name = f"{strategy}_{symbol}_{timeFrame}_{type}_{nameExchange}"
+	fileName: str = f'{config_dir}/work_parametrs/{name}.json'
+	
+	params = {"finalPars": finalPars, "finalStatsParams": finalStatsParams,}
+
+	with open(fileName, 'w', encoding='utf-8') as f:
+		json.dump(params, f, indent=4, ensure_ascii=False)
+	
+	logger.info(f" ✏️ Parametrs for {fileName} was saved!")
+
+def getWorkParams(
+		inputMessage: str,
+	) -> tuple[dict, dict]:
+
+	strategy = inputMessage['strategy']
+	symbol = inputMessage['symbol']
+	timeFrame = inputMessage['timeFrame']
+	type = inputMessage['type']
+	nameExchange = inputMessage['nameExchange']
+
+	name = f"{strategy}_{symbol}_{timeFrame}_{type}_{nameExchange}"
+
+	fileName: str = f'{config_dir}/work_parametrs/{name}.json'
+
+	with open(fileName, "r", encoding="utf-8") as f:
+		params = json.load(f)
+
+	finalPars = params['finalPars']
+	finalStatsParams = params['finalStatsParams']
+
+	logger.info(f" ⬆️ Parametrs for {fileName} was get!")
+
+	return finalPars, finalStatsParams

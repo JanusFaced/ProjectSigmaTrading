@@ -48,11 +48,8 @@ def _load_data(
 	valueConvertor = convertorTimeFrame(timeFrame)
 
 	if mode == 'test':
-		nowMuchMoreDays: int = 9999
-		maxDelta = 30
-		maxDeltaDatetime = timedelta(days=maxDelta)
+
 		speedOfTest = 'slow'
-		
 		if speedOfTest == 'fast':
 			modeMultiple, standartDeep = "relative", 10_000
 		elif speedOfTest == 'slow':
@@ -66,8 +63,6 @@ def _load_data(
 		nameTable = f"{nameExchange}_{symbol}_{type}".lower()
 
 	else:
-		nowMuchMoreDays: int = 125
-		maxDeltaDatetime = timedelta(minutes=valueConvertor)
 		standartDeep = 3000
 		realAmountLines = standartDeep*valueConvertor
 		nameTable = f"short_{nameExchange}_{symbol}_{type}".lower()

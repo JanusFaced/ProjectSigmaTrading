@@ -12,7 +12,7 @@ import (
 func GetTableAnalyst(c *gin.Context) {
     var signals []database.Signal
     
-    if err := database.DB.Order("deposit DESC").Find(&signals).Error; err != nil {
+    if err := database.DB.Order("weight_portfolio DESC").Find(&signals).Error; err != nil {
         c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
         return
     }

@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import polars as pl
 import numpy as np
 import numpy.typing as npt
+import json
 import sys
 import os
 import time
@@ -11,6 +12,7 @@ from pathlib import Path
 
 logger = get_logger(__name__)
 output_dir = Path(__file__).parent / "output"
+config_dir = Path(__file__).parent / "config"
 
 def getEquity(assetsList: dict) -> tuple[pl.DataFrame, list]:
 	db = get_duckdb()
@@ -103,7 +105,8 @@ def portfolioLogic(
 		period_rebalance: int,
 		start_depo: float,
 		portfolioMode: str,
-		modeReBalance: str
+		modeReBalance: str,
+		commonMode: str,
 	) -> pl.DataFrame:
 
 	fullLenth = len(portfolioDF)
@@ -131,7 +134,8 @@ def portfolioLogic(
 		listOfIndexes=listOfIndexes,
 		portfolioMode=portfolioMode,
 		start_depo=start_depo,
-		modeReBalance=modeReBalance
+		modeReBalance=modeReBalance,
+		commonMode=commonMode,
 	)
 
 	finalPortfolioDF = portfolioDF.with_columns(pl.sum_horizontal(columnNames).alias("hotDeposite"))
@@ -197,7 +201,8 @@ def portfolioManager(
 		listOfIndexes: list,
 		portfolioMode: str,
 		start_depo: float,
-		modeReBalance: str
+		modeReBalance: str,
+		commonMode: str,
 	) -> pl.DataFrame:
 
 	listOfDataframes = []
@@ -208,7 +213,12 @@ def portfolioManager(
 	baseWeights = 1/amountAssets
 	assetWeights = {col: baseWeights for col in columnNames}
 
+	amountCells = len(listOfIndexes)
+	numberCell = 0
+
 	for cell in listOfIndexes:
+		numberCell += 1
+
 		startIndex = cell['start']
 		endIndex = cell['end']
 
@@ -254,6 +264,10 @@ def portfolioManager(
 
 		if not( minWeight > 0) | (sumWeight > 1):
 			raise ValueError(f"exist negative weigths or summa of weigth over one!")
+
+		if numberCell == amountCells-1:
+			if commonMode == 'valid':
+				saveWeights(dictOfWeights=assetWeights)
 
 	finalDataFrame = pl.concat(listOfDataframes)
 	return finalDataFrame
@@ -437,4 +451,9 @@ def monte_carlo_chunks(
 
 	return finalSims
 
+def saveWeights(dictOfWeights: dict):
+	fileName: str = f'{config_dir}/asset_weights.json'
 
+	with open(fileName, 'w', encoding='utf-8') as f:
+		json.dump(dictOfWeights, f, indent=4, ensure_ascii=False)
+	logger.info(f" >>>> asset_weights is saved! fileName = {fileName}")

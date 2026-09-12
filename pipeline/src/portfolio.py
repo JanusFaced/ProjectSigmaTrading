@@ -3,7 +3,12 @@ import numpy as np
 import sys
 import os
 import makeStats
-from portfolio_tools import getEquity, portfolioLogic, portfolioAnalyst, plotMonteCarlo
+from portfolio_tools import (
+	getEquity,
+	portfolioLogic,
+	portfolioAnalyst,
+	plotMonteCarlo,
+)
 from logger_setup import get_logger
 from pathlib import Path
 
@@ -19,6 +24,8 @@ def main(portfolioParams: dict) -> None:
 	listFactor = portfolioParams['listFactor']
 
 	assetsList = portfolioParams['assetsList']
+
+	commonMode = portfolioParams['commonMode']
 
 	makeStats.main(
 		listTimeFrame=listTimeFrame,
@@ -40,7 +47,8 @@ def main(portfolioParams: dict) -> None:
 		period_rebalance=360,
 		start_depo=100.00,
 		portfolioMode=portfolioMode,
-		modeReBalance='profit_zero' #simple profit_zero sharp_zero pf_zero
+		modeReBalance='profit_zero', #simple profit_zero sharp_zero pf_zero
+		commonMode=commonMode,
 	)
 
 	analystReport = portfolioAnalyst(

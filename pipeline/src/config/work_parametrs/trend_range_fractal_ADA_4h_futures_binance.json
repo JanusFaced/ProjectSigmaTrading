@@ -1,0 +1,7 @@
+{
+    "finalPars": {
+        "baseWindow": 200.0,
+        "multiMaxLoss": 1.75
+    },
+    "finalStatsParams": {}
+}

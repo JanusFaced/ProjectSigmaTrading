@@ -65,7 +65,7 @@ services:
       resources:
         limits:
           cpus: '1.00'
-          memory: 64M
+          memory: 128M
     labels:
       - "logging=promtail"
     restart: unless-stopped
@@ -105,7 +105,7 @@ services:
       sh -c "cd src && celery -A celery_worker worker 
       -Q pipeline_work
       --loglevel=info 
-      --concurrency=3 
+      --concurrency=1 
       --max-tasks-per-child=40 
       --prefetch-multiplier=1"
     networks:
@@ -128,7 +128,7 @@ services:
       resources:
         limits:
           cpus: '1.00'
-          memory: 2048M
+          memory: 1024M
     labels:
       - "logging=promtail"
     restart: unless-stopped

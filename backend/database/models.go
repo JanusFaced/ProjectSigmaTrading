@@ -18,17 +18,21 @@ func (Backtest) TableName() string {
 }
 
 type Signal struct {
-    ID          uint      `gorm:"primaryKey" json:"id"`
-    Strategy    string    `gorm:"size:100;uniqueIndex;not null" json:"strategy"`
-    LongSignal  string    `gorm:"size:20;not null" json:"long_signal"`
-    ShortSignal string    `gorm:"size:20;not null" json:"short_signal"`
-    Mode        string    `gorm:"size:20;not null" json:"mode"`
-    Status      string    `gorm:"size:20;not null" json:"status"`
-    Fiat        float64   `gorm:"not null" json:"fiat"`
-    Active      float64   `gorm:"not null" json:"active"`
-    Deposit     float64   `gorm:"not null" json:"deposit"`
-    Datetime    time.Time `gorm:"autoCreateTime" json:"datetime"`
-    Trades      []Trade   `gorm:"foreignKey:SignalID;constraint:OnDelete:CASCADE" json:"trades,omitempty"`
+    ID              uint      `gorm:"primaryKey" json:"id"`
+    Strategy        string    `gorm:"size:100;uniqueIndex;not null" json:"strategy"`
+    LongSignal      string    `gorm:"size:20;not null" json:"long_signal"`
+    ShortSignal     string    `gorm:"size:20;not null" json:"short_signal"`
+    Mode            string    `gorm:"size:20;not null" json:"mode"`
+    Status          string    `gorm:"size:20;not null" json:"status"`
+    Fiat            float64   `gorm:"not null" json:"fiat"`
+    Active          float64   `gorm:"not null" json:"active"`
+    Deposit         float64   `gorm:"not null" json:"deposit"`
+    StopLoss        float64   `gorm:"not null" json:"stop_loss"`
+    WeightPortfolio float64   `gorm:"not null" json:"weight_portfolio"`
+    AdjDeposite     float64   `gorm:"not null" json:"adj_deposite"`
+    CurrentPosition float64   `gorm:"not null" json:"current_position"`
+    Datetime        time.Time `gorm:"autoCreateTime" json:"datetime"`
+    Trades          []Trade   `gorm:"foreignKey:SignalID;constraint:OnDelete:CASCADE" json:"trades,omitempty"`
 }
 
 func (Signal) TableName() string {

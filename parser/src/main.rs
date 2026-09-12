@@ -26,19 +26,46 @@ async fn main() -> Result<()> {
         println!(" === Start parsing! === \n");
         
         let list_symbol = vec![
-            "BTC", "ETH", "BNB",
-            "XRP", "SOL", "TRX",
-            "ADA", "LINK", "HYPE",
-            "ZEC", "DOGE", "SUI",
-            "NEAR", "AVAX", "LTC",
-            "XMR", "BCH", "FIL",
-            "XLM", "UNI", "SUSHI",
-            "DOT", "ICP", "ARB",
-            "POL", "ATOM", "ALGO",
-            "DASH", "VET", "CRV",
-            "CAKE", "OP", "CHZ",
-            "MANA", "SAND", "COMP",
-            "RE", "BOT", "LYTE",
+            "SOL",
+            "AVAX",
+            "DOGE",
+            "VET",
+            "ADA",
+            "ETH",
+            "BNB",
+            "ZEC",
+            "BTC",
+            "XRP",
+            "FIL",
+
+            //"NEAR",
+            //"DASH",
+            //"ALGO",
+            //"TRX",
+            //"UNI",
+            //"BCH",
+            //"DOT",
+            //"XLM",
+            //"ATOM",
+            //"LTC",
+            //"XMR",
+            //"LINK",
+            //"SUSHI",
+            //"MANA",
+            //"SAND",
+            //"ICP",
+            //"CAKE",
+            //"POL",
+            //"ARB",
+            //"OP",
+            //"CRV",
+            //"COMP",
+            //"CHZ",
+            //"SUI",
+            //"HYPE",
+            //"RE",
+            //"BOT",
+            //"LYTE",
         ];
 
         let list_type_market = vec!["futures"];
@@ -98,7 +125,7 @@ async fn start_parser(task: &HashMap<String, String>) -> Result<i64> {
             format!("{}_{}_{}", name_exchange, symbol, type_market).to_lowercase()
         ),
         "imitation" | "real" => (
-            125,
+            555,
             format!("short_{}_{}_{}", name_exchange, symbol, type_market).to_lowercase()
         ),
         _ => return Err(anyhow!("Неизвестный режим: {}", mode)),
@@ -240,7 +267,7 @@ async fn get_initial_datetime(
 ) -> Result<DateTime<Utc>> {
 
     let query = format!("SELECT MAX(datetime) FROM {}", name_table);
-    let mut last_date: Option<NaiveDateTime> = None; // изменяем на Option
+    let mut last_date: Option<NaiveDateTime> = None;
     let mut table_exists = false;
 
     match sqlx::query_scalar(&query).fetch_optional(pool).await {
@@ -250,7 +277,7 @@ async fn get_initial_datetime(
         }
         Ok(None) => {
             println!("⚠️ Таблица существует, но пуста");
-            table_exists = true; // таблица существует, но данных нет
+            table_exists = true;
         }
         Err(e) => {
             println!("Error: {}", e);

@@ -66,9 +66,14 @@ class Signal(Base):
 	fiat = Column(Float, nullable=False)
 	active = Column(Float, nullable=False)
 	deposit = Column(Float, nullable=False)
+	stop_loss = Column(Float, nullable=False)
+	weight_portfolio = Column(Float, nullable=False)
+	adj_deposite = Column(Float, nullable=False)
+	current_position = Column(Float, nullable=False)
 	datetime = Column(DateTime, default=datetime.now)
 
 	trades = relationship("Trade", back_populates="signal_rel", cascade="all, delete-orphan")
+	adj_trades = relationship("TradeADJ", back_populates="signal_rel", cascade="all, delete-orphan")
 
 class Trade(Base):
 	__tablename__ = 'trades'
@@ -84,6 +89,43 @@ class Trade(Base):
 	datetime = Column(DateTime, default=datetime.now)
 
 	signal_rel = relationship("Signal", back_populates="trades")
+
+class TradeADJ(Base):
+	__tablename__ = 'adj_trades'
+	id = Column(Integer, primary_key=True, autoincrement=True)
+	
+	signal_id = Column(Integer, ForeignKey('signals.id', ondelete='CASCADE'), nullable=False)
+	
+	adj_deposite = Column(Float, nullable=False)
+	datetime = Column(DateTime, default=datetime.now)
+
+	signal_rel = relationship("Signal", back_populates="adj_trades")
+
+class CurrentPortfolio(Base):
+	__tablename__ = 'current_portfolio'
+	id = Column(Integer, primary_key=True, autoincrement=True)
+
+	name_portfolio = Column(String(100), nullable=False, unique=True)
+	portfolio = Column(Float, nullable=False)
+	full_profit = Column(Float, nullable=False)
+	year_profit = Column(Float, nullable=False)
+	max_drawdown = Column(Float, nullable=False)
+	sharp = Column(Float, nullable=False)
+	profit_factor = Column(Float, nullable=False)
+	datetime = Column(DateTime, default=datetime.now)
+
+	history_portfolio = relationship("HistoryPortfolio", back_populates="current_portfolio_rel", cascade="all, delete-orphan")
+
+class HistoryPortfolio(Base):
+	__tablename__ = 'history_portfolio'
+	id = Column(Integer, primary_key=True, autoincrement=True)
+	
+	current_portfolio_id = Column(Integer, ForeignKey('current_portfolio.id', ondelete='CASCADE'), nullable=False)
+	
+	portfolio = Column(Float, nullable=False)
+	datetime = Column(DateTime, default=datetime.now)
+
+	current_portfolio_rel = relationship("CurrentPortfolio", back_populates="history_portfolio")
 
 Base.metadata.create_all(engine)
 
