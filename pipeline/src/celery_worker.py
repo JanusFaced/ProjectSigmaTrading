@@ -243,47 +243,6 @@ if global_work_mode in ['portfolio', 'test', 'valid']:
 elif global_work_mode == 'imitation':
 	
 	'''
-	def deleteTable():
-
-		from sqlalchemy import create_engine, text
-
-		dataBase_password = os.getenv('DB_PASSWORD')
-		dataBase_user = os.getenv('DB_USER')
-		dataBase_name = os.getenv('DB_NAME')
-		dataBase_host = os.getenv('DB_HOST')
-		dataBase_port = os.getenv('DB_PORT')
-
-		DATABASE_URL = f"postgresql://{dataBase_user}:{dataBase_password}@{dataBase_host}:{dataBase_port}/{dataBase_name}"
-
-		TABLES = [
-			#"short_binance_sol_futures",
-			#"short_binance_avax_futures",
-			#"short_binance_doge_futures",
-			#"short_binance_vet_futures",
-			#"short_binance_ada_futures",
-			#"short_binance_eth_futures",
-			#"short_binance_bnb_futures",
-			#"short_binance_zec_futures",
-			#"short_binance_btc_futures",
-			#"short_binance_xrp_futures",
-			#"short_binance_fil_futures",
-
-		]
-
-		engine = create_engine(DATABASE_URL, echo=False)
-
-		stmt = f"TRUNCATE TABLE {', '.join(TABLES)} RESTART IDENTITY"
-
-		with engine.begin() as conn:
-			print(f"Executing: {stmt}")
-			conn.execute(text(stmt))
-
-			for t in TABLES:
-				count = conn.execute(text(f"SELECT COUNT(*) FROM {t}")).scalar_one()
-				print(f"  {t}: {count} rows")
-
-		print("Done.")	
-
 	def startImitation() -> None:
 		logger.info(f"Пользователь создает задачи для имитации!")
 		tasks = build_tasks(listTimeFrame = ['4h'], mode=global_work_mode)
@@ -294,11 +253,9 @@ elif global_work_mode == 'imitation':
 				queue='pipeline_work'
 			)
 		logger.info(f"✅ Пользователь отправил {len(tasks)} задач!")
-	
 	'''
-	
-	#startImitation()
 
+	#startImitation()
 	#portfolio_controller.main()
 
 	pass

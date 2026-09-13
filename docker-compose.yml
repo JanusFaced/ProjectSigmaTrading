@@ -36,7 +36,8 @@ services:
     networks:
       - app-network
     depends_on:
-      - dataBase
+      dbmate:
+        condition: service_completed_successfully
     deploy:
       resources:
         limits:
@@ -53,7 +54,8 @@ services:
     networks:
       - app-network
     depends_on:
-      - dataBase
+      dbmate:
+        condition: service_completed_successfully
     environment:
       DB_PASSWORD: ${DB_PASSWORD}
       DB_USER: ${DB_USER}
@@ -78,8 +80,10 @@ services:
     networks:
       - app-network
     depends_on:
-      - redis
-      - dataBase
+      dbmate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_started
     environment:
       DB_PASSWORD: ${DB_PASSWORD}
       DB_USER: ${DB_USER}
@@ -111,8 +115,10 @@ services:
     networks:
       - app-network
     depends_on:
-      - dataBase
-      - redis
+      dbmate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_started
     environment:
       DB_PASSWORD: ${DB_PASSWORD}
       DB_USER: ${DB_USER}
@@ -144,6 +150,19 @@ services:
           memory: 64M
     restart: unless-stopped
 
+  dbmate:
+    image: amacneil/dbmate
+    command: --wait up
+    environment:
+      DATABASE_URL: "postgres://${DB_USER}:${DB_PASSWORD}@dataBase:5432/${DB_NAME}?sslmode=disable"
+    networks:
+      - app-network
+    volumes:
+      - ./migrations_vds:/db/migrations
+    depends_on:
+      dataBase:
+        condition: service_healthy
+
   dataBase:
     image: postgres:16.0
     environment:
@@ -161,6 +180,12 @@ services:
           memory: 256M
     labels:
       - "logging=promtail"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
     restart: unless-stopped
 
   nginx:

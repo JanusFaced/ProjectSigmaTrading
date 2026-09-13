@@ -1,0 +1,13 @@
+-- migrate:up
+ALTER TABLE signals
+  ADD COLUMN IF NOT EXISTS stop_loss FLOAT NOT NULL DEFAULT 0.00,
+  ADD COLUMN IF NOT EXISTS weight_portfolio FLOAT NOT NULL DEFAULT 0.00,
+  ADD COLUMN IF NOT EXISTS adj_deposite FLOAT NOT NULL DEFAULT 0.00,
+  ADD COLUMN IF NOT EXISTS current_position FLOAT NOT NULL DEFAULT 0.00;
+
+-- migrate:down
+ALTER TABLE signals
+  DROP COLUMN IF EXISTS stop_loss,
+  DROP COLUMN IF EXISTS weight_portfolio,
+  DROP COLUMN IF EXISTS adj_deposite,
+  DROP COLUMN IF EXISTS current_position;

@@ -6,7 +6,7 @@ services:
       args:
         - REACT_APP_API_URL=http://localhost:8000
     networks:
-      - app-network
+      - sigma-network
     ports:
       - "3000:3000"
     depends_on:
@@ -36,11 +36,12 @@ services:
       MODE_WORK: localhost
       ADMIN_KEY: ${ADMIN_KEY}
     networks:
-      - app-network
+      - sigma-network
     ports:
       - "8000:8000"
     depends_on:
-      - dataBase
+      dbmate:
+        condition: service_completed_successfully
     deploy:
       resources:
         limits:
@@ -50,107 +51,125 @@ services:
       - "logging=promtail"
     restart: unless-stopped
 
-#  parser:
-#    image: rust_parser
-#    build:
-#      context: ./parser
-#    networks:
-#      - app-network
-#    depends_on:
-#      - dataBase
-#    environment:
-#      DB_PASSWORD: ${DB_PASSWORD}
-#      DB_USER: ${DB_USER}
-#      DB_NAME: ${DB_NAME}
-#      DB_HOST: dataBase
-#      DB_PORT: 5432
-#      GLOBAL_WORK_MODE: 'imitation'
-#    deploy:
-#      resources:
-#        limits:
-#          cpus: '1.00'
-#          memory: 128M
-#    labels:
-#      - "logging=promtail"
-#    restart: unless-stopped
+  parser:
+    image: rust_parser
+    build:
+      context: ./parser
+    networks:
+      - sigma-network
+    depends_on:
+      dbmate:
+        condition: service_completed_successfully
+    environment:
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_USER: ${DB_USER}
+      DB_NAME: ${DB_NAME}
+      DB_HOST: dataBase
+      DB_PORT: 5432
+      GLOBAL_WORK_MODE: 'imitation'
+    deploy:
+      resources:
+        limits:
+          cpus: '1.00'
+          memory: 128M
+    labels:
+      - "logging=promtail"
+    restart: unless-stopped
 
-#  celery_beat:
-#    image: python_app_ml_pipeline_celery_beat
-#    build:
-#      context: ./beat
-#    command: sh -c "cd src && celery -A celery_beat beat --loglevel=info"
-#    networks:
-#      - app-network
-#    depends_on:
-#      - redis
-#      - dataBase
-#    environment:
-#      DB_PASSWORD: ${DB_PASSWORD}
-#      DB_USER: ${DB_USER}
-#      DB_NAME: ${DB_NAME}
-#      DB_HOST: dataBase
-#      DB_PORT: 5432
-#      REDIS_URL: redis://redis:6379/0
-#      GLOBAL_WORK_MODE: 'imitation' #test imitation
-#    deploy:
-#      resources:
-#        limits:
-#          cpus: '0.25'
-#          memory: 64M
-#    labels:
-#      - "logging=promtail"
-#    restart: unless-stopped
+  celery_beat:
+    image: python_app_ml_pipeline_celery_beat
+    build:
+      context: ./beat
+    command: sh -c "cd src && celery -A celery_beat beat --loglevel=info"
+    networks:
+      - sigma-network
+    depends_on:
+      dbmate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_started
+    environment:
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_USER: ${DB_USER}
+      DB_NAME: ${DB_NAME}
+      DB_HOST: dataBase
+      DB_PORT: 5432
+      REDIS_URL: redis://redis:6379/0
+      GLOBAL_WORK_MODE: 'imitation' #test imitation
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 64M
+    labels:
+      - "logging=promtail"
+    restart: unless-stopped
 
-#  celery_worker_pipeline:
-#    image: python_celery_worker_pipeline
-#    build:
-#      context: ./pipeline
-#    command: >
-#      sh -c "cd src && celery -A celery_worker worker 
-#      -Q pipeline_work
-#      --loglevel=info 
-#      --concurrency=1 
-#      --max-tasks-per-child=40 
-#      --prefetch-multiplier=1"
-#    networks:
-#      - app-network
-#    depends_on:
-#      - dataBase
-#      - redis
-#    environment:
-#      DB_PASSWORD: ${DB_PASSWORD}
-#      DB_USER: ${DB_USER}
-#      DB_NAME: ${DB_NAME}
-#      DB_HOST: dataBase
-#      DB_PORT: 5432
-#      REDIS_URL: redis://redis:6379/0
-#      GLOBAL_WORK_MODE: 'imitation' #portfolio test imitation valid
-#    volumes:
-#      - ./pipeline/src/config:/app/src/config
-#      - ./pipeline/src/output:/app/src/output
-#    deploy:
-#      resources:
-#        limits:
-#          cpus: '1.00'
-#          memory: 1024M
-#    labels:
-#      - "logging=promtail"
-#    restart: unless-stopped
+  celery_worker_pipeline:
+    image: python_celery_worker_pipeline
+    build:
+      context: ./pipeline
+    command: >
+      sh -c "cd src && celery -A celery_worker worker 
+      -Q pipeline_work
+      --loglevel=info 
+      --concurrency=1 
+      --max-tasks-per-child=40 
+      --prefetch-multiplier=1"
+    networks:
+      - sigma-network
+    depends_on:
+      dbmate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_started
+    environment:
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_USER: ${DB_USER}
+      DB_NAME: ${DB_NAME}
+      DB_HOST: dataBase
+      DB_PORT: 5432
+      REDIS_URL: redis://redis:6379/0
+      GLOBAL_WORK_MODE: 'imitation' #portfolio test imitation valid
+    volumes:
+      - ./pipeline/src/config:/app/src/config
+      - ./pipeline/src/output:/app/src/output
+    deploy:
+      resources:
+        limits:
+          cpus: '1.00'
+          memory: 1024M
+    labels:
+      - "logging=promtail"
+    restart: unless-stopped
 
-#  redis:
-#    image: redis:7-alpine
-#    networks:
-#      - app-network
-#    ports:
-#      - "6379:6379"
-#    deploy:
-#      resources:
-#        limits:
-#          cpus: '0.25'
-#          memory: 64M
-#    labels:
-#      - "logging=promtail"
-#    restart: unless-stopped
+  redis:
+    image: redis:7-alpine
+    networks:
+      - sigma-network
+    ports:
+      - "6379:6379"
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 64M
+    labels:
+      - "logging=promtail"
+    restart: unless-stopped
+
+  dbmate:
+    image: amacneil/dbmate
+    command: --wait up
+    environment:
+      DATABASE_URL: "postgres://${DB_USER}:${DB_PASSWORD}@dataBase:5432/${DB_NAME}?sslmode=disable"
+    networks:
+      - sigma-network
+    volumes:
+      - ./migrations:/db/migrations
+    depends_on:
+      dataBase:
+        condition: service_healthy
 
   dataBase:
     image: postgres:16.0
@@ -159,7 +178,7 @@ services:
       POSTGRES_USER: ${DB_USER}
       POSTGRES_DB: ${DB_NAME}
     networks:
-      - app-network
+      - sigma-network
     ports:
       - "5432:5432"
     volumes:
@@ -171,6 +190,12 @@ services:
           memory: 256M
     labels:
       - "logging=promtail"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
     restart: unless-stopped
 
 #  loki:
@@ -183,7 +208,7 @@ services:
 #      - ./monitoring/loki/loki-config.yml:/etc/loki/loki-config.yml
 #      - loki_data:/loki
 #    networks:
-#      - app-network
+#      - sigma-network
 #    deploy:
 #      resources:
 #        limits:
@@ -202,7 +227,7 @@ services:
 #    depends_on:
 #      - loki
 #    networks:
-#      - app-network
+#      - sigma-network
 #    deploy:
 #      resources:
 #        limits:
@@ -225,7 +250,7 @@ services:
 #    depends_on:
 #      - loki
 #    networks:
-#      - app-network
+#      - sigma-network
 #    deploy:
 #      resources:
 #        limits:
@@ -240,7 +265,7 @@ volumes:
   grafana_data:
 
 networks:
-  app-network:
+  sigma-network:
     driver: bridge
 
 
