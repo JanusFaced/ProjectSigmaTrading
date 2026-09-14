@@ -1,104 +1,172 @@
 // WelcomeSection.styles.js
-import styled from 'styled-components';
+import styled, { keyframes } from 'styled-components';
 
-// Основной контейнер Welcome секции
+const rotate = keyframes`
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+`;
+
+const fadeInUp = keyframes`
+    from {
+        opacity: 0;
+        transform: translateY(24px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+`;
+
+// Основной контейнер Welcome-секции
 export const WelcomeHeader = styled.header`
     min-height: 100vh;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     position: relative;
     overflow: hidden;
-    
-    // Декоративные элементы фона
+
+    background:
+        radial-gradient(
+            circle at 20% 20%,
+            rgba(59, 130, 246, 0.12),
+            transparent 35%
+        ),
+        radial-gradient(
+            circle at 80% 75%,
+            rgba(139, 92, 246, 0.1),
+            transparent 35%
+        ),
+        #0b0f19;
+
+    color: #f8fafc;
+
     &::before {
         content: '';
         position: absolute;
-        top: -50%;
-        right: -50%;
-        width: 200%;
-        height: 200%;
-        background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 70%);
-        animation: rotate 20s linear infinite;
+        top: -35%;
+        right: -20%;
+        width: 700px;
+        height: 700px;
+        border: 1px solid rgba(148, 163, 184, 0.08);
+        border-radius: 50%;
+        box-shadow:
+            0 0 0 80px rgba(148, 163, 184, 0.025),
+            0 0 0 160px rgba(148, 163, 184, 0.02);
+        animation: ${rotate} 35s linear infinite;
+        pointer-events: none;
     }
-    
-    @keyframes rotate {
-        from {
-            transform: rotate(0deg);
-        }
-        to {
-            transform: rotate(360deg);
+
+    &::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background-image:
+            linear-gradient(
+                rgba(148, 163, 184, 0.035) 1px,
+                transparent 1px
+            ),
+            linear-gradient(
+                90deg,
+                rgba(148, 163, 184, 0.035) 1px,
+                transparent 1px
+            );
+        background-size: 48px 48px;
+        mask-image: linear-gradient(
+            to bottom,
+            rgba(0, 0, 0, 0.45),
+            transparent 75%
+        );
+        pointer-events: none;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        &::before {
+            animation: none;
         }
     }
 `;
 
 // Контейнер для контента
 export const Container = styled.div`
-    max-width: 800px;
+    position: relative;
+    z-index: 1;
+    width: min(800px, 100%);
     margin: 0 auto;
     padding: 2rem;
     text-align: center;
-    position: relative;
-    z-index: 1;
-    
+
     h1 {
-        font-size: 3.5rem;
-        color: white;
-        margin-bottom: 1.5rem;
-        font-weight: bold;
-        animation: fadeInUp 0.8s ease;
-        
-        @media (max-width: 768px) {
-            font-size: 2rem;
-        }
-    }
-    
-    @keyframes fadeInUp {
-        from {
-            opacity: 0;
-            transform: translateY(30px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
+        max-width: 760px;
+        margin: 0 auto 1.5rem;
+        color: #f8fafc;
+        font-size: clamp(2.4rem, 6vw, 4.5rem);
+        font-weight: 700;
+        line-height: 1.08;
+        letter-spacing: -0.04em;
+        text-shadow: 0 10px 40px rgba(0, 0, 0, 0.35);
+        animation: ${fadeInUp} 0.8s ease both;
     }
 `;
 
 // Тэглайн
 export const Tagline = styled.p`
-    font-size: 1.5rem;
-    color: rgba(255, 255, 255, 0.95);
-    line-height: 1.6;
-    animation: fadeInUp 0.8s ease 0.2s both;
-    
-    @media (max-width: 768px) {
-        font-size: 1.1rem;
-    }
+    max-width: 620px;
+    margin: 0 auto;
+    color: #94a3b8;
+    font-size: clamp(1.05rem, 2vw, 1.35rem);
+    line-height: 1.7;
+    font-weight: 400;
+    letter-spacing: 0.01em;
+    animation: ${fadeInUp} 0.8s ease 0.15s both;
 `;
 
-// Декоративная кнопка (опционально, добавим для красоты)
+// Декоративная кнопка
 export const ScrollButton = styled.button`
     margin-top: 3rem;
-    background: transparent;
-    border: 2px solid white;
-    color: white;
-    padding: 0.8rem 2rem;
-    font-size: 1.1rem;
-    border-radius: 50px;
+    padding: 0.8rem 1.8rem;
+    border: 1px solid rgba(96, 165, 250, 0.7);
+    border-radius: 10px;
+    background: rgba(15, 23, 42, 0.65);
+    color: #bfdbfe;
+    font-size: 1rem;
+    font-weight: 500;
     cursor: pointer;
-    transition: all 0.3s ease;
-    animation: fadeInUp 0.8s ease 0.4s both;
-    
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+    transition:
+        background 0.25s ease,
+        border-color 0.25s ease,
+        color 0.25s ease,
+        transform 0.25s ease,
+        box-shadow 0.25s ease;
+    animation: ${fadeInUp} 0.8s ease 0.3s both;
+
     &:hover {
-        background: white;
-        color: #667eea;
+        border-color: #60a5fa;
+        background: rgba(37, 99, 235, 0.18);
+        color: #eff6ff;
         transform: translateY(-3px);
+        box-shadow: 0 12px 35px rgba(37, 99, 235, 0.2);
     }
-    
+
+    &:active {
+        transform: translateY(-1px);
+    }
+
+    &:focus-visible {
+        outline: 3px solid rgba(96, 165, 250, 0.4);
+        outline-offset: 4px;
+    }
+
     @media (max-width: 768px) {
-        padding: 0.6rem 1.5rem;
-        font-size: 1rem;
+        margin-top: 2.5rem;
+        padding: 0.7rem 1.4rem;
+        font-size: 0.95rem;
     }
 `;

@@ -40,9 +40,9 @@ const Login = () => {
             navigate(`/signals/admin`, { replace: true });
         } catch (err) {
             if (err.response?.status === 403) {
-                setError('❌ Неверный API ключ. Попробуйте еще раз.');
+                setError('❌ Invalid API key. Please try again.');
             } else {
-                setError('❌ Ошибка подключения к серверу. Проверьте соединение.');
+                setError('❌ Error connecting to the server. Check your connection.');
             }
             setLoading(false);
         }
@@ -51,31 +51,31 @@ const Login = () => {
     return (
         <LoginContainer>
             <LoginCard>
-                <LoginTitle>🔐 Админ-панель</LoginTitle>
-                <LoginSubtitle>Введите API ключ для доступа к управлению стратегиями</LoginSubtitle>
+                <LoginTitle>🔐 Admin panel</LoginTitle>
+                <LoginSubtitle>Enter the API key to access strategy management</LoginSubtitle>
                 
                 {error && <ErrorMessage>{error}</ErrorMessage>}
                 
                 <form onSubmit={handleSubmit}>
                     <FormGroup>
-                        <Label>API Ключ</Label>
+                        <Label>API Key</Label>
                         <Input
                             type="password"
                             value={key}
                             onChange={(e) => setKey(e.target.value)}
-                            placeholder="Введите ваш API ключ..."
+                            placeholder="Enter your API key..."
                             disabled={loading}
                             autoFocus
                         />
                     </FormGroup>
                     
                     <Button type="submit" disabled={loading || !key.trim()}>
-                        {loading ? 'Проверка...' : '🔑 Войти'}
+                        {loading ? 'Examination...' : '🔑 Log in'}
                     </Button>
                 </form>
                 
                 <InfoText>
-                    Вход только для АДМИНИСТРАЦИИ!
+                    Staff entrance only!
                 </InfoText>
             </LoginCard>
         </LoginContainer>

@@ -9,9 +9,9 @@ function WelcomeSection() {
     return (
         <WelcomeHeader>
             <Container>
-                <h1>Добро пожаловать на мою сайт-визитку!</h1>
+                <h1>Welcome to my personal website!</h1>
                 <Tagline>
-                    Здесь я расскажу о себе и о моих пет-проектах
+                    Here I will tell you about myself and my projects
                 </Tagline>
             </Container>
         </WelcomeHeader>

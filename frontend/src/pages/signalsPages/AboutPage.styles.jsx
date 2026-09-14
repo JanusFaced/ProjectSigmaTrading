@@ -1,224 +1,310 @@
-// AboutPage.styles.js
 import styled from 'styled-components';
 import { NavLink } from 'react-router-dom';
 
-// Основной контейнер страницы
 export const AboutContainer = styled.div`
     min-height: 100vh;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    padding: 40px 20px;
-    
+    padding: 3.5rem 1.25rem 5rem;
+
+    color: #dbe4ee;
+    background:
+        radial-gradient(
+            circle at 50% 0%,
+            rgba(40, 83, 132, 0.2) 0%,
+            rgba(11, 15, 20, 0) 42%
+        ),
+        #0b0f14;
+
     h1 {
+        max-width: 1000px;
+        margin: 0 auto 3rem;
+
+        color: #f1f5f9;
+        font-size: clamp(2.2rem, 5vw, 3.4rem);
+        font-weight: 700;
+        line-height: 1.1;
+        letter-spacing: -0.05em;
         text-align: center;
-        color: white;
-        font-size: 42px;
-        margin-bottom: 50px;
-        font-weight: bold;
-        
-        @media (max-width: 768px) {
-            font-size: 32px;
-            margin-bottom: 30px;
-        }
     }
-    
+
     h2 {
-        font-size: 28px;
-        margin-bottom: 20px;
-        color: #333;
-        
-        @media (max-width: 768px) {
-            font-size: 24px;
+        margin: 0 0 1.25rem;
+
+        color: #e7edf5;
+        font-size: 1.45rem;
+        font-weight: 600;
+        line-height: 1.35;
+        letter-spacing: -0.02em;
+    }
+
+    @media (max-width: 768px) {
+        padding: 2.5rem 1rem 3.5rem;
+
+        h1 {
+            margin-bottom: 2rem;
+        }
+
+        h2 {
+            font-size: 1.2rem;
         }
     }
 `;
 
-// Секция (общий стиль для всех секций)
 export const Section = styled.section`
-    background: white;
-    border-radius: 16px;
-    padding: 30px;
-    margin-bottom: 30px;
     max-width: 1000px;
-    margin-left: auto;
-    margin-right: auto;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-    transition: transform 0.3s ease;
-    
+    margin: 0 auto 1.25rem;
+    padding: 1.75rem;
+
+    background: rgba(20, 27, 36, 0.88);
+    border: 1px solid rgba(255, 255, 255, 0.075);
+    border-radius: 10px;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.18);
+
+    transition:
+        transform 0.25s ease,
+        border-color 0.25s ease,
+        box-shadow 0.25s ease;
+
     &:hover {
-        transform: translateY(-3px);
+        border-color: rgba(138, 180, 248, 0.22);
+        box-shadow: 0 16px 36px rgba(0, 0, 0, 0.25);
+        transform: translateY(-2px);
     }
-    
-    @media (max-width: 768px) {
-        padding: 20px;
-        margin-bottom: 20px;
-    }
-    
+
     p {
-        line-height: 1.6;
-        color: #555;
-        margin-bottom: 15px;
-        font-size: 16px;
-        
+        margin: 0 0 1rem;
+
+        color: #9daaba;
+        font-size: 0.98rem;
+        line-height: 1.75;
+
         &:last-child {
             margin-bottom: 0;
         }
     }
-`;
 
-// Карточка автора
-export const AuthorCard = styled.div`
-    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-    border-radius: 12px;
-    padding: 20px;
-    margin-top: 10px;
-`;
+    @media (max-width: 768px) {
+        padding: 1.25rem;
+        margin-bottom: 1rem;
 
-// Детали автора
-export const AuthorDetails = styled.div`
-    p {
-        margin: 12px 0;
-        font-size: 16px;
-        
-        strong {
-            color: #333;
-            min-width: 80px;
-            display: inline-block;
+        p {
+            font-size: 0.93rem;
         }
     }
 `;
 
-// Карточка реквизитов
-export const RequisitesCard = styled.div`
-    background: #f8f9fa;
-    border-radius: 12px;
-    padding: 20px;
-    border: 1px solid #e9ecef;
+export const AuthorCard = styled.div`
+    margin-top: 1rem;
+    padding: 1.25rem;
+
+    background: #111820;
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 8px;
 `;
 
-// Элемент реквизита
+export const AuthorDetails = styled.div`
+    p {
+        margin: 0;
+        padding: 0.75rem 0;
+
+        color: #aebaca;
+        font-size: 0.92rem;
+        line-height: 1.6;
+
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+
+        &:first-child {
+            padding-top: 0;
+        }
+
+        &:last-child {
+            padding-bottom: 0;
+            border-bottom: none;
+        }
+
+        strong {
+            display: inline-block;
+            min-width: 155px;
+            color: #e3eaf2;
+            font-weight: 600;
+        }
+    }
+
+    @media (max-width: 650px) {
+        p strong {
+            display: block;
+            min-width: auto;
+            margin-bottom: 0.25rem;
+        }
+    }
+`;
+
+export const RequisitesCard = styled.div`
+    padding: 1.25rem;
+
+    background: #111820;
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 8px;
+`;
+
 export const RequisiteItem = styled.div`
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 12px 0;
-    border-bottom: 1px solid #e9ecef;
-    
+    gap: 1rem;
+
+    padding: 0.8rem 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+
     &:last-child {
         border-bottom: none;
     }
-    
+
     @media (max-width: 768px) {
-        flex-direction: column;
         align-items: flex-start;
-        gap: 5px;
+        flex-direction: column;
+        gap: 0.35rem;
     }
 `;
 
-// Лейбл реквизита
 export const RequisiteLabel = styled.span`
-    font-weight: bold;
-    color: #667eea;
-    font-size: 16px;
+    color: #8ab4f8;
+    font-size: 0.9rem;
+    font-weight: 600;
 `;
 
-// Значение реквизита
 export const RequisiteValue = styled.span`
-    color: #333;
-    font-family: monospace;
-    font-size: 14px;
-    background: white;
-    padding: 4px 8px;
-    border-radius: 6px;
-    
+    max-width: 100%;
+    padding: 0.35rem 0.55rem;
+
+    overflow-wrap: anywhere;
+    color: #c9d4e0;
+    background: #0b0f14;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 5px;
+
+    font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
+    font-size: 0.8rem;
+
     @media (max-width: 768px) {
         width: 100%;
-        word-break: break-all;
     }
 `;
 
-// Примечание к реквизитам
 export const RequisitesNote = styled.p`
-    font-size: 12px;
-    color: #999;
-    margin-top: 15px !important;
-    text-align: center;
+    margin-top: 1rem !important;
+
+    color: #718093 !important;
+    font-size: 0.78rem !important;
     font-style: italic;
+    text-align: center;
 `;
 
-// Секция контактов
 export const ContactSection = styled(Section)`
     a {
-        color: #667eea;
+        color: #8ab4f8;
         text-decoration: none;
-        transition: color 0.3s ease;
-        word-break: break-all;
-        
+        overflow-wrap: anywhere;
+
+        transition:
+            color 0.2s ease,
+            text-decoration-color 0.2s ease;
+
         &:hover {
-            color: #764ba2;
+            color: #b5d2ff;
             text-decoration: underline;
+            text-underline-offset: 3px;
+        }
+
+        &:focus-visible {
+            outline: 2px solid #8ab4f8;
+            outline-offset: 3px;
+            border-radius: 3px;
         }
     }
-    
+
     p {
-        margin: 15px 0;
-        
+        margin: 0;
+        padding: 0.75rem 0;
+
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+
         &:last-child {
             margin-bottom: 0;
+            border-bottom: none;
         }
     }
 `;
 
-// Стилизованный код для адресов (опционально)
 export const AddressCode = styled.code`
-    background: #f1f3f4;
-    padding: 2px 6px;
+    padding: 0.15rem 0.4rem;
+
+    color: #a9caff;
+    background: #111820;
+    border: 1px solid rgba(138, 180, 248, 0.18);
     border-radius: 4px;
-    font-size: 14px;
-    color: #d63384;
+
+    font-size: 0.85rem;
 `;
 
-// Бонус: декоративный элемент для секций
 export const SectionIcon = styled.span`
-    font-size: 32px;
-    margin-right: 10px;
+    margin-right: 0.55rem;
+
+    font-size: 1.7rem;
     vertical-align: middle;
 `;
 
-// Контейнер для заголовка с иконкой
 export const SectionHeader = styled.div`
     display: flex;
     align-items: center;
-    margin-bottom: 20px;
-    
+    margin-bottom: 1.25rem;
+
     h2 {
         margin-bottom: 0;
     }
 `;
 
-// Кнопка перехода на сайт-визитку
 export const VisitButton = styled(NavLink)`
-    display: inline-block;
-    margin-top: 25px;
-    padding: 12px 30px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    margin-top: 1.5rem;
+    padding: 0.8rem 1.3rem;
+
+    color: #07111d;
+    background: #8ab4f8;
+    border: 1px solid #8ab4f8;
+    border-radius: 7px;
+
+    font-size: 0.92rem;
     font-weight: 600;
-    font-size: 16px;
-    border-radius: 50px;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
     text-align: center;
-    
+    text-decoration: none;
+
+    box-shadow: 0 8px 22px rgba(138, 180, 248, 0.14);
+
+    transition:
+        color 0.25s ease,
+        background 0.25s ease,
+        border-color 0.25s ease,
+        box-shadow 0.25s ease,
+        transform 0.25s ease;
+
     &:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 6px 25px rgba(102, 126, 234, 0.5);
-        color: white;
+        color: #ffffff;
+        background: #6f9fe8;
+        border-color: #6f9fe8;
+        box-shadow: 0 10px 28px rgba(138, 180, 248, 0.24);
+        transform: translateY(-2px);
     }
-    
+
+    &:focus-visible {
+        outline: 2px solid #8ab4f8;
+        outline-offset: 3px;
+    }
+
     @media (max-width: 768px) {
         width: 100%;
-        padding: 14px 20px;
-        font-size: 15px;
+        padding: 0.9rem 1rem;
     }
 `;

@@ -30,7 +30,7 @@ function Navigator() {
                                 '🚀 MyPortfolio'
                             ) : (
                                 <>
-                                    <span style={{ fontSize: '0.8rem' }}>←</span> Вернуться на главную
+                                    <span style={{ fontSize: '0.8rem' }}>←</span> Return to the home page
                                 </>
                             )}
                         </StyledNavLink>

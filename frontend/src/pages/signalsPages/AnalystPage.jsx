@@ -26,9 +26,9 @@ function AnalystPage() {
                 const data = await response.json();
                 setCards(data);
             } catch (error) {
-                console.error('Ошибка загрузки:', error);
+                console.error('Loading error:', error);
                 setError(error.message);
-                alert('Не удалось загрузить карточки');
+                alert('Failed to load cards');
             } finally {
                 setLoading(false);
             }
@@ -40,9 +40,9 @@ function AnalystPage() {
     if (loading) {
         return (
             <CardsPage>
-                <h1>Аналитика</h1>
+                <h1>Analytics</h1>
                 <LoadSection>
-                    <p>Загрузка данных...</p>
+                    <p>Loading data...</p>
                     <Spinner>⏳</Spinner>
                 </LoadSection>
             </CardsPage>
@@ -52,11 +52,11 @@ function AnalystPage() {
     if (error) {
         return (
             <CardsPage>
-                <h1>Аналитика</h1>
+                <h1>Analytics</h1>
                 <LoadSection>
-                    <p>❌ Ошибка: {error}</p>
+                    <p>❌ Error: {error}</p>
                     <button onClick={() => window.location.reload()}>
-                        Попробовать снова
+                        Try again
                     </button>
                 </LoadSection>
             </CardsPage>
@@ -65,11 +65,11 @@ function AnalystPage() {
 
     return (
         <CardsPage>
-            <h1>Аналитика</h1>
+            <h1>Analytics</h1>
             
             {cards.length === 0 ? (
                 <LoadSection>
-                    <p>📭 Нет данных для отображения</p>
+                    <p>📭 No data to display</p>
                 </LoadSection>
             ) : (
                 <CardsList>

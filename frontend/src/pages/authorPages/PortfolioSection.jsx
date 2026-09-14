@@ -13,17 +13,17 @@ import {
 } from './PortfolioSection.styles.jsx';
 
 function PortfolioSection() {
-    const pstName = '/images/pst_name_cut.png';
+    const pstName = '/images/pst_name_cut_remove.png';
 
     const navigate = useNavigate();
 
     const projects = [
         { 
-            title: 'Торговые роботы', 
-            tech: 'Pandas, NumPy, Numba, SQLAlchemy, FastAPI, CCXT, Celery, Redis, PostgreSQL',
+            title: 'Trading robots', 
+            tech: 'Polars, NumPy, Numba, SQLAlchemy, CCXT, Celery, Redis, PostgreSQL',
             path: '/signals',
-            description: 'Параллельный запуск различных торговых стратегий и их оценка в реальном времени',
-            techList: ['Pandas', 'NumPy', 'Numba', 'SQLAlchemy', 'FastAPI', 'CCXT', 'Celery', 'Redis', 'PostgreSQL']
+            description: 'Simultaneous launch of various trading strategies and their real-time evaluation',
+            techList: ['Polars', 'NumPy', 'Numba', 'SQLAlchemy', 'CCXT', 'Celery', 'Redis', 'PostgreSQL']
         }
     ];
 
@@ -34,7 +34,7 @@ function PortfolioSection() {
     return (
         <PortfolioSectionMain>
             <Container>
-                <h2>Мой основной проект</h2>
+                <h2>My main project</h2>
                 <PortfolioGrid>
                     {projects.map((project, idx) => (
                         <ProjectCard 
@@ -56,7 +56,7 @@ function PortfolioSection() {
                                     ))}
                                 </TechStack>
                                 <ClickableCard>
-                                    Нажмите на карточку, чтобы перейти →
+                                    Tap the card to go to →
                                 </ClickableCard>
                             </ProjectInfo>
                         </ProjectCard>

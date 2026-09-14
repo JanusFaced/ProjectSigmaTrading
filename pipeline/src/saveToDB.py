@@ -526,7 +526,7 @@ def rebalance_portfolio(
 			logger.info("Сессия с базой данных закрыта!")
 
 
-def get_chart_portfolio(name_portfolio: str) -> int:
+def get_chart_portfolio(name_portfolio: str) -> npt.NDArray[np.float64]:
 
 	tryCount, maxTryOnes = 0, 7
 	while True:

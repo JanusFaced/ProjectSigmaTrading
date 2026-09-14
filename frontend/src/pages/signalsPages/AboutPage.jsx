@@ -15,21 +15,21 @@ import {
 function AboutPage() {
     return (
         <AboutContainer>
-            <h1>О проекте</h1>
+            <h1>About the Project</h1>
             
             <Section>
-                <h2>📖 Описание проекта ProjectSigmaTrading</h2>
+                <h2>📖 Project Description of ProjectSigmaTrading</h2>
                 <p>
-                    ProjectSigmaTrading - проект нацеленный на эксперименты в применении автоматизации торговли на финансовых рынках.
+                    ProjectSigmaTrading - a project aimed at experimenting with the application of automated trading in financial markets.
                 </p>
                 <p>
-                    Проект использует различные популярные идеи, а так же личные идеи для реализации максимальной стабильности и доходности.
+                    The project employs various popular concepts as well as original ideas to achieve maximum stability and profitability.
                 </p>
                 <p>
-                    На сайте представлена страница где можно наблюдать за статистикой работы различных стратегий.
+                    The website features a page where you can view performance statistics for various strategies.
                 </p>
                 <p>
-                    Каждая стратегия представляет из себя комбинацию алгоритма + актива + таймфрэйма.
+                    Each strategy consists of a combination of an algorithm, an asset, and a timeframe.
                 </p>
             </Section>
 
@@ -37,21 +37,21 @@ function AboutPage() {
                 <h2>👨‍💻 About author</h2>
                 <AuthorCard>
                     <AuthorDetails>
-                        <p><strong>Name:</strong> Alexander</p>
-                        <p><strong>Role:</strong> DS, ML, AI, DevOps и FullStack разработчик</p>
-                        <p><strong>Stack (ML):</strong> SKlearn, PyTorch, CatBoost, TensorFlow, Keras, Darts</p>
-                        <p><strong>Stack (DevOps):</strong> Linux, Docker, Kubernetes, GitHub, GitLab, Terraform, Ansible</p>
-                        <p><strong>Stack (FullStack):</strong> React.js, FastAPI, PostgreSQL, Node.js, SQLAlchemy, Celery, Redis</p>
+                        <p><strong>Name:</strong> Alexander ;</p>
+                        <p><strong>Role:</strong> DevOps, FullStack and ML developer ;</p>
+                        <p><strong>Stack (DevOps):</strong> Linux, Docker, Kubernetes, GitHub, GitLab, Terraform, Ansible ;</p>
+                        <p><strong>Stack (FullStack):</strong> React.js, FastAPI, PostgreSQL, Node.js, SQLAlchemy, Celery, Redis ;</p>
+                        <p><strong>Stack (ML):</strong> SKlearn, PyTorch, CatBoost, TensorFlow, Keras, Darts .</p>
                     </AuthorDetails>
                 </AuthorCard>
                 
                 <VisitButton to="/">
-                    🌐 Посмотреть сайт-визитку
+                    🌐 View the brochure website
                 </VisitButton>
             </Section>
 
             <ContactSection>
-                <h2>📞 Контакты</h2>
+                <h2>📞 Contact Information</h2>
                 <p>Email: <a href="mailto:Yascov64@gmail.com">Yascov64@gmail.com</a></p>
                 <p>LinkedIn: <a href="https://www.linkedin.com/in/alexander-yascov">alexander-yascov</a></p>
                 <p>GitHub: <a href="https://github.com/JanusFaced">github.com/JanusFaced</a></p>

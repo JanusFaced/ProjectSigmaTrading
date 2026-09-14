@@ -1,102 +1,140 @@
-// Navigation.styles.js
+// Navigator.styles.js
 import styled from 'styled-components';
 import { NavLink } from 'react-router-dom';
 
-// Основной контейнер навигации
+// Основная навигационная панель
 export const Navbar = styled.nav`
-    background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-    box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
     position: sticky;
     top: 0;
     z-index: 1000;
+
+    background: rgba(11, 15, 20, 0.92);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.28);
+
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
 `;
 
 // Внутренний контейнер
 export const NavContainer = styled.div`
     max-width: 1200px;
+    min-height: 76px;
     margin: 0 auto;
-    padding: 1rem 2rem;
+    padding: 0 2rem;
+
     display: flex;
-    justify-content: space-between;
     align-items: center;
+    justify-content: space-between;
+    gap: 2rem;
     position: relative;
-    
+
     @media (max-width: 768px) {
-        padding: 0.8rem 1.5rem;
+        min-height: 68px;
+        padding: 0 1.25rem;
     }
 `;
 
 // Логотип
 export const NavLogo = styled.div`
-    font-size: 1.8rem;
-    font-weight: bold;
-    
+    position: relative;
+    z-index: 2;
+
+    font-size: 1.55rem;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    white-space: nowrap;
+
     a {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+
+        color: #f1f5f9;
         text-decoration: none;
-        color: white;
-        transition: transform 0.3s ease;
-        display: inline-block;
-        
+
+        transition:
+            color 0.25s ease,
+            transform 0.25s ease;
+
         &:hover {
-            transform: scale(1.05);
+            color: #8ab4f8;
+            transform: translateY(-1px);
+        }
+
+        &:focus-visible {
+            outline: 2px solid #8ab4f8;
+            outline-offset: 5px;
+            border-radius: 4px;
         }
     }
-    
+
+    .back-link {
+        font-size: 1rem;
+        color: #aab4c3;
+
+        &:hover {
+            color: #8ab4f8;
+        }
+    }
+
     @media (max-width: 768px) {
-        font-size: 1.5rem;
+        font-size: 1.25rem;
+
+        .back-link {
+            font-size: 0.9rem;
+        }
     }
 `;
 
-// Бургер-иконка
+// Кнопка мобильного меню
 export const NavBurger = styled.div`
     display: none;
-    cursor: pointer;
-    
+
     @media (max-width: 768px) {
-        display: block;
-        width: 30px;
-        height: 20px;
         position: relative;
-        z-index: 2;
+        z-index: 1002;
+
+        display: flex;
+        width: 30px;
+        height: 24px;
+        flex-direction: column;
+        justify-content: space-between;
+
+        cursor: pointer;
     }
-    
+
     span {
         display: block;
         width: 100%;
-        height: 3px;
-        background: white;
-        border-radius: 3px;
-        transition: all 0.3s ease;
-        position: absolute;
-        
-        &:nth-child(1) {
-            top: 0;
-        }
-        
-        &:nth-child(2) {
-            top: 50%;
-            transform: translateY(-50%);
-        }
-        
-        &:nth-child(3) {
-            bottom: 0;
-        }
+        height: 2px;
+
+        background: #d7dee8;
+        border-radius: 999px;
+
+        transition:
+            transform 0.3s ease,
+            opacity 0.25s ease,
+            background 0.25s ease;
     }
-    
-    // Анимация при активном состоянии
-    ${props => props.$isOpen && `
+
+    &:hover span {
+        background: #8ab4f8;
+    }
+
+    ${({ $isOpen }) =>
+        $isOpen &&
+        `
         span:nth-child(1) {
-            transform: rotate(45deg);
-            top: 50%;
+            transform: translateY(11px) rotate(45deg);
         }
-        
+
         span:nth-child(2) {
             opacity: 0;
         }
-        
+
         span:nth-child(3) {
-            transform: rotate(-45deg);
-            bottom: 50%;
+            transform: translateY(-11px) rotate(-45deg);
         }
     `}
 `;
@@ -104,80 +142,118 @@ export const NavBurger = styled.div`
 // Контейнер ссылок
 export const NavLinks = styled.div`
     display: flex;
-    gap: 2rem;
     align-items: center;
-    
+    gap: 0.35rem;
+
     @media (max-width: 768px) {
         position: fixed;
         top: 0;
-        left: ${props => props.$isOpen ? '0' : '-100%'};
-        width: 100%;
+        left: ${({ $isOpen }) => ($isOpen ? '0' : '-100%')};
+        z-index: 1001;
+
+        width: min(330px, 86vw);
         height: 100vh;
-        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+        padding: 6rem 2rem 2rem;
+
+        display: flex;
         flex-direction: column;
-        justify-content: center;
-        gap: 2rem;
+        align-items: stretch;
+        justify-content: flex-start;
+        gap: 0.5rem;
+
+        background: #111820;
+        border-right: 1px solid rgba(255, 255, 255, 0.08);
+        box-shadow: 16px 0 40px rgba(0, 0, 0, 0.35);
+
         transition: left 0.3s ease;
-        z-index: 1;
     }
 `;
 
 // Стилизованная ссылка
 export const StyledNavLink = styled(NavLink)`
-    color: white;
-    text-decoration: none;
-    font-size: 1.1rem;
-    font-weight: 500;
-    padding: 0.5rem 0;
     position: relative;
-    transition: all 0.3s ease;
-    
+
+    padding: 0.65rem 0.85rem;
+
+    color: #aab4c3;
+    font-size: 0.95rem;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    text-decoration: none;
+
+    border-radius: 7px;
+    transition:
+        color 0.25s ease,
+        background 0.25s ease;
+
     &:hover {
-        color: #ffd700;
+        color: #f1f5f9;
+        background: rgba(138, 180, 248, 0.08);
     }
-    
-    // Анимированное подчеркивание
+
+    &:focus-visible {
+        outline: 2px solid #8ab4f8;
+        outline-offset: 2px;
+    }
+
     &::after {
         content: '';
+
         position: absolute;
-        bottom: -2px;
-        left: 0;
-        width: 0;
+        left: 0.85rem;
+        right: 0.85rem;
+        bottom: 0.35rem;
+
+        width: auto;
         height: 2px;
-        background: #ffd700;
-        transition: width 0.3s ease;
+
+        background: #8ab4f8;
+        border-radius: 999px;
+
+        transform: scaleX(0);
+        transform-origin: center;
+        transition: transform 0.25s ease;
     }
-    
-    &:hover::after {
-        width: 100%;
+
+    &:hover::after,
+    &.active::after {
+        transform: scaleX(1);
     }
-    
-    // Активная ссылка
+
     &.active {
-        color: #ffd700;
-        
-        &::after {
-            width: 100%;
-        }
+        color: #f1f5f9;
+        background: rgba(138, 180, 248, 0.1);
     }
-    
+
     @media (max-width: 768px) {
-        font-size: 1.5rem;
+        padding: 0.9rem 1rem;
+
+        font-size: 1.15rem;
+        border-radius: 8px;
+
+        &::after {
+            left: 1rem;
+            right: auto;
+            bottom: 0.65rem;
+            width: 28px;
+            transform-origin: left;
+        }
     }
 `;
 
-// Оверлей для мобильного меню (опционально)
+// Затемнение фона на мобильных устройствах
 export const Overlay = styled.div`
     display: none;
-    
+
     @media (max-width: 768px) {
-        display: ${props => props.$isOpen ? 'block' : 'none'};
         position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.5);
-        z-index: 0;
+        inset: 0;
+        z-index: 999;
+
+        display: ${({ $isOpen }) => ($isOpen ? 'block' : 'none')};
+
+        background: rgba(2, 6, 11, 0.68);
+        backdrop-filter: blur(3px);
+        -webkit-backdrop-filter: blur(3px);
     }
 `;

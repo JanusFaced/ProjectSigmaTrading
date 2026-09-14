@@ -12,21 +12,21 @@ import {
 function SkillSection() {
     const services = [
         {
-            title: 'DS/ML/AI-разработка',
+            title: 'DS/ML/AI Development',
             icon: '🤖',
-            desc: 'Разработка моделей машинного обучения, глубокого обучения и систем искусственного интеллекта',
+            desc: 'Development of machine learning models, deep learning models, and artificial intelligence systems',
             tech: ['SKlearn', 'PyTorch', 'CatBoost', 'TensorFlow', 'Keras', 'Darts']
         },
         {
-            title: 'DevOps-инженерия',
+            title: 'DevOps Engineering',
             icon: '🚀',
-            desc: 'Настройка CI/CD, контейнеризация, оркестрация и автоматизация инфраструктуры',
+            desc: 'CI/CD setup, containerization, orchestration, and infrastructure automation',
             tech: ['Linux', 'Docker', 'Kubernetes', 'GitHub', 'GitLab', 'Terraform', 'Ansible']
         },
         {
-            title: 'FullStack-разработка',
+            title: 'FullStack Development',
             icon: '💻',
-            desc: 'Создание полноценных веб-приложений с нуля: от фронтенда до бэкенда и БД',
+            desc: 'Building full-fledged web applications from scratch: from frontend to backend and database',
             tech: ['React.js', 'FastAPI', 'PostgreSQL', 'Node.js', 'SQLAlchemy', 'Celery', 'Redis']
         }
     ];
@@ -34,7 +34,7 @@ function SkillSection() {
     return (
         <ServicesSection>
             <Container>
-                <h2>Что я делаю</h2>
+                <h2>What I'm doing</h2>
                 <ServicesGrid>
                     {services.map((service, idx) => (
                         <ServiceCard key={idx}>

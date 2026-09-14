@@ -13,30 +13,30 @@ function HomePage() {
 	return (
 		<HomeContainer>
 			<Hero>
-				<h1>Добро пожаловать в PST v2.0!</h1>
-				<p>Экспериментальный проект в области финтеха открытый для использования каждого!</p>
+				<h1>Welcome to PST v2.0!</h1>
+				<p>An experimental fintech project open for everyone to use!</p>
 				<HeroButtons>
 					<PrimaryButton as={Link} to="/signals/analyst">
-						Перейти к странице с роботами →
+						Go to the robots page →
 					</PrimaryButton>
 					<SecondaryButton as={Link} to="/signals/about">
-						О проекте
+						About the Project
 					</SecondaryButton>
 				</HeroButtons>
 			</Hero>
 
 			<Features>
 				<Feature>
-					<h3>🪙 Стратегии на разных активов!</h3>
-					<p>Смотрите результаты стратегий на активах предоставленных в аналитике.</p>
+					<h3>🪙 Strategies for various assets!</h3>
+					<p>View the results of strategies applied to the assets featured in the analysis</p>
 				</Feature>
 				<Feature>
-					<h3>📈 Стратегии на разных таймфрэймах!</h3>
-					<p>Работа на нескольких ТФ одновременно.</p>
+					<h3>📈 Strategies based on various analysis methods!</h3>
+					<p>Working with various decision-making algorithms</p>
 				</Feature>
 				<Feature>
-					<h3>🧰 Pandas + NumPy + Numba для генерации торговых сигналов</h3>
-					<p>Pandas - таблицы. NumPy - математика. Numba - компиляция.</p>
+					<h3>🧰 Polars + NumPy + Numba for trading signal generation</h3>
+					<p>Polars - dataframe. NumPy - mathematics. Numba - compilation</p>
 				</Feature>
 			</Features>
 		</HomeContainer>

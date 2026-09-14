@@ -171,13 +171,23 @@ def getChartOfPortfolio(name_portfolio) -> npt.NDArray[np.float64]:
 def portfolioAnalyst(portfolioVector: npt.NDArray[np.float64]) -> dict:
 
 	lenth = len(portfolioVector)
+	eps = 0.000000001
 
-	if lenth > 5:
+	if lenth > 1:
 		full_profit = round(100*(portfolioVector[-1]/portfolioVector[0] - 1), 2)
-		year_profit = 365*(full_profit/lenth)
-		max_drawdown = round(100*(np.min(portfolioVector)/portfolioVector[0] - 1), 2)
-		sharp = round(full_profit/np.std(portfolioVector), 2)
-		profit_factor = 1.0
+		elementaryProfit = full_profit**(1/lenth) if full_profit > 0.00 else -1*(-1*full_profit)**(1/lenth)
+		year_profit = elementaryProfit**365 if elementaryProfit > 0.00 else -1*(-1*elementaryProfit)**365
+
+		max_accum = np.maximum.accumulate(portfolioVector)
+		drawdowns = 1 - portfolioVector/max_accum
+		max_drawdown = np.max(drawdowns)
+		
+		full_diff = full_profit[1:] - full_profit[:-1]
+		sharp = np.mean(full_diff)/np.std(full_diff)
+
+		sum_profit = np.sum(full_diff[full_diff > 0])
+		sum_loss = np.abs(np.sum(full_diff[full_diff < 0]))
+		profit_factor = sum_profit/max(sum_loss, eps)
 
 	else:
 		full_profit = 0.00
@@ -185,6 +195,12 @@ def portfolioAnalyst(portfolioVector: npt.NDArray[np.float64]) -> dict:
 		max_drawdown = 0.00
 		sharp = 0.00
 		profit_factor = 1.0
+
+	full_profit = round(100*full_profit, 2)
+	year_profit = round(100*year_profit, 2)
+	max_drawdown = round(100*max_drawdown, 2)
+	sharp = round(100*sharp, 2)
+	profit_factor = round(100*profit_factor, 2)
 
 	report = {
 		"full_profit": full_profit,

@@ -33,23 +33,23 @@ function Navigation() {
                 </Logo>
                 <NavLinks>
                     <NavItem>
-                        <NavLink to="/signals/">Главная</NavLink>
+                        <NavLink to="/signals/">Home page</NavLink>
                     </NavItem>
                     <NavItem>
-                        <NavLink to="/signals/portfolio">Портфель стратегий</NavLink>
+                        <NavLink to="/signals/portfolio">Portfolio of strategies</NavLink>
                     </NavItem>
                     <NavItem>
-                        <NavLink to="/signals/analyst">Торговые роботы</NavLink>
+                        <NavLink to="/signals/analyst">Trading robots</NavLink>
                     </NavItem>
                     <NavItem>
-                        <NavLink to="/signals/about">О проекте</NavLink>
+                        <NavLink to="/signals/about">About the Project</NavLink>
                     </NavItem>
                     <NavItem>
                         <NavLink to="/signals/admin" style={{ 
                             color: isAuthenticated ? '#28a745' : '#667eea',
                             fontWeight: 'bold'
                         }}>
-                            {isAuthenticated ? 'Панель Администратора' : '🔑 Вход'}
+                            {isAuthenticated ? 'Admin Panel' : '🔑 Log in'}
                         </NavLink>
                     </NavItem>
                     {isAuthenticated && (
@@ -69,7 +69,7 @@ function Navigation() {
                                 onMouseEnter={(e) => e.target.style.color = '#c82333'}
                                 onMouseLeave={(e) => e.target.style.color = '#dc3545'}
                             >
-                                🚪 Выход
+                                🚪 Log out
                             </button>
                         </NavItem>
                     )}

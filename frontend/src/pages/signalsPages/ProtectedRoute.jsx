@@ -16,7 +16,7 @@ const ProtectedRoute = ({ children }) => {
             <LoadingContainer>
                 <LoadingContent>
                     <Spinner />
-                    <LoadingText>Проверка доступа...</LoadingText>
+                    <LoadingText>Checking access...</LoadingText>
                 </LoadingContent>
             </LoadingContainer>
         );

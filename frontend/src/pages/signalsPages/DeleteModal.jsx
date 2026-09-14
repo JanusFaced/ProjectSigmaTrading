@@ -19,24 +19,24 @@ const DeleteModal = ({ show, onClose, onConfirm, name, details, type }) => {
         <ModalOverlay show={show} onClick={onClose}>
             <ModalContent onClick={(e) => e.stopPropagation()}>
                 <ModalHeader>
-                    <h3>⚠️ Подтверждение удаления</h3>
+                    <h3>⚠️ Deletion confirmation</h3>
                     <CloseButton onClick={onClose}>×</CloseButton>
                 </ModalHeader>
                 <ModalBody>
-                    <p>Вы действительно хотите <strong>навсегда</strong> удалить:</p>
+                    <p>Do you really want to delete <strong>forever</strong>:</p>
                     <InfoBox>
                         <strong>{name}</strong>
                         <div className="detail">{details}</div>
                     </InfoBox>
                     <WarningText>
-                        ⚠️ Это действие <strong>необратимо</strong>! 
-                        {type === 'signal' && ' Все связанные трейды будут удалены.'}
+                        ⚠️ This action is <strong>irreversible</strong>! 
+                        {type === 'signal' && ' All related trades will be deleted.'}
                     </WarningText>
                 </ModalBody>
                 <ModalFooter>
-                    <CancelButton onClick={onClose}>Отмена</CancelButton>
+                    <CancelButton onClick={onClose}>Cancel</CancelButton>
                     <ConfirmButton onClick={onConfirm}>
-                        🗑️ Да, удалить
+                        🗑️ Yes, delete
                     </ConfirmButton>
                 </ModalFooter>
             </ModalContent>

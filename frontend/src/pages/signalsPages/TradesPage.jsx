@@ -1,4 +1,4 @@
-// src/pages/signalsPages/TradesPage.jsx
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -79,7 +79,6 @@ function TradesPage() {
                 }
             });
             
-            // Проверяем, что данные пришли корректно
             if (response.data && typeof response.data === 'object') {
                 setChartData(response.data.chart_data || []);
                 setTableData(response.data.table_data || []);
@@ -92,14 +91,14 @@ function TradesPage() {
                     total_pages: 1
                 });
             } else {
-                throw new Error('Неверный формат данных');
+                throw new Error('Invalid data format');
             }
         } catch (err) {
             console.error('Error fetching trades:', err);
-            // Обрабатываем ошибку более детально
-            let errorMessage = 'Ошибка загрузки данных';
+
+            let errorMessage = 'Data loading error';
             if (err.response) {
-                // Сервер ответил с ошибкой
+
                 if (err.response.data && typeof err.response.data === 'object') {
                     if (err.response.data.detail) {
                         errorMessage = err.response.data.detail;
@@ -112,10 +111,10 @@ function TradesPage() {
                     errorMessage = err.response.data || errorMessage;
                 }
             } else if (err.request) {
-                // Запрос был сделан, но ответа не получено
-                errorMessage = 'Сервер не отвечает. Проверьте подключение.';
+
+                errorMessage = 'The server is not responding. Check your connection.';
             } else {
-                // Что-то пошло не так при настройке запроса
+
                 errorMessage = err.message || errorMessage;
             }
             setError(errorMessage);
@@ -143,7 +142,7 @@ function TradesPage() {
     if (loading) {
         return (
             <PageContainer>
-                <LoadingContainer>⏳ Загрузка данных...</LoadingContainer>
+                <LoadingContainer>⏳ Loading data...</LoadingContainer>
             </PageContainer>
         );
     }
@@ -155,7 +154,7 @@ function TradesPage() {
                     <div>
                         <div style={{ fontSize: '48px', marginBottom: '12px' }}>❌</div>
                         <div style={{ fontSize: '18px', fontWeight: '600', marginBottom: '8px' }}>
-                            Ошибка загрузки
+                            Loading error
                         </div>
                         <div style={{ fontSize: '14px', color: '#6b7280' }}>
                             {error}
@@ -173,7 +172,7 @@ function TradesPage() {
                                 fontSize: '14px'
                             }}
                         >
-                            Попробовать снова
+                            Try again
                         </button>
                     </div>
                 </ErrorContainer>
@@ -185,17 +184,16 @@ function TradesPage() {
         return (
             <PageContainer>
                 <Header>
-                    <h2>📊 График сделок</h2>
-                    <BackButton onClick={() => navigate('/signals/analyst')}>← Назад к сигналам</BackButton>
+                    <h2>📊 Chart of trades</h2>
+                    <BackButton onClick={() => navigate('/signals/analyst')}>← Back to signals</BackButton>
                 </Header>
                 <ChartCard>
-                    <h3>📭 Нет данных по сделкам для этого сигнала</h3>
+                    <h3>📭 No trade data available for this signal.</h3>
                 </ChartCard>
             </PageContainer>
         );
     }
 
-    // Подготовка данных для графика
     const labels = chartData.map((trade, index) => {
         return `#${index + 1}\n${trade.datetime}`;
     });
@@ -206,7 +204,7 @@ function TradesPage() {
         labels: labels,
         datasets: [
             {
-                label: 'Депозит',
+                label: 'Deposit',
                 data: deposits,
                 borderColor: '#8b5cf6',
                 backgroundColor: 'rgba(139, 92, 246, 0.1)',
@@ -261,14 +259,12 @@ function TradesPage() {
         }
     };
 
-    // Статистика
     const firstDeposit = deposits[0];
     const lastDeposit = deposits[deposits.length - 1];
     const depositChange = ((lastDeposit - firstDeposit) / firstDeposit * 100).toFixed(2);
     const maxDeposit = Math.max(...deposits);
     const minDeposit = Math.min(...deposits);
 
-    // Рендер кнопок пагинации
     const renderPaginationButtons = () => {
         const { current_page, total_pages } = pagination;
         const pages = [];
@@ -329,42 +325,42 @@ function TradesPage() {
     return (
         <PageContainer>
             <Header>
-                <h2>📊 График сделок для {strategy}</h2>
-                <BackButton onClick={() => navigate('/signals/analyst')}>← Назад к сигналам</BackButton>
+                <h2>📊 Chart of trades for {strategy}</h2>
+                <BackButton onClick={() => navigate('/signals/analyst')}>← Back to signals</BackButton>
             </Header>
 
             <StatsGrid>
                 <StatCard>
-                    <label>Всего сделок</label>
+                    <label>Total trades</label>
                     <value>{statistics.total_trades}</value>
                 </StatCard>
                 <StatCard>
-                    <label>Начальный депозит</label>
+                    <label>Start deposit</label>
                     <value>${firstDeposit.toFixed(2)}</value>
                 </StatCard>
                 <StatCard>
-                    <label>Конечный депозит</label>
+                    <label>Current deposit</label>
                     <value>${lastDeposit.toFixed(2)}</value>
                 </StatCard>
                 <StatCard>
-                    <label>Изменение</label>
+                    <label>Change</label>
                     <value style={{ color: depositChange >= 0 ? '#10b981' : '#ef4444' }}>
                         {depositChange >= 0 ? '+' : ''}{depositChange}%
                     </value>
                 </StatCard>
                 <StatCard>
-                    <label>Максимум</label>
+                    <label>Max</label>
                     <value>${maxDeposit.toFixed(2)}</value>
                 </StatCard>
                 <StatCard>
-                    <label>Минимум</label>
+                    <label>Min</label>
                     <value>${minDeposit.toFixed(2)}</value>
                 </StatCard>
             </StatsGrid>
 
             <ChartCard>
                 <ControlsContainer>
-                    <h3>Динамика депозита по времени</h3>
+                    <h3>Deposit dynamics over time</h3>
                     <LimitGroup>
                         <span>Показать:</span>
                         {CHART_LIMITS.map(limit => (
@@ -384,14 +380,14 @@ function TradesPage() {
             </ChartCard>
 
             <ChartCard>
-                <h3>📋 Список сделок</h3>
+                <h3>📋 List of trades</h3>
                 <TradesTable>
                     <table>
                         <thead>
                             <tr>
                                 <th>#</th>
-                                <th>Депозит</th>
-                                <th>Дата</th>
+                                <th>Deposit</th>
+                                <th>Datetime</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -406,7 +402,7 @@ function TradesPage() {
                             ) : (
                                 <tr>
                                     <td colSpan="3" style={{ textAlign: 'center', padding: '20px', color: '#6b7280' }}>
-                                        Нет данных для отображения
+                                        No data to display
                                     </td>
                                 </tr>
                             )}
@@ -418,7 +414,7 @@ function TradesPage() {
                     <PaginationContainer>
                         {renderPaginationButtons()}
                         <span style={{ marginLeft: '16px', color: '#6b7280', fontSize: '14px' }}>
-                            Всего: {pagination.total} записей
+                            Total: {pagination.total} records
                         </span>
                     </PaginationContainer>
                 )}

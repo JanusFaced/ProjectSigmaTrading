@@ -26,7 +26,7 @@ import {
 const API_BASE = process.env.REACT_APP_API_URL;
 
 const AdminPanel = () => {
-    const { logout, apiKey } = useAuth(); // 👈 ДОБАВЛЯЕМ apiKey
+    const { logout, apiKey } = useAuth();
     const navigate = useNavigate();
     const [loading, setLoading] = useState(true);
     const [stats, setStats] = useState({ total_signals: 0, total_backtests: 0, total_trades: 0 });
@@ -74,11 +74,11 @@ const AdminPanel = () => {
             const response = await axios.delete(endpoint, { headers });
             
             setDeleteModal({ show: false, type: null, id: null, name: '', details: '' });
-            alert(response.data.message || 'Успешно удалено!');
+            alert(response.data.message || 'Successfully deleted!');
             await loadData();
         } catch (error) {
             console.error('Error deleting:', error);
-            alert('Ошибка удаления: ' + (error.response?.data?.detail || error.message));
+            alert('Deletion error: ' + (error.response?.data?.detail || error.message));
         }
     };
 
@@ -97,7 +97,7 @@ const AdminPanel = () => {
     };
 
     const handleLogout = () => {
-        if (window.confirm('Вы уверены, что хотите выйти?')) {
+        if (window.confirm('Are you sure you want to log out?')) {
             logout();
             navigate('/signals/login');
         }
@@ -108,7 +108,7 @@ const AdminPanel = () => {
             <AdminContainer>
                 <LoadingSpinner>
                     <div className="spinner"></div>
-                    <p>Загрузка данных...</p>
+                    <p>Loading data...</p>
                 </LoadingSpinner>
             </AdminContainer>
         );
@@ -119,14 +119,14 @@ const AdminPanel = () => {
             <AdminHeader>
                 <Title>
                     <span className="icon">📊</span>
-                    Админ-панель
+                    Admin panel
                 </Title>
                 <HeaderActions>
                     <RefreshButton onClick={loadData}>
-                        🔄 Обновить
+                        🔄 Update
                     </RefreshButton>
                     <LogoutButton onClick={handleLogout}>
-                        🚪 Выйти
+                        🚪 Log out
                     </LogoutButton>
                 </HeaderActions>
             </AdminHeader>
@@ -134,37 +134,37 @@ const AdminPanel = () => {
             <StatsGrid>
                 <StatCard>
                     <div className="number">{stats.total_signals || 0}</div>
-                    <div className="label">📈 Стратегий</div>
+                    <div className="label">📈 Strategies</div>
                 </StatCard>
                 <StatCard>
                     <div className="number">{stats.total_trades || 0}</div>
-                    <div className="label">🔄 Трейдов</div>
+                    <div className="label">🔄 Trades</div>
                 </StatCard>
             </StatsGrid>
 
-            {/* Стратегии */}
+
             <Section>
                 <SectionHeader color="#667eea">
-                    <h3>📋 Стратегии (сигналы)</h3>
+                    <h3>📋 Strategies (signals)</h3>
                     <span className="badge">{signals.length}</span>
                 </SectionHeader>
                 <TableWrapper>
                     {signals.length === 0 ? (
                         <EmptyState>
                             <div className="icon">📭</div>
-                            <p>Нет стратегий в базе данных</p>
+                            <p>There are no strategies in the database</p>
                         </EmptyState>
                     ) : (
                         <Table>
                             <thead>
                                 <tr>
                                     <th>ID</th>
-                                    <th>Название</th>
-                                    <th>Депозит</th>
-                                    <th>Статус</th>
-                                    <th>Трейдов</th>
-                                    <th>Дата</th>
-                                    <th>Действия</th>
+                                    <th>Name</th>
+                                    <th>Deposit</th>
+                                    <th>Status</th>
+                                    <th>Trades</th>
+                                    <th>Date</th>
+                                    <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -175,7 +175,7 @@ const AdminPanel = () => {
                                         <td>${signal.deposit ? parseFloat(signal.deposit).toFixed(2) : '0.00'}</td>
                                         <td>
                                             <StatusBadge active={signal.status === 'active'}>
-                                                {signal.status === 'active' ? '🟢 Активна' : '🔴 Неактивна'}
+                                                {signal.status === 'active' ? '🟢 Active' : '🔴 Inactive'}
                                             </StatusBadge>
                                         </td>
                                         <td>{signal.trades_count || 0}</td>
@@ -185,9 +185,9 @@ const AdminPanel = () => {
                                                 'signal', 
                                                 signal.id, 
                                                 signal.strategy,
-                                                `Трейдов: ${signal.trades_count || 0}`
+                                                `Trades: ${signal.trades_count || 0}`
                                             )}>
-                                                🗑️ Удалить
+                                                🗑️ Delete
                                             </DeleteButton>
                                         </td>
                                     </tr>
@@ -198,7 +198,7 @@ const AdminPanel = () => {
                 </TableWrapper>
             </Section>
 
-            {/* Модалка подтверждения */}
+
             <DeleteModal
                 show={deleteModal.show}
                 onClose={() => setDeleteModal({ show: false, type: null, id: null, name: '', details: '' })}

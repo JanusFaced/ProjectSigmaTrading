@@ -1,197 +1,300 @@
 // ContactSection.styles.js
-import styled from 'styled-components';
+import styled, { keyframes } from 'styled-components';
+
+const rotate = keyframes`
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+`;
+
+const fadeInDown = keyframes`
+    from {
+        opacity: 0;
+        transform: translateY(-24px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+`;
+
+const fadeInUp = keyframes`
+    from {
+        opacity: 0;
+        transform: translateY(24px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+`;
 
 // Основная секция контактов
 export const ContactSectionMain = styled.section`
-    padding: 80px 20px;
-    background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
     position: relative;
     overflow: hidden;
-    
-    // Декоративные элементы фона
+    padding: 100px 20px;
+
+    background:
+        radial-gradient(
+            circle at 15% 25%,
+            rgba(59, 130, 246, 0.1),
+            transparent 32%
+        ),
+        radial-gradient(
+            circle at 85% 75%,
+            rgba(139, 92, 246, 0.08),
+            transparent 32%
+        ),
+        #0b0f19;
+
     &::before {
         content: '';
         position: absolute;
-        top: -50%;
-        right: -50%;
-        width: 200%;
-        height: 200%;
-        background: radial-gradient(circle, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0) 70%);
-        animation: rotate 30s linear infinite;
-    }
-    
-    &::after {
-        content: '✉️';
-        position: absolute;
-        bottom: 20px;
-        right: 20px;
-        font-size: 100px;
-        opacity: 0.05;
+        top: -30%;
+        right: -15%;
+        width: 650px;
+        height: 650px;
+        border: 1px solid rgba(148, 163, 184, 0.08);
+        border-radius: 50%;
+        box-shadow:
+            0 0 0 80px rgba(148, 163, 184, 0.025),
+            0 0 0 160px rgba(148, 163, 184, 0.02);
+        animation: ${rotate} 35s linear infinite;
         pointer-events: none;
     }
-    
-    @keyframes rotate {
-        from {
-            transform: rotate(0deg);
-        }
-        to {
-            transform: rotate(360deg);
+
+    &::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background-image:
+            linear-gradient(
+                rgba(148, 163, 184, 0.035) 1px,
+                transparent 1px
+            ),
+            linear-gradient(
+                90deg,
+                rgba(148, 163, 184, 0.035) 1px,
+                transparent 1px
+            );
+        background-size: 48px 48px;
+        mask-image: linear-gradient(
+            to bottom,
+            rgba(0, 0, 0, 0.5),
+            transparent 80%
+        );
+        pointer-events: none;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        &::before {
+            animation: none;
         }
     }
-    
+
     @media (max-width: 768px) {
-        padding: 60px 20px;
+        padding: 70px 20px;
     }
 `;
 
 // Контейнер
 export const Container = styled.div`
+    position: relative;
+    z-index: 1;
     max-width: 800px;
     margin: 0 auto;
     text-align: center;
-    position: relative;
-    z-index: 1;
-    
+
     h2 {
-        font-size: 2.5rem;
-        color: white;
-        margin-bottom: 1rem;
-        animation: fadeInDown 0.8s ease;
-        
-        @media (max-width: 768px) {
-            font-size: 2rem;
-        }
+        margin: 0 0 1rem;
+        color: #f8fafc;
+        font-size: clamp(2rem, 4vw, 2.8rem);
+        font-weight: 700;
+        line-height: 1.15;
+        letter-spacing: -0.03em;
+        animation: ${fadeInDown} 0.8s ease both;
     }
-    
-    p {
-        font-size: 1.2rem;
-        color: rgba(255, 255, 255, 0.9);
-        margin-bottom: 2.5rem;
-        animation: fadeInUp 0.8s ease;
-        
+
+    & > p {
+        max-width: 600px;
+        margin: 0 auto 2.5rem;
+        color: #94a3b8;
+        font-size: 1.1rem;
+        line-height: 1.7;
+        animation: ${fadeInUp} 0.8s ease both;
+
         @media (max-width: 768px) {
             font-size: 1rem;
         }
     }
-    
-    @keyframes fadeInDown {
-        from {
-            opacity: 0;
-            transform: translateY(-30px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-    
-    @keyframes fadeInUp {
-        from {
-            opacity: 0;
-            transform: translateY(30px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
 `;
 
-// Контейнер ссылок контактов
+// Контейнер контактных ссылок
 export const ContactLinks = styled.div`
     display: flex;
     flex-direction: column;
-    gap: 1rem;
-    max-width: 400px;
+    gap: 0.85rem;
+    max-width: 500px;
     margin: 0 auto;
-    animation: fadeInUp 0.8s ease 0.2s both;
+    animation: ${fadeInUp} 0.8s ease 0.2s both;
 `;
 
 // Элемент контакта
 export const ContactItem = styled.a`
     display: flex;
     align-items: center;
-    justify-content: center;
     gap: 1rem;
-    background: rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(10px);
-    color: white;
-    text-decoration: none;
-    padding: 1rem 1.5rem;
+    min-height: 64px;
+    padding: 0.85rem 1rem 0.85rem 1.2rem;
+    border: 1px solid rgba(148, 163, 184, 0.16);
     border-radius: 12px;
-    font-size: 1.1rem;
-    transition: all 0.3s ease;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    
+    background: rgba(15, 23, 42, 0.68);
+    backdrop-filter: blur(12px);
+    color: #e2e8f0;
+    font-size: 1rem;
+    text-decoration: none;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.14);
+    transition:
+        background 0.25s ease,
+        border-color 0.25s ease,
+        box-shadow 0.25s ease,
+        transform 0.25s ease;
+
     &:hover {
-        background: rgba(255, 255, 255, 0.2);
-        transform: translateX(10px);
-        border-color: rgba(255, 255, 255, 0.4);
+        border-color: rgba(96, 165, 250, 0.5);
+        background: rgba(30, 41, 59, 0.8);
+        box-shadow: 0 14px 35px rgba(0, 0, 0, 0.24);
+        transform: translateX(6px);
     }
-    
+
+    &:focus-visible {
+        outline: 3px solid rgba(96, 165, 250, 0.35);
+        outline-offset: 3px;
+    }
+
     @media (max-width: 768px) {
+        min-height: 58px;
+        padding: 0.75rem 0.8rem 0.75rem 1rem;
         font-size: 0.9rem;
-        padding: 0.8rem 1rem;
-        gap: 0.8rem;
     }
 `;
 
-// Иконка контакта (отдельный компонент для иконки)
+// Иконка контакта
 export const ContactIcon = styled.span`
-    font-size: 1.5rem;
-    
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 36px;
+    width: 36px;
+    height: 36px;
+    border: 1px solid rgba(96, 165, 250, 0.2);
+    border-radius: 9px;
+    background: rgba(37, 99, 235, 0.12);
+    font-size: 1.25rem;
+
     @media (max-width: 768px) {
-        font-size: 1.2rem;
+        flex-basis: 32px;
+        width: 32px;
+        height: 32px;
+        font-size: 1.1rem;
     }
 `;
 
 // Текст контакта
 export const ContactText = styled.span`
     flex: 1;
+    min-width: 0;
+    overflow-wrap: anywhere;
+    color: #cbd5e1;
     text-align: left;
-    word-break: break-all;
 `;
 
-// Социальные сети (дополнительно)
+// Социальные сети
 export const SocialGrid = styled.div`
     display: flex;
+    flex-wrap: wrap;
     justify-content: center;
-    gap: 1.5rem;
+    gap: 0.85rem;
     margin-top: 2rem;
-    animation: fadeInUp 0.8s ease 0.4s both;
-`;
+    animation: ${fadeInUp} 0.8s ease 0.4s both;
 
-export const SocialLink = styled.a`
-    background: rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(10px);
-    color: white;
-    text-decoration: none;
-    padding: 0.8rem 1.2rem;
-    border-radius: 12px;
-    transition: all 0.3s ease;
-    font-size: 0.9rem;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    
-    &:hover {
-        background: rgba(255, 255, 255, 0.2);
-        transform: translateY(-3px);
+    @media (max-width: 480px) {
+        flex-direction: column;
+        align-items: stretch;
+        max-width: 500px;
+        margin-right: auto;
+        margin-left: auto;
     }
 `;
 
-// Кнопка копирования (бонус)
-export const CopyButton = styled.button`
-    background: rgba(255, 255, 255, 0.1);
-    color: white;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    padding: 0.3rem 0.8rem;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 0.8rem;
-    transition: all 0.3s ease;
-    margin-left: 0.5rem;
-    
+export const SocialLink = styled.a`
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 140px;
+    padding: 0.75rem 1.1rem;
+    border: 1px solid rgba(148, 163, 184, 0.16);
+    border-radius: 10px;
+    background: rgba(15, 23, 42, 0.58);
+    color: #94a3b8;
+    font-size: 0.9rem;
+    text-decoration: none;
+    transition:
+        background 0.25s ease,
+        border-color 0.25s ease,
+        color 0.25s ease,
+        transform 0.25s ease;
+
     &:hover {
-        background: rgba(255, 255, 255, 0.2);
+        border-color: rgba(96, 165, 250, 0.5);
+        background: rgba(37, 99, 235, 0.15);
+        color: #bfdbfe;
+        transform: translateY(-3px);
+    }
+
+    &:focus-visible {
+        outline: 3px solid rgba(96, 165, 250, 0.35);
+        outline-offset: 3px;
+    }
+`;
+
+// Кнопка копирования
+export const CopyButton = styled.button`
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 34px;
+    width: 34px;
+    height: 34px;
+    margin-left: auto;
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    border-radius: 7px;
+    background: rgba(30, 41, 59, 0.8);
+    color: #94a3b8;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition:
+        background 0.25s ease,
+        border-color 0.25s ease,
+        color 0.25s ease,
+        transform 0.25s ease;
+
+    &:hover {
+        border-color: rgba(96, 165, 250, 0.6);
+        background: rgba(37, 99, 235, 0.2);
+        color: #dbeafe;
         transform: scale(1.05);
+    }
+
+    &:focus-visible {
+        outline: 3px solid rgba(96, 165, 250, 0.35);
+        outline-offset: 3px;
     }
 `;

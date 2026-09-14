@@ -14,28 +14,29 @@ function AuthorSection() {
     return (
         <HeroSection>
             <Container>
-                <h1>Александр Яськов</h1>
-                <AuthorTagline>DS, ML, AI, DevOps и FullStack разработчик</AuthorTagline>
+                <h1>Alexander Yascov</h1>
+                <AuthorTagline>DevOps, FullStack and ML-developer</AuthorTagline>
                 <Description>
-                    Решаю бизнес-задачи на стыке Data Science, разработки и инфраструктуры. Строю системы от идеи до продакшена!
+                    I solve business challenges at the intersection of development and infrastructure. 
+                    I build systems from concept to production!
                 </Description>
                 
                 <CTAButton to="/contact">
-                    Связаться со мной
+                    Contact me
                 </CTAButton>
 
                 <Stats>
                     <StatItem>
-                        <h3>Полный цикл разработки</h3>
-                        <p>От идеи до продакшена</p>
+                        <h3>Full development cycle</h3>
+                        <p>From idea to production</p>
                     </StatItem>
                     <StatItem>
-                        <h3>Широкий стек</h3>
+                        <h3>Broad technology stack</h3>
                         <p>ML · DevOps · FullStack</p>
                     </StatItem>
                     <StatItem>
-                        <h3>100% качество</h3>
-                        <p>Решают задачи любой сложности</p>
+                        <h3>100% quality</h3>
+                        <p>They solve problems of any complexity</p>
                     </StatItem>
                 </Stats>
             </Container>

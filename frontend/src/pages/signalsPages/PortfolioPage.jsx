@@ -65,7 +65,7 @@ function PortfolioPage() {
     });
     const [chartLimit, setChartLimit] = useState(50);
 
-    // --- История по текущему портфелю ---
+
     const fetchHistory = useCallback(async (id, page = 1, limit = 50, cLimit = 50) => {
         try {
             const res = await axios.get(`${API_BASE}/getHistoryPortfolio/${id}`, {
@@ -80,11 +80,11 @@ function PortfolioPage() {
             });
         } catch (err) {
             console.error('Error fetching history:', err);
-            setError(err.response?.data?.error || err.message || 'Ошибка загрузки истории');
+            setError(err.response?.data?.error || err.message || 'Error fetching history');
         }
     }, []);
 
-    // --- Первая загрузка: портфель + его история ---
+
     useEffect(() => {
         let cancelled = false;
         (async () => {
@@ -96,14 +96,14 @@ function PortfolioPage() {
 
                 const p = res.data;
                 if (!p || !p.id) {
-                    throw new Error('Портфель не найден');
+                    throw new Error('Portfolio not found');
                 }
                 setPortfolio(p);
                 await fetchHistory(p.id, 1, 50, chartLimit);
             } catch (err) {
                 if (cancelled) return;
                 console.error('Error fetching portfolio:', err);
-                setError(err.response?.data?.error || err.message || 'Ошибка загрузки портфеля');
+                setError(err.response?.data?.error || err.message || 'Error fetching portfolio');
             } finally {
                 if (!cancelled) setLoading(false);
             }
@@ -112,7 +112,7 @@ function PortfolioPage() {
         // eslint-disable-next-line
     }, []);
 
-    // --- Перезагрузка истории при смене лимита графика ---
+
     useEffect(() => {
         if (!portfolio) return;
         fetchHistory(portfolio.id, 1, 50, chartLimit);
@@ -124,7 +124,7 @@ function PortfolioPage() {
         }
     };
 
-    // --- Конфиг графика ---
+
     const chartLabels = chartData.map((t, i) => `#${i + 1}\n${t.datetime}`);
     const chartValues = chartData.map((t) => parseFloat(t.portfolio));
 
@@ -132,7 +132,7 @@ function PortfolioPage() {
         labels: chartLabels,
         datasets: [
             {
-                label: 'Портфель',
+                label: 'Portfolio',
                 data: chartValues,
                 borderColor: '#8b5cf6',
                 backgroundColor: 'rgba(139, 92, 246, 0.1)',
@@ -198,7 +198,7 @@ function PortfolioPage() {
         );
     };
 
-    // --- Рендер ---
+
     if (loading) {
         return (
             <PageContainer>
@@ -216,7 +216,7 @@ function PortfolioPage() {
                         Ошибка загрузки
                     </div>
                     <div style={{ fontSize: 14, color: '#6b7280' }}>
-                        {error || 'Портфель не найден'}
+                        {error || 'portfolio not found'}
                     </div>
                 </ErrorContainer>
             </PageContainer>
@@ -228,30 +228,25 @@ function PortfolioPage() {
 
     return (
         <PageContainer>
-            <Header>
-                <h2>💼 Портфель «{portfolio.name_portfolio}»</h2>
-                <BackButton onClick={() => navigate(-1)}>← Назад</BackButton>
-            </Header>
-
             <StatsGrid>
                 <StatCard>
-                    <label>Текущий портфель</label>
+                    <label>Current portfolio</label>
                     <value>${portfolio.portfolio}</value>
                 </StatCard>
                 <StatCard>
-                    <label>Полный профит</label>
+                    <label>Full profit</label>
                     <value style={{ color: fp >= 0 ? '#10b981' : '#ef4444' }}>
                         {fp >= 0 ? '+' : ''}{portfolio.full_profit}
                     </value>
                 </StatCard>
                 <StatCard>
-                    <label>Годовая прибыль</label>
+                    <label>Year profit</label>
                     <value style={{ color: yp >= 0 ? '#10b981' : '#ef4444' }}>
                         {yp >= 0 ? '+' : ''}{portfolio.year_profit}%
                     </value>
                 </StatCard>
                 <StatCard>
-                    <label>Макс. просадка</label>
+                    <label>Max drawdown</label>
                     <value style={{ color: '#ef4444' }}>{portfolio.max_drawdown}%</value>
                 </StatCard>
                 <StatCard>
@@ -263,27 +258,27 @@ function PortfolioPage() {
                     <value>{portfolio.profit_factor}</value>
                 </StatCard>
                 <StatCard>
-                    <label>Дней в истории</label>
+                    <label>Days in history</label>
                     <value>{statistics.total_days}</value>
                 </StatCard>
                 <StatCard>
-                    <label>Обновлено</label>
+                    <label>Updated</label>
                     <value style={{ fontSize: 16 }}>{portfolio.datetime}</value>
                 </StatCard>
             </StatsGrid>
 
             <ChartCard>
                 <ControlsContainer>
-                    <h3>📈 Динамика портфеля</h3>
+                    <h3>📈 Portfolio performance</h3>
                     <LimitGroup>
-                        <span>Показать:</span>
+                        <span>Show:</span>
                         {CHART_LIMITS.map(limit => (
                             <LimitButton
                                 key={limit}
                                 active={chartLimit === limit}
                                 onClick={() => setChartLimit(limit)}
                             >
-                                {limit === -1 ? 'Всё' : limit}
+                                {limit === -1 ? 'All' : limit}
                             </LimitButton>
                         ))}
                     </LimitGroup>
@@ -292,20 +287,20 @@ function PortfolioPage() {
                     {chartData.length > 0 ? (
                         <Line data={chartConfig} options={chartOptions} />
                     ) : (
-                        <EmptyContainer>Нет данных для графика</EmptyContainer>
+                        <EmptyContainer>No data for the chart</EmptyContainer>
                     )}
                 </ChartContainer>
             </ChartCard>
 
             <ChartCard>
-                <h3>📋 История изменений</h3>
+                <h3>📋 Change history</h3>
                 <TradesTable>
                     <table>
                         <thead>
                             <tr>
                                 <th>#</th>
-                                <th>Портфель</th>
-                                <th>Дата</th>
+                                <th>Portfolio</th>
+                                <th>Datetime</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -322,7 +317,7 @@ function PortfolioPage() {
                             ) : (
                                 <tr>
                                     <td colSpan="3" style={{ textAlign: 'center', padding: 20, color: '#6b7280' }}>
-                                        Нет данных
+                                        No data
                                     </td>
                                 </tr>
                             )}
@@ -334,7 +329,7 @@ function PortfolioPage() {
                     <PaginationContainer>
                         {renderPaginationButtons()}
                         <span style={{ marginLeft: 16, color: '#6b7280', fontSize: 14 }}>
-                            Всего: {pagination.total} записей
+                            Total: {pagination.total} records
                         </span>
                     </PaginationContainer>
                 )}

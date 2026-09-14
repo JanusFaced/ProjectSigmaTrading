@@ -1,6 +1,42 @@
 // AuthorSection.styles.js
-import styled from 'styled-components';
+import styled, { keyframes } from 'styled-components';
 import { NavLink } from 'react-router-dom';
+
+const slideInLeft = keyframes`
+    from {
+        opacity: 0;
+        transform: translateX(-35px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+`;
+
+const slideInRight = keyframes`
+    from {
+        opacity: 0;
+        transform: translateX(35px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+`;
+
+const fadeInUp = keyframes`
+    from {
+        opacity: 0;
+        transform: translateY(24px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+`;
 
 // Основная секция об авторе
 export const HeroSection = styled.section`
@@ -8,179 +44,245 @@ export const HeroSection = styled.section`
     display: flex;
     align-items: center;
     justify-content: center;
-    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
     position: relative;
-    padding: 80px 20px;
-    
-    // Декоративный элемент
+    overflow: hidden;
+    padding: 100px 20px;
+
+    background:
+        radial-gradient(
+            circle at 10% 20%,
+            rgba(59, 130, 246, 0.1),
+            transparent 32%
+        ),
+        radial-gradient(
+            circle at 90% 80%,
+            rgba(139, 92, 246, 0.08),
+            transparent 32%
+        ),
+        #0b0f19;
+
+    color: #f8fafc;
+
+    &::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background-image:
+            linear-gradient(
+                rgba(148, 163, 184, 0.035) 1px,
+                transparent 1px
+            ),
+            linear-gradient(
+                90deg,
+                rgba(148, 163, 184, 0.035) 1px,
+                transparent 1px
+            );
+        background-size: 48px 48px;
+        mask-image: linear-gradient(
+            to bottom,
+            rgba(0, 0, 0, 0.5),
+            transparent 80%
+        );
+        pointer-events: none;
+    }
+
     &::after {
         content: '';
         position: absolute;
+        right: 0;
         bottom: 0;
         left: 0;
-        right: 0;
-        height: 3px;
-        background: linear-gradient(90deg, #667eea, #764ba2, #667eea);
+        height: 1px;
+        background: linear-gradient(
+            90deg,
+            transparent,
+            rgba(96, 165, 250, 0.65),
+            transparent
+        );
     }
 `;
 
 // Контейнер для контента
 export const Container = styled.div`
-    max-width: 800px;
-    margin: 0 auto;
-    text-align: center;
     position: relative;
     z-index: 1;
-    
+    width: min(980px, 100%);
+    margin: 0 auto;
+    text-align: center;
+
     h1 {
-        font-size: 3.5rem;
-        color: #1e3c72;
-        margin-bottom: 1rem;
-        font-weight: bold;
-        animation: slideInLeft 0.8s ease;
-        
-        @media (max-width: 768px) {
-            font-size: 2.5rem;
-        }
-    }
-    
-    @keyframes slideInLeft {
-        from {
-            opacity: 0;
-            transform: translateX(-50px);
-        }
-        to {
-            opacity: 1;
-            transform: translateX(0);
-        }
+        margin: 0 0 1rem;
+        color: #f8fafc;
+        font-size: clamp(2.8rem, 7vw, 5rem);
+        font-weight: 750;
+        line-height: 1.05;
+        letter-spacing: -0.05em;
+        text-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+        animation: ${slideInLeft} 0.8s ease both;
     }
 `;
 
 // Теглайн автора
 export const AuthorTagline = styled.p`
-    font-size: 1.8rem;
-    color: #667eea;
-    margin-bottom: 1.5rem;
+    margin: 0 0 1.5rem;
+    color: #60a5fa;
+    font-size: clamp(1.2rem, 3vw, 1.8rem);
     font-weight: 600;
-    animation: slideInRight 0.8s ease;
-    
-    @media (max-width: 768px) {
-        font-size: 1.3rem;
-    }
-    
-    @keyframes slideInRight {
-        from {
-            opacity: 0;
-            transform: translateX(50px);
-        }
-        to {
-            opacity: 1;
-            transform: translateX(0);
-        }
-    }
+    line-height: 1.4;
+    letter-spacing: 0.01em;
+    animation: ${slideInRight} 0.8s ease both;
 `;
 
 // Описание
 export const Description = styled.p`
-    font-size: 1.2rem;
-    color: #555;
+    max-width: 650px;
+    margin: 0 auto 2rem;
+    color: #94a3b8;
+    font-size: 1.15rem;
     line-height: 1.8;
-    margin-bottom: 2rem;
-    max-width: 600px;
-    margin-left: auto;
-    margin-right: auto;
-    animation: fadeInUp 0.8s ease 0.2s both;
-    
+    animation: ${fadeInUp} 0.8s ease 0.2s both;
+
     @media (max-width: 768px) {
         font-size: 1rem;
-        line-height: 1.6;
-    }
-    
-    @keyframes fadeInUp {
-        from {
-            opacity: 0;
-            transform: translateY(30px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
+        line-height: 1.65;
     }
 `;
 
+// Основная кнопка
 export const CTAButton = styled(NavLink)`
-    display: inline-block;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    text-decoration: none;
-    padding: 1rem 2rem;
-    font-size: 1.1rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 150px;
+    padding: 0.9rem 1.8rem;
+    border: 1px solid rgba(96, 165, 250, 0.8);
+    border-radius: 10px;
+    background: #2563eb;
+    color: #eff6ff;
+    font-size: 1rem;
     font-weight: 600;
-    border-radius: 50px;
-    transition: all 0.3s ease;
-    animation: fadeInUp 0.8s ease 0.4s both;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-    
+    text-decoration: none;
+    box-shadow: 0 10px 30px rgba(37, 99, 235, 0.2);
+    transition:
+        background 0.25s ease,
+        border-color 0.25s ease,
+        box-shadow 0.25s ease,
+        transform 0.25s ease;
+    animation: ${fadeInUp} 0.8s ease 0.4s both;
+
     &:hover {
+        border-color: #93c5fd;
+        background: #3b82f6;
+        box-shadow: 0 14px 35px rgba(37, 99, 235, 0.3);
         transform: translateY(-3px);
-        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
     }
-    
+
+    &:active {
+        transform: translateY(-1px);
+    }
+
+    &:focus-visible {
+        outline: 3px solid rgba(96, 165, 250, 0.4);
+        outline-offset: 4px;
+    }
+
     @media (max-width: 768px) {
         padding: 0.8rem 1.5rem;
-        font-size: 1rem;
+        font-size: 0.95rem;
     }
 `;
 
-// Дополнительные элементы (опционально)
+// Социальные ссылки
 export const SocialLinks = styled.div`
-    margin-top: 2rem;
     display: flex;
     justify-content: center;
-    gap: 1.5rem;
-    animation: fadeInUp 0.8s ease 0.6s both;
+    gap: 1.25rem;
+    margin-top: 2rem;
+    animation: ${fadeInUp} 0.8s ease 0.6s both;
 `;
 
 export const SocialIcon = styled.a`
-    color: #667eea;
-    font-size: 1.5rem;
-    transition: all 0.3s ease;
-    
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    height: 42px;
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    border-radius: 10px;
+    background: rgba(15, 23, 42, 0.55);
+    color: #94a3b8;
+    font-size: 1.35rem;
+    text-decoration: none;
+    transition:
+        background 0.25s ease,
+        border-color 0.25s ease,
+        color 0.25s ease,
+        transform 0.25s ease;
+
     &:hover {
-        color: #764ba2;
+        border-color: rgba(96, 165, 250, 0.65);
+        background: rgba(37, 99, 235, 0.15);
+        color: #60a5fa;
         transform: translateY(-3px);
+    }
+
+    &:focus-visible {
+        outline: 3px solid rgba(96, 165, 250, 0.35);
+        outline-offset: 3px;
     }
 `;
 
-// Счетчик или статистика (опционально)
+// Блок статистики
 export const Stats = styled.div`
-    display: flex;
-    justify-content: center;
-    gap: 3rem;
-    margin-top: 3rem;
-    animation: fadeInUp 0.8s ease 0.8s both;
-    
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    margin-top: 4rem;
+    animation: ${fadeInUp} 0.8s ease 0.6s both;
+
     @media (max-width: 768px) {
-        gap: 1.5rem;
-        flex-wrap: wrap;
+        grid-template-columns: 1fr;
+        max-width: 420px;
+        margin: 3rem auto 0;
     }
 `;
 
 export const StatItem = styled.div`
-    text-align: center;
-    
-    h3 {
-        font-size: 2rem;
-        color: #667eea;
-        margin-bottom: 0.5rem;
-        
-        @media (max-width: 768px) {
-            font-size: 1.5rem;
-        }
+    min-height: 145px;
+    padding: 1.5rem 1.25rem;
+    border: 1px solid rgba(148, 163, 184, 0.14);
+    border-radius: 14px;
+    background: rgba(15, 23, 42, 0.58);
+    box-shadow: 0 12px 35px rgba(0, 0, 0, 0.16);
+    text-align: left;
+    transition:
+        border-color 0.25s ease,
+        background 0.25s ease,
+        transform 0.25s ease;
+
+    &:hover {
+        border-color: rgba(96, 165, 250, 0.4);
+        background: rgba(30, 41, 59, 0.72);
+        transform: translateY(-4px);
     }
-    
+
+    h3 {
+        margin: 0 0 0.75rem;
+        color: #e2e8f0;
+        font-size: 1.05rem;
+        font-weight: 650;
+        line-height: 1.35;
+    }
+
     p {
-        color: #666;
+        margin: 0;
+        color: #64748b;
         font-size: 0.9rem;
+        line-height: 1.5;
+    }
+
+    @media (max-width: 768px) {
+        min-height: auto;
+        text-align: center;
     }
 `;

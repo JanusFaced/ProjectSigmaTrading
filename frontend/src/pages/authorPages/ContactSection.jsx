@@ -23,8 +23,8 @@ function ContactSection() {
     return (
         <ContactSectionMain id="contact">
             <Container>
-                <h2>Давайте работать вместе!</h2>
-                <p>Готов обсудить ваш проект или идею. Просто напишите мне!</p>
+                <h2>Let's work together!</h2>
+                <p>I’m ready to discuss your project or idea. Just drop me a line!</p>
                 
                 <ContactLinks>
                     <ContactItem 
