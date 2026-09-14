@@ -36,7 +36,7 @@ function Navigation() {
                         <NavLink to="/signals/">Главная</NavLink>
                     </NavItem>
                     <NavItem>
-                        <NavLink to="/signals/backtest">Бэктесты стратегий</NavLink>
+                        <NavLink to="/signals/portfolio">Портфель стратегий</NavLink>
                     </NavItem>
                     <NavItem>
                         <NavLink to="/signals/analyst">Торговые роботы</NavLink>

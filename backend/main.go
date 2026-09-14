@@ -14,16 +14,12 @@ import (
 )
 
 func main() {
-    // Загружаем конфиг
     cfg := config.LoadConfig()
 
-    // Подключаем базу данных
     database.InitDB(cfg)
 
-    // Создаем роутер
     router := gin.Default()
 
-    // Настройка CORS
     corsConfig := cors.DefaultConfig()
     if cfg.ModeWork == "localhost" {
         corsConfig.AllowAllOrigins = true
@@ -40,7 +36,6 @@ func main() {
     corsConfig.AllowHeaders = []string{"Origin", "Content-Length", "Content-Type", "X-API-Key"}
     router.Use(cors.New(corsConfig))
 
-    // Публичные эндпоинты
     router.GET("/health", func(c *gin.Context) {
         c.JSON(http.StatusOK, gin.H{"status": "healthy", "framework": "Go/Gin"})
     })
@@ -53,6 +48,8 @@ func main() {
                 "/getTableBacktest",
                 "/getTableAnalyst",
                 "/getTradesBySignal/:signal_id",
+                "/getPortfolio",
+                "/getHistoryPortfolio/:current_portfolio_id",
                 "/admin/delete-signal/:signal_id",
                 "/admin/statistics",
                 "/health",
@@ -60,12 +57,14 @@ func main() {
         })
     })
 
-    // Основные эндпоинты
     router.GET("/getTableBacktest", handlers.GetTableBacktest)
+
     router.GET("/getTableAnalyst", handlers.GetTableAnalyst)
     router.GET("/getTradesBySignal/:signal_id", handlers.GetTradesBySignal)
 
-    // Админские эндпоинты (с защитой)
+    router.GET("/getPortfolio", handlers.GetPortfolio)
+    router.GET("/getHistoryPortfolio/:current_portfolio_id", handlers.GetHistoryPortfolio)
+
     admin := router.Group("/admin")
     admin.Use(middleware.AdminAuth())
     {
@@ -73,7 +72,6 @@ func main() {
         admin.GET("/statistics", handlers.GetAdminStatistics)
     }
 
-    // Запускаем сервер
     log.Println("Server starting on :8000")
     if err := router.Run(":8000"); err != nil {
         log.Fatal("Failed to start server:", err)
