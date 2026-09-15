@@ -45,7 +45,7 @@ ChartJS.register(
     Filler
 );
 
-const CHART_LIMITS = [50, 100, 150, 200, -1];
+const CHART_LIMITS = [30, 90, 180, 365, -1];
 
 function PortfolioPage() {
     const navigate = useNavigate();
@@ -59,14 +59,14 @@ function PortfolioPage() {
     const [statistics, setStatistics] = useState({ total_days: 0 });
     const [pagination, setPagination] = useState({
         current_page: 1,
-        limit: 50,
+        limit: 30,
         total: 0,
         total_pages: 1
     });
-    const [chartLimit, setChartLimit] = useState(50);
+    const [chartLimit, setChartLimit] = useState(30);
 
 
-    const fetchHistory = useCallback(async (id, page = 1, limit = 50, cLimit = 50) => {
+    const fetchHistory = useCallback(async (id, page = 1, limit = 30, cLimit = 30) => {
         try {
             const res = await axios.get(`${API_BASE}/getHistoryPortfolio/${id}`, {
                 params: { page, limit, chart_limit: cLimit }
@@ -76,7 +76,7 @@ function PortfolioPage() {
             setTableData(d.table_data || []);
             setStatistics(d.statistics || { total_days: 0 });
             setPagination(d.pagination || {
-                current_page: 1, limit: 50, total: 0, total_pages: 1
+                current_page: 1, limit: 30, total: 0, total_pages: 1
             });
         } catch (err) {
             console.error('Error fetching history:', err);
@@ -99,7 +99,7 @@ function PortfolioPage() {
                     throw new Error('Portfolio not found');
                 }
                 setPortfolio(p);
-                await fetchHistory(p.id, 1, 50, chartLimit);
+                await fetchHistory(p.id, 1, 30, chartLimit);
             } catch (err) {
                 if (cancelled) return;
                 console.error('Error fetching portfolio:', err);
@@ -115,7 +115,7 @@ function PortfolioPage() {
 
     useEffect(() => {
         if (!portfolio) return;
-        fetchHistory(portfolio.id, 1, 50, chartLimit);
+        fetchHistory(portfolio.id, 1, 30, chartLimit);
     }, [chartLimit, portfolio, fetchHistory]);
 
     const handlePageChange = (newPage) => {
@@ -236,7 +236,7 @@ function PortfolioPage() {
                 <StatCard>
                     <label>Full profit</label>
                     <value style={{ color: fp >= 0 ? '#10b981' : '#ef4444' }}>
-                        {fp >= 0 ? '+' : ''}{portfolio.full_profit}
+                        {fp >= 0 ? '+' : ''}{portfolio.full_profit}%
                     </value>
                 </StatCard>
                 <StatCard>
