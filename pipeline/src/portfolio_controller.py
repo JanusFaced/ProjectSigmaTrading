@@ -182,7 +182,7 @@ def portfolioAnalyst(portfolioVector: npt.NDArray[np.float64]) -> dict:
 		drawdowns = 1 - portfolioVector/max_accum
 		max_drawdown = np.max(drawdowns)
 		
-		full_diff = full_profit[1:] - full_profit[:-1]
+		full_diff = portfolioVector[1:] - portfolioVector[:-1]
 		sharp = np.mean(full_diff)/np.std(full_diff)
 
 		sum_profit = np.sum(full_diff[full_diff > 0])
@@ -196,11 +196,11 @@ def portfolioAnalyst(portfolioVector: npt.NDArray[np.float64]) -> dict:
 		sharp = 0.00
 		profit_factor = 1.0
 
-	full_profit = round(100*full_profit, 2)
-	year_profit = round(100*year_profit, 2)
-	max_drawdown = round(100*max_drawdown, 2)
-	sharp = round(100*sharp, 2)
-	profit_factor = round(100*profit_factor, 2)
+	full_profit = round(100*float(full_profit), 2)
+	year_profit = round(100*float(year_profit), 2)
+	max_drawdown = round(100*float(max_drawdown), 2)
+	sharp = round(100*float(sharp), 2)
+	profit_factor = round(100*float(profit_factor), 2)
 
 	report = {
 		"full_profit": full_profit,
