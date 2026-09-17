@@ -212,7 +212,7 @@ services:
     image: nginx/nginx-prometheus-exporter:latest
     restart: unless-stopped
     command:
-      - '--nginx.scrape-uri=http://nginx/nginx_status'
+      - '--nginx.scrape-uri=http://nginx:8080/nginx_status'
     depends_on:
       - nginx
     networks:
