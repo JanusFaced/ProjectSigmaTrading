@@ -208,6 +208,12 @@ services:
           memory: 64M
     restart: unless-stopped
 
+  nginx-exporter:
+    image: nginx/nginx-prometheus-exporter:latest
+    restart: unless-stopped
+    command:
+      - '--nginx.scrape-uri=http://nginx/nginx_status'
+
   loki:
     image: grafana/loki:2.8.0
     container_name: loki
