@@ -6,7 +6,7 @@ services:
       args:
         - REACT_APP_API_URL=https://projectsigmatrading.ru/api
     networks:
-      - app-network
+      - project-network
     depends_on:
       - backend
     environment:
@@ -34,7 +34,7 @@ services:
       MODE_WORK: localhost
       ADMIN_KEY: ${ADMIN_KEY}
     networks:
-      - app-network
+      - project-network
     depends_on:
       dbmate:
         condition: service_completed_successfully
@@ -52,7 +52,7 @@ services:
     build:
       context: ./parser
     networks:
-      - app-network
+      - project-network
     depends_on:
       dbmate:
         condition: service_completed_successfully
@@ -78,7 +78,7 @@ services:
       context: ./beat
     command: sh -c "cd src && celery -A celery_beat beat --loglevel=info"
     networks:
-      - app-network
+      - project-network
     depends_on:
       dbmate:
         condition: service_completed_successfully
@@ -113,7 +113,7 @@ services:
       --max-tasks-per-child=40 
       --prefetch-multiplier=1"
     networks:
-      - app-network
+      - project-network
     depends_on:
       dbmate:
         condition: service_completed_successfully
@@ -142,7 +142,7 @@ services:
   redis:
     image: redis:7-alpine
     networks:
-      - app-network
+      - project-network
     deploy:
       resources:
         limits:
@@ -156,7 +156,7 @@ services:
     environment:
       DATABASE_URL: "postgres://${DB_USER}:${DB_PASSWORD}@dataBase:5432/${DB_NAME}?sslmode=disable"
     networks:
-      - app-network
+      - project-network
     volumes:
       - ./migrations_vds:/db/migrations
     depends_on:
@@ -170,7 +170,7 @@ services:
       POSTGRES_USER: ${DB_USER}
       POSTGRES_DB: ${DB_NAME}
     networks:
-      - app-network
+      - project-network
     volumes:
       - db-data:/var/lib/postgresql/data
     deploy:
@@ -200,7 +200,7 @@ services:
       - backend
       - frontend
     networks:
-      - app-network
+      - project-network
     deploy:
       resources:
         limits:
@@ -213,6 +213,15 @@ services:
     restart: unless-stopped
     command:
       - '--nginx.scrape-uri=http://nginx/nginx_status'
+    depends_on:
+      - nginx
+    networks:
+      - project-network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 64M
 
   loki:
     image: grafana/loki:2.8.0
@@ -222,7 +231,7 @@ services:
       - ./monitoring/loki/loki-config.yml:/etc/loki/loki-config.yml
       - loki_data:/loki
     networks:
-      - app-network
+      - project-network
     deploy:
       resources:
         limits:
@@ -241,7 +250,7 @@ services:
     depends_on:
       - loki
     networks:
-      - app-network
+      - project-network
     deploy:
       resources:
         limits:
@@ -268,7 +277,7 @@ services:
     depends_on:
       - loki
     networks:
-      - app-network
+      - project-network
     deploy:
       resources:
         limits:
@@ -290,7 +299,7 @@ services:
       - '--path.procfs=/host/proc'
       - '--path.sysfs=/host/sys'
     networks:
-      - app-network
+      - project-network
     deploy:
       resources:
         limits:
@@ -306,8 +315,9 @@ services:
       - prometheus_data:/prometheus
     depends_on:
       - node-exporter
+      - nginx-exporter
     networks:
-      - app-network
+      - project-network
     deploy:
       resources:
         limits:
@@ -323,5 +333,5 @@ volumes:
   prometheus_data:
 
 networks:
-  app-network:
+  project-network:
     driver: bridge
