@@ -174,9 +174,10 @@ def portfolioAnalyst(portfolioVector: npt.NDArray[np.float64]) -> dict:
 	eps = 0.000000001
 
 	if lenth > 1:
-		full_profit = round(100*(portfolioVector[-1]/portfolioVector[0] - 1), 2)
-		elementaryProfit = full_profit**(1/lenth) if full_profit > 0.00 else -1*(-1*full_profit)**(1/lenth)
-		year_profit = elementaryProfit**365 if elementaryProfit > 0.00 else -1*(-1*elementaryProfit)**365
+		full_profit = (portfolioVector[-1]/portfolioVector[0] - 1)
+
+		elementaryProfit = (full_profit + 1)**(1/lenth)
+		year_profit = elementaryProfit**365 - 1
 
 		max_accum = np.maximum.accumulate(portfolioVector)
 		drawdowns = 1 - portfolioVector/max_accum
